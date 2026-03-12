@@ -1,5 +1,5 @@
 import { APP_WIDTH, APP_HEIGHT, APP_MARGIN } from "./constants.js";
-import { Renderer } from "../systems/renderer.js";
+import { Renderer } from "./renderer.js";
 
 export class App {
     constructor() {

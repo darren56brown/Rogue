@@ -1,5 +1,5 @@
 
-import { App } from './core/app.js';
+import { App } from './app.js';
 
 function startApp() {
     const app = new App();

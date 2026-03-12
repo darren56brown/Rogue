@@ -1,4 +1,4 @@
-import { APP_WIDTH, APP_HEIGHT, GRID_SIZE } from "../core/constants.js";
+import { APP_WIDTH, APP_HEIGHT, GRID_SIZE } from "./constants.js";
 
 export class Renderer {
     constructor(canvas) {
