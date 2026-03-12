@@ -1,33 +1,49 @@
-import { APP_WIDTH, APP_HEIGHT, GRID_SIZE } from "./constants.js";
+import { APP_SIZE, GRID_SIZE } from "./constants.js";
 
 export class Renderer {
-    constructor(canvas) {
+    constructor(canvas, imageLibrary) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.ctx.imageSmoothingEnabled = false;
+        this.imageLibrary = imageLibrary;
     }
 
-    render() {
+    render(player) {
         this.ctx.fillStyle = "#829e71";
-        this.ctx.fillRect(0, 0, APP_WIDTH, APP_HEIGHT);
+        this.ctx.fillRect(0, 0, APP_SIZE.w, APP_SIZE.h);
         this.renderGrid();
+        this.renderPlayer(player);
+    }
+
+    renderPlayer(player){
+        const playerImage = this.imageLibrary.get('player');
+
+        if (playerImage){
+            this.ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
+        } else {
+            // fallback
+            this.ctx.fillStyle = "#1a1a2e";
+            this.ctx.fillRect(player.x, player.y, player.width, player.height);
+            this.ctx.strokeStyle = "white";
+            this.ctx.strokeRect(player.x, player.y, player.width, player.height);
+        }
     }
 
     renderGrid() {
         this.ctx.strokeStyle = "yellow";
         this.ctx.lineWidth = 1;
 
-        for (let i = 0; i < APP_WIDTH; i += GRID_SIZE) {
+        for (let x = 0; x < APP_SIZE.w; x += GRID_SIZE.w) {
             this.ctx.beginPath();
-            this.ctx.moveTo(i, 0);
-            this.ctx.lineTo(i, APP_HEIGHT);
+            this.ctx.moveTo(x, 0);
+            this.ctx.lineTo(x, APP_SIZE.h);
             this.ctx.stroke();
         }
 
-        for (let j = 0; j < APP_HEIGHT; j += GRID_SIZE) {
+        for (let y = 0; y < APP_SIZE.h; y += GRID_SIZE.h) {
             this.ctx.beginPath();
-            this.ctx.moveTo(0, j);
-            this.ctx.lineTo(APP_WIDTH, j);
+            this.ctx.moveTo(0, y);
+            this.ctx.lineTo(APP_SIZE.w, y);
             this.ctx.stroke();
         }
 
