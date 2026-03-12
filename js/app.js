@@ -2,6 +2,7 @@ import { APP_SIZE, APP_MARGIN } from "./constants.js";
 import { Renderer } from "./renderer.js";
 import { ImageLibrary } from "./image_library.js";
 import { Player } from "./player.js";
+import { FPSTracker } from "./fps_tracker.js";
 
 export class App {
     constructor() {
@@ -13,7 +14,10 @@ export class App {
 
         this.renderer = new Renderer(this.canvas, this.imageLibrary);
         this.player = new Player();
-                
+        
+        this.fpsTracker = null;
+        this.fpsTracker = new FPSTracker();
+
         this.keys = {};   
         this.lastTime = 0;
     }
@@ -51,9 +55,13 @@ export class App {
 
     loop(time) {
         const delta = Math.min((time - this.lastTime)/1000, 0.1);
+        if (this.fpsTracker) {
+            this.fpsTracker.update(time);
+        }
+
         this.updatePhysics(delta);
 
-        this.renderer.render(this.player);
+        this.renderer.render(this.player, this.fpsTracker);
 
         requestAnimationFrame((t) => this.loop(t));
     }

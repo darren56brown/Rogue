@@ -8,11 +8,15 @@ export class Renderer {
         this.imageLibrary = imageLibrary;
     }
 
-    render(player) {
+    render(player, fpsTracker = null) {
         this.ctx.fillStyle = "#829e71";
         this.ctx.fillRect(0, 0, APP_SIZE.w, APP_SIZE.h);
         this.renderGrid();
         this.renderPlayer(player);
+
+        if (fpsTracker) {
+            fpsTracker.draw(this.ctx, 20, 20);
+        }
     }
 
     renderPlayer(player){
