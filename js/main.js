@@ -1,7 +1,13 @@
 
 import { App } from './core/app.js';
 
-const app = new App();
-console.log(app);
+function startApp() {
+    const app = new App();
+    app.init();
+}
 
-console.log("main.js started");
+if (document.readyState === 'loading') {
+    window.addEventListener('load', startApp);
+} else {
+    startApp();
+}

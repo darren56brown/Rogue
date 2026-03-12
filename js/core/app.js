@@ -6,8 +6,6 @@ export class App {
         this.canvas = document.getElementById("mainCanvas");
         this.ctx = this.canvas.getContext("2d");
         this.renderer = new Renderer(this.canvas);
-
-        this.init();
     }
 
     init() {
