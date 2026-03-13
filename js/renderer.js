@@ -21,12 +21,19 @@ export class Renderer {
     }
 
     renderPlayer(player) {
-        const playerImage = this.imageLibrary.get('player-base');
+        const player_shadow = this.imageLibrary.get('player_shadow');
+        if (player_shadow) {
+            this.ctx.drawImage(player_shadow,
+                0, 0, 64, 32,
+                player.pos.x, player.pos.y + 42,
+                64, 32);
+        }
 
-        if (playerImage){
-            this.ctx.drawImage(playerImage,
-                PLAYER_ANIM_FRAME_SIZE.w * player.curAnimFrame,
-                PLAYER_ANIM_FRAME_SIZE.h * player.curImageRow,
+        const player_base = this.imageLibrary.get('player_base');
+        if (player_base) {
+            this.ctx.drawImage(player_base,
+                PLAYER_ANIM_FRAME_SIZE.w * player.imageCoord.col,
+                PLAYER_ANIM_FRAME_SIZE.h * player.imageCoord.row,
                 PLAYER_ANIM_FRAME_SIZE.w, PLAYER_ANIM_FRAME_SIZE.h,
                 player.pos.x, player.pos.y,
                 player.size.w, player.size.h);
