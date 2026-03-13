@@ -1,5 +1,6 @@
 import { APP_SIZE } from "./constants.js";
 import { PLAYER_ANIM_FRAME_SIZE, PLAYER_SHEET_DIMS } from "./constants.js";
+import { PLAYER_ANIM_FPS } from "./constants.js";
 
 export class Player {
     constructor() {
@@ -12,11 +13,12 @@ export class Player {
             y: (APP_SIZE.h - this.size.h) / 2
         }
 
-        this.speed = 100;
+        this.speed = 25;
 
         this.curImageRow = 10;
         this.numAnimFrames = 8;
         this.curAnimFrame = 0;
+        this.animTimer = 0;
 
     }
     updatePhysics(dt, keys) {
@@ -49,9 +51,16 @@ export class Player {
             this.pos.x += dx * this.speed * dt;
             this.pos.y += dy * this.speed * dt;
         }
-        // Keep player in bounds
+
         this.pos.x = Math.max(0, Math.min(APP_SIZE.w - this.size.w, this.pos.x));
         this.pos.y = Math.max(0, Math.min(APP_SIZE.h - this.size.h, this.pos.y));
+
+        this.animTimer += dt;
+        if (this.animTimer > 1 / PLAYER_ANIM_FPS) {
+            this.animTimer = 0;
+            this.curAnimFrame = (this.curAnimFrame + 1) % this.numAnimFrames;
+        }
+
 
     }
 }
