@@ -1,4 +1,5 @@
 import { APP_SIZE, GRID_SIZE } from "./constants.js";
+import { PLAYER_ANIM_FRAME_SIZE } from "./constants.js";
 
 export class Renderer {
     constructor(canvas, imageLibrary) {
@@ -19,11 +20,16 @@ export class Renderer {
         }
     }
 
-    renderPlayer(player){
-        const playerImage = this.imageLibrary.get('player');
+    renderPlayer(player) {
+        const playerImage = this.imageLibrary.get('player-base');
 
         if (playerImage){
-            this.ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
+            this.ctx.drawImage(playerImage,
+                PLAYER_ANIM_FRAME_SIZE.w * player.curAnimFrame,
+                PLAYER_ANIM_FRAME_SIZE.h * player.curImageRow,
+                PLAYER_ANIM_FRAME_SIZE.w, PLAYER_ANIM_FRAME_SIZE.h,
+                player.pos.x, player.pos.y,
+                player.size.w, player.size.h);
         } else {
             // fallback
             this.ctx.fillStyle = "#1a1a2e";

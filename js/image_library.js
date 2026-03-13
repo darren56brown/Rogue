@@ -24,6 +24,6 @@ export class ImageLibrary {
     }
 
     loadAll(){
-        this.load('player', '../images/player.png');
+        this.load('player-base', '../images/player-base.png');
     }
 }

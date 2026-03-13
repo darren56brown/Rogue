@@ -1,25 +1,43 @@
 import { APP_SIZE } from "./constants.js";
+import { PLAYER_ANIM_FRAME_SIZE, PLAYER_SHEET_DIMS } from "./constants.js";
 
 export class Player {
-    constructor(){
-        this.width = 48;
-        this.height = 48;
+    constructor() {
+        this.size = {
+            w: PLAYER_ANIM_FRAME_SIZE.w,
+            h: PLAYER_ANIM_FRAME_SIZE.h
+        }
+        this.pos = {
+            x: (APP_SIZE.w - this.size.w) / 2,
+            y: (APP_SIZE.h - this.size.h) / 2
+        }
 
-        this.x = (APP_SIZE.w - this.width) / 2;
-        this.y = (APP_SIZE.h - this.height) / 2;
+        this.speed = 100;
 
-        this.speed = 300;
+        this.curImageRow = 10;
+        this.numAnimFrames = 8;
+        this.curAnimFrame = 0;
 
-        // Multipliers (for upgrades)
-        this.speedMultiplier = 1;
     }
     updatePhysics(dt, keys) {
         let dx = 0, dy = 0;
 
-        if (keys['w'] || keys['arrowup']) dy -= 1;
-        if (keys['s'] || keys['arrowdown']) dy += 1;
-        if (keys['a'] || keys['arrowleft']) dx -= 1;
-        if (keys['d'] || keys['arrowright']) dx += 1;
+        if (keys['w'] || keys['arrowup']) {
+            dy -= 1;
+            this.curImageRow = 8;
+        }
+        if (keys['s'] || keys['arrowdown']) {
+            dy += 1;
+            this.curImageRow = 10;
+        }
+        if (keys['a'] || keys['arrowleft']) {
+            dx -= 1;
+            this.curImageRow = 9;
+        }
+        if (keys['d'] || keys['arrowright']) {
+            dx += 1;
+            this.curImageRow = 11;
+        }
 
         if (dx || dy) {
             if (dx && dy) {
@@ -28,12 +46,12 @@ export class Player {
                 dy /= len;
             }
 
-            this.x += dx * this.speed * this.speedMultiplier * dt;
-            this.y += dy * this.speed * this.speedMultiplier * dt;
+            this.pos.x += dx * this.speed * dt;
+            this.pos.y += dy * this.speed * dt;
         }
         // Keep player in bounds
-        this.x = Math.max(0, Math.min(APP_SIZE.w - this.width, this.x));
-        this.y = Math.max(0, Math.min(APP_SIZE.h - this.height, this.y));
+        this.pos.x = Math.max(0, Math.min(APP_SIZE.w - this.size.w, this.pos.x));
+        this.pos.y = Math.max(0, Math.min(APP_SIZE.h - this.size.h, this.pos.y));
 
     }
 }
