@@ -1,5 +1,5 @@
-import { APP_SIZE } from "./constants.js";
-import { PLAYER_ANIM_FRAME_SIZE, PLAYER_SHEET_DIMS } from "./constants.js";
+import { APP_SIZE, GRID_SIZE } from "./constants.js";
+import { PLAYER_ANIM_FRAME_SIZE, PLAYER_TILE_ORIGIN } from "./constants.js";
 import { PLAYER_ANIM_FPS } from "./constants.js";
 
 const AnimWalkSequence = Object.freeze({
@@ -42,8 +42,12 @@ export class Player {
             h: PLAYER_ANIM_FRAME_SIZE.h
         };
         this.pos = {
-            x: (APP_SIZE.w - this.size.w) / 2,
-            y: (APP_SIZE.h - this.size.h) / 2
+            x: 10.5 * GRID_SIZE.w,
+            y: 10.5 * GRID_SIZE.h
+        };
+        this.origin = {
+            x: PLAYER_TILE_ORIGIN.x,
+            y: PLAYER_TILE_ORIGIN.y
         };
 
         this.speed = 25;
@@ -92,8 +96,8 @@ export class Player {
             this.pos.x += dx * this.speed * dt;
             this.pos.y += dy * this.speed * dt;
 
-            //this.pos.x = Math.max(0, Math.min(APP_SIZE.w - this.size.w, this.pos.x));
-            //this.pos.y = Math.max(0, Math.min(APP_SIZE.h - this.size.h, this.pos.y));
+            this.pos.x = Math.max(0, Math.min(APP_SIZE.w, this.pos.x));
+            this.pos.y = Math.max(0, Math.min(APP_SIZE.h, this.pos.y));
         } else {
             //Not moving
             if (this.curWalkFrame == AnimWalkSequence.neutral_1 ||
