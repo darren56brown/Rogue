@@ -2,6 +2,7 @@ import { APP_SIZE, APP_MARGIN } from "./constants.js";
 import { Renderer } from "./renderer.js";
 import { ImageLibrary } from "./image_library.js";
 import { Player } from "./player.js";
+import { Level } from "./level.js";
 import { FPSTracker } from "./fps_tracker.js";
 
 export class App {
@@ -10,16 +11,16 @@ export class App {
         this.ctx = this.canvas.getContext("2d");
 
         this.imageLibrary = new ImageLibrary();
-        this.imageLibrary.loadAll();
-
         this.renderer = new Renderer(this.canvas, this.imageLibrary);
         this.player = new Player();
-        
-        this.fpsTracker = null;
+
+        this.level = null;
+
         this.fpsTracker = new FPSTracker();
 
         this.keys = {};   
         this.lastTime = 0;
+        this.cameraPos = {x: 0, y: 0};
     }
 
     init() {
@@ -27,8 +28,30 @@ export class App {
         window.addEventListener('resize', () => this.resizeCanvas());
         this.initUserInput();
 
-        this.lastTime = performance.now();
-        requestAnimationFrame((t) => this.loop(t))
+        // 1. Start loading images
+        this.imageLibrary.loadAll();
+
+        // 2. Start loading the level data (returns a promise)
+        // We catch the returned level object and assign it to this.level
+        const levelPromise = Level.load('level_01')
+            .then(loadedLevel => { this.level = loadedLevel; })
+            .catch(err => console.error("Level loading failed", err));
+
+        // 3. Create the image loading promise
+        const imagesPromise = new Promise(resolve => {
+            this.imageLibrary.onAllLoaded(resolve);
+        });
+
+        // 4. Wait for BOTH to finish
+        Promise.all([levelPromise, imagesPromise])
+            .then(() => {
+                //console.log("All assets ready — starting game loop");
+                this.lastTime = performance.now();
+                requestAnimationFrame(t => this.loop(t));
+            })
+            .catch(err => {
+                console.error("Asset loading failed:", err);
+            });
     }
     
     resizeCanvas() {
@@ -61,7 +84,8 @@ export class App {
 
         this.updatePhysics(delta);
 
-        this.renderer.render(this.player, this.fpsTracker);
+        this.renderer.render(this.cameraPos, this.player, this.level,
+            this.fpsTracker);
 
         requestAnimationFrame((t) => this.loop(t));
     }
