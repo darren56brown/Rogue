@@ -97,11 +97,18 @@ export class Level {
     }
 
     getTileInfo(x, y) {
-        if (!this.isLoaded || y < 0 || y >= this.size.h || x < 0 || x >= this.size.w) {
+        if (!this.isLoaded) {
             return null;
         }
 
-        let gid = this.mapData[y][x];
+        let gid = 0;
+        if (y >= 0 && y < this.size.h && x >= 0 && x < this.size.w) {
+            gid = this.mapData[y][x];
+        }
+        else {
+            gid = this.mapData[0][0]; //Water?
+        }
+
         if (gid <= 0) return null;
 
         // Find which tileset owns this GID
@@ -120,7 +127,7 @@ export class Level {
         const row = Math.floor(localId / tileset.columns);
 
         return {
-            imageName: tileset.imageName,   // key to look up in ImageLibrary
+            imageName: tileset.imageName,
             sx: col * tileset.tilewidth,
             sy: row * tileset.tileheight,
             sw: tileset.tilewidth,

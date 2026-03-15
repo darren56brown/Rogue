@@ -8,31 +8,31 @@ export class Renderer {
         this.imageLibrary = imageLibrary;
     }
 
-    render(cameraPos, player, level, fpsTracker = null) {
+    render(viewOrigin, player, level, fpsTracker = null) {
         //this.ctx.fillStyle = "#829e71";
         //this.ctx.fillRect(0, 0, APP_SIZE.w, APP_SIZE.h);
         //this.renderGrid();
-        this.renderLevel(cameraPos, level);
-        this.renderPlayer(player);
+        this.renderLevel(viewOrigin, level);
+        this.renderPlayer(viewOrigin, player);
 
         if (fpsTracker) {
             fpsTracker.render(this.ctx, 20, 20);
         }
     }
 
-    renderLevel(cameraPos, level) {
+    renderLevel(viewOrigin, level) {
         if (!level) return;
         if (!level.isLoaded) return;
 
         const tileSize = level.tileSize;
 
         for (let y = 0; y < level.size.h; y++) {
-            const dy = y * tileSize.h - cameraPos.y;
+            const dy = y * tileSize.h - viewOrigin.y;
 
             if (dy <= -tileSize.h || dy >= this.ctx.canvas.height) continue;
 
             for (let x = 0; x < level.size.w; x++) {
-                const dx = x * tileSize.w - cameraPos.x;
+                const dx = x * tileSize.w - viewOrigin.x;
                 
                 if (dx <= -tileSize.w || dx >= this.ctx.canvas.width) continue;
 
@@ -51,10 +51,10 @@ export class Renderer {
         }
     }
 
-    renderPlayer(player) {
+    renderPlayer(viewOrigin, player) {
 
-        let ulx = player.pos.x - player.origin.x;
-        let uly = player.pos.y - player.origin.y;
+        let ulx = player.pos.x - player.origin.x - viewOrigin.x;
+        let uly = player.pos.y - player.origin.y - viewOrigin.y;
 
         const player_shadow = this.imageLibrary.get('player_shadow');
         if (player_shadow) {
