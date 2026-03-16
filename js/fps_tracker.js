@@ -33,7 +33,7 @@ export class FPSTracker {
     }
 
     // Draw method — only called when you want to show it
-    draw(ctx, x = 20, y = 20) {
+    render(ctx, x = 20, y = 20) {
         ctx.save();
 
         ctx.font = "bold 26px 'Courier New', monospace";

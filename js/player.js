@@ -1,5 +1,5 @@
-import { APP_SIZE } from "./constants.js";
-import { PLAYER_ANIM_FRAME_SIZE, PLAYER_SHEET_DIMS } from "./constants.js";
+import { APP_SIZE, GRID_SIZE } from "./constants.js";
+import { PLAYER_ANIM_FRAME_SIZE, PLAYER_TILE_ORIGIN } from "./constants.js";
 import { PLAYER_ANIM_FPS } from "./constants.js";
 
 const AnimWalkSequence = Object.freeze({
@@ -36,14 +36,15 @@ const AnimWalkSequenceOffset = new Map([
 ]);
 
 export class Player {
-    constructor() {
+    constructor(pos) {
         this.size = {
             w: PLAYER_ANIM_FRAME_SIZE.w,
             h: PLAYER_ANIM_FRAME_SIZE.h
         };
-        this.pos = {
-            x: (APP_SIZE.w - this.size.w) / 2,
-            y: (APP_SIZE.h - this.size.h) / 2
+        this.pos = pos;
+        this.origin = {
+            x: PLAYER_TILE_ORIGIN.x,
+            y: PLAYER_TILE_ORIGIN.y
         };
 
         this.speed = 25;
@@ -58,24 +59,22 @@ export class Player {
     updatePhysics(dt, keys) {
         let dx = 0, dy = 0;
 
-        if (keys['w'] || keys['arrowup']) {
-            dy -= 1;
-            this.curFacing = PlayerFacing.face_up;
-        }
-        if (keys['s'] || keys['arrowdown']) {
-            dy += 1;
-            this.curFacing = PlayerFacing.face_dn;
-        }
-        if (keys['a'] || keys['arrowleft']) {
-            dx -= 1;
-            this.curFacing = PlayerFacing.face_lt;
-        }
-        if (keys['d'] || keys['arrowright']) {
-            dx += 1;
-            this.curFacing = PlayerFacing.face_rt;
-        }
+        if (keys['w'] || keys['arrowup']) dy -= 1;
+        if (keys['s'] || keys['arrowdown']) dy += 1;
+        if (keys['a'] || keys['arrowleft']) dx -= 1;
+        if (keys['d'] || keys['arrowright']) dx += 1;
 
         if (dx || dy) {
+            if (dx > 0) {
+                this.curFacing = PlayerFacing.face_rt;
+            } else if (dx < 0 ) {
+                this.curFacing = PlayerFacing.face_lt;
+            } else if (dy > 0) {
+                this.curFacing = PlayerFacing.face_dn;
+            } else if (dy < 0 ) {
+                this.curFacing = PlayerFacing.face_up;
+            }
+
             //Moving
             if (this.curWalkFrame == AnimWalkSequence.num_frames) {
                 //Transition to animating
@@ -92,8 +91,8 @@ export class Player {
             this.pos.x += dx * this.speed * dt;
             this.pos.y += dy * this.speed * dt;
 
-            //this.pos.x = Math.max(0, Math.min(APP_SIZE.w - this.size.w, this.pos.x));
-            //this.pos.y = Math.max(0, Math.min(APP_SIZE.h - this.size.h, this.pos.y));
+            //this.pos.x = Math.max(0, Math.min(APP_SIZE.w, this.pos.x));
+            //this.pos.y = Math.max(0, Math.min(APP_SIZE.h, this.pos.y));
         } else {
             //Not moving
             if (this.curWalkFrame == AnimWalkSequence.neutral_1 ||

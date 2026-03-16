@@ -1,5 +1,4 @@
 import { APP_SIZE, GRID_SIZE } from "./constants.js";
-import { PLAYER_ANIM_FRAME_SIZE } from "./constants.js";
 
 export class Renderer {
     constructor(canvas, imageLibrary) {
@@ -9,40 +8,70 @@ export class Renderer {
         this.imageLibrary = imageLibrary;
     }
 
-    render(player, fpsTracker = null) {
-        this.ctx.fillStyle = "#829e71";
-        this.ctx.fillRect(0, 0, APP_SIZE.w, APP_SIZE.h);
-        this.renderGrid();
-        this.renderPlayer(player);
+    render(viewOrigin, player, level, fpsTracker = null) {
+        //this.ctx.fillStyle = "#829e71";
+        //this.ctx.fillRect(0, 0, APP_SIZE.w, APP_SIZE.h);
+        //this.renderGrid();
+        this.renderLevel(viewOrigin, level);
+        this.renderPlayer(viewOrigin, player);
 
         if (fpsTracker) {
-            fpsTracker.draw(this.ctx, 20, 20);
+            fpsTracker.render(this.ctx, 20, 20);
         }
     }
 
-    renderPlayer(player) {
+    renderLevel(viewOrigin, level) {
+        if (!level) return;
+        if (!level.isLoaded) return;
+
+        const tileSize = level.tileSize;
+
+        for (let y = 0; y < level.size.h; y++) {
+            const dy = y * tileSize.h - viewOrigin.y;
+
+            if (dy <= -tileSize.h || dy >= this.ctx.canvas.height) continue;
+
+            for (let x = 0; x < level.size.w; x++) {
+                const dx = x * tileSize.w - viewOrigin.x;
+                
+                if (dx <= -tileSize.w || dx >= this.ctx.canvas.width) continue;
+
+                const info = level.getTileInfo(x, y);
+                if (!info) continue;
+
+                const img = this.imageLibrary.get(info.imageName);
+                if (!img) continue;  // image not loaded yet
+
+                this.ctx.drawImage(
+                    img,
+                    info.sx, info.sy, info.sw, info.sh,   // source rect
+                    dx, dy, tileSize.w, tileSize.h            // dest rect
+                );
+            }
+        }
+    }
+
+    renderPlayer(viewOrigin, player) {
+
+        let ulx = player.pos.x - player.origin.x - viewOrigin.x;
+        let uly = player.pos.y - player.origin.y - viewOrigin.y;
+
         const player_shadow = this.imageLibrary.get('player_shadow');
         if (player_shadow) {
             this.ctx.drawImage(player_shadow,
                 0, 0, 64, 32,
-                player.pos.x, player.pos.y + 42,
+                ulx, uly + 42,
                 64, 32);
         }
 
         const player_base = this.imageLibrary.get('player_base');
         if (player_base) {
             this.ctx.drawImage(player_base,
-                PLAYER_ANIM_FRAME_SIZE.w * player.imageCoord.col,
-                PLAYER_ANIM_FRAME_SIZE.h * player.imageCoord.row,
-                PLAYER_ANIM_FRAME_SIZE.w, PLAYER_ANIM_FRAME_SIZE.h,
-                player.pos.x, player.pos.y,
+                player.size.w * player.imageCoord.col,
+                player.size.h * player.imageCoord.row,
+                player.size.w, player.size.h,
+                ulx, uly,
                 player.size.w, player.size.h);
-        } else {
-            // fallback
-            this.ctx.fillStyle = "#1a1a2e";
-            this.ctx.fillRect(player.x, player.y, player.width, player.height);
-            this.ctx.strokeStyle = "white";
-            this.ctx.strokeRect(player.x, player.y, player.width, player.height);
         }
     }
 
