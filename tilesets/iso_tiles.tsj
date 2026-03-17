@@ -1,0 +1,14 @@
+{ "columns":4,
+ "image":"..\/..\/Rogue\/images\/iso_tiles.png",
+ "imageheight":384,
+ "imagewidth":512,
+ "margin":0,
+ "name":"iso_tiles",
+ "spacing":0,
+ "tilecount":16,
+ "tiledversion":"1.12.0-1-gd3530f437",
+ "tileheight":96,
+ "tilewidth":128,
+ "type":"tileset",
+ "version":"1.10"
+}

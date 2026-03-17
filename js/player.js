@@ -1,4 +1,4 @@
-import { APP_SIZE, GRID_SIZE } from "./constants.js";
+import { ISO } from "./constants.js";
 import { PLAYER_ANIM_FRAME_SIZE, PLAYER_TILE_ORIGIN } from "./constants.js";
 import { PLAYER_ANIM_FPS } from "./constants.js";
 
@@ -29,10 +29,10 @@ const PlayerImageRow = new Map([
 ]);
 
 const AnimWalkSequenceOffset = new Map([
-  [PlayerFacing.face_up, 1],
-  [PlayerFacing.face_lt, 3],
-  [PlayerFacing.face_dn, 1],
-  [PlayerFacing.face_rt, 7]
+  [PlayerFacing.face_up, 0],
+  [PlayerFacing.face_lt, 2],
+  [PlayerFacing.face_dn, 0],
+  [PlayerFacing.face_rt, 6]
 ]);
 
 export class Player {
@@ -57,47 +57,48 @@ export class Player {
     }
 
     updatePhysics(dt, keys) {
-        let dx = 0, dy = 0;
+        let screen_dx = 0;
+        let screen_dy = 0;
 
-        if (keys['w'] || keys['arrowup']) dy -= 1;
-        if (keys['s'] || keys['arrowdown']) dy += 1;
-        if (keys['a'] || keys['arrowleft']) dx -= 1;
-        if (keys['d'] || keys['arrowright']) dx += 1;
+        if (keys['a'] || keys['arrowleft'])  screen_dx -= 1;
+        if (keys['d'] || keys['arrowright']) screen_dx += 1;
+        if (keys['w'] || keys['arrowup'])    screen_dy -= 1;
+        if (keys['s'] || keys['arrowdown'])  screen_dy += 1;
 
-        if (dx || dy) {
-            if (dx > 0) {
-                this.curFacing = PlayerFacing.face_rt;
-            } else if (dx < 0 ) {
-                this.curFacing = PlayerFacing.face_lt;
-            } else if (dy > 0) {
-                this.curFacing = PlayerFacing.face_dn;
-            } else if (dy < 0 ) {
-                this.curFacing = PlayerFacing.face_up;
+        const moving = screen_dx !== 0 || screen_dy !== 0;
+
+        if (moving) {
+            // Normalize screen movement (consistent speed in any direction)
+            const len = Math.hypot(screen_dx, screen_dy);
+            if (len > 0) {
+                screen_dx /= len;
+                screen_dy /= len;
             }
 
-            //Moving
-            if (this.curWalkFrame == AnimWalkSequence.num_frames) {
-                //Transition to animating
+            // Set facing based on screen direction (you can refine later)
+            if (Math.abs(screen_dx) > Math.abs(screen_dy)) {
+                this.curFacing = screen_dx > 0 ? PlayerFacing.face_rt : PlayerFacing.face_lt;
+            } else {
+                this.curFacing = screen_dy > 0 ? PlayerFacing.face_dn : PlayerFacing.face_up;
+            }
+
+            // Convert screen delta → world delta (the "skew")
+            const {HALF_W, HALF_H} = ISO;
+            const world_dx = (screen_dx / HALF_W + screen_dy / HALF_H) / 2;
+            const world_dy = (-screen_dx / HALF_W + screen_dy / HALF_H) / 2;
+
+            this.pos.x += world_dx * this.speed * dt;
+            this.pos.y += world_dy * this.speed * dt;
+
+            // Was not moving, go to first animation frame
+            if (this.curWalkFrame === AnimWalkSequence.num_frames) {
                 this.curWalkFrame = AnimWalkSequence.neutral_1;
                 this.animTimer = 0;
             }
-
-            if (dx && dy) {
-                const len = Math.sqrt(dx * dx + dy * dy);
-                dx /= len;
-                dy /= len;
-            }
-
-            this.pos.x += dx * this.speed * dt;
-            this.pos.y += dy * this.speed * dt;
-
-            //this.pos.x = Math.max(0, Math.min(APP_SIZE.w, this.pos.x));
-            //this.pos.y = Math.max(0, Math.min(APP_SIZE.h, this.pos.y));
         } else {
-            //Not moving
-            if (this.curWalkFrame == AnimWalkSequence.neutral_1 ||
-                this.curWalkFrame == AnimWalkSequence.neutral_2) {
-                //Transition to not animating
+            // No longer moving but don't stop animating unless on neutral frame
+            if (this.curWalkFrame === AnimWalkSequence.neutral_1 ||
+                this.curWalkFrame === AnimWalkSequence.neutral_2) {
                 this.curWalkFrame = AnimWalkSequence.num_frames;
                 this.animTimer = 0;
             }
@@ -105,18 +106,18 @@ export class Player {
 
         this.imageCoord.row = PlayerImageRow.get(this.curFacing);
 
-        if (this.curWalkFrame == AnimWalkSequence.num_frames) {
-            this.imageCoord.col = 0;
-        } else {
+        if (this.curWalkFrame !== AnimWalkSequence.num_frames) {
             this.animTimer += dt;
             if (this.animTimer > 1 / PLAYER_ANIM_FPS) {
                 this.animTimer = 0;
-                this.curWalkFrame = (this.curWalkFrame + 1) %
-                    AnimWalkSequence.num_frames;
+                this.curWalkFrame = (this.curWalkFrame + 1) % AnimWalkSequence.num_frames;
             }
-
-            let colOffset = AnimWalkSequenceOffset.get(this.curFacing);
-            this.imageCoord.col = (this.curWalkFrame + colOffset) % 9;
+            const colOffset = AnimWalkSequenceOffset.get(this.curFacing);
+            //One of the sequence of 8 walking images
+            this.imageCoord.col = 1 + (this.curWalkFrame + colOffset) % 8;
+        } else {
+            //Standing image
+            this.imageCoord.col = 0;
         }
     }
 }

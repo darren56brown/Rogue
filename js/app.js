@@ -1,4 +1,4 @@
-import { APP_SIZE, APP_MARGIN, CAMERA_MARGIN } from "./constants.js";
+import { APP_SIZE, APP_MARGIN, CAMERA_MARGIN, ISO } from "./constants.js";
 import { Renderer } from "./renderer.js";
 import { ImageLibrary } from "./image_library.js";
 import { Player } from "./player.js";
@@ -13,7 +13,7 @@ export class App {
         this.image_library = new ImageLibrary();
         this.renderer = new Renderer(this.canvas, this.image_library);
 
-        this.starting_pos = {x: 5 * 64, y: 5 * 64}
+        this.starting_pos = {x: 5, y: 5}
         this.player = new Player(this.starting_pos);
 
         this.level = null;
@@ -95,26 +95,41 @@ export class App {
     updatePhysics(dt) {
         this.player.updatePhysics(dt, this.keys);
 
-        const player_in_view_x = this.player.pos.x - this.view_origin.x;
-        const player_in_view_y = this.player.pos.y - this.view_origin.y;
+        // === ISOMETRIC CAMERA (preserves your original margin behavior) ===
+        const {HALF_W, HALF_H} = ISO;
 
-        if (player_in_view_x < CAMERA_MARGIN.x) {
-            this.view_origin.x = this.player.pos.x - CAMERA_MARGIN.x;
-        } else if (player_in_view_x > APP_SIZE.w - CAMERA_MARGIN.x) {
-            this.view_origin.x = this.player.pos.x - (APP_SIZE.w - CAMERA_MARGIN.x);
+        // Current projected screen position of player
+        const originSX = (this.view_origin.x - this.view_origin.y) * HALF_W;
+        const originSY = (this.view_origin.x + this.view_origin.y) * HALF_H;
+        const playerSX = (this.player.pos.x - this.player.pos.y) * HALF_W - originSX;
+        const playerSY = (this.player.pos.x + this.player.pos.y) * HALF_H - originSY;
+
+        let camScreenDX = 0;
+        let camScreenDY = 0;
+
+        if (playerSX < CAMERA_MARGIN.x) {
+            camScreenDX = playerSX - CAMERA_MARGIN.x;
+        } else if (playerSX > APP_SIZE.w - CAMERA_MARGIN.x) {
+            camScreenDX = playerSX - (APP_SIZE.w - CAMERA_MARGIN.x);
+        }
+        if (playerSY < CAMERA_MARGIN.y) {
+            camScreenDY = playerSY - CAMERA_MARGIN.y;
+        } else if (playerSY > APP_SIZE.h - CAMERA_MARGIN.y) {
+            camScreenDY = playerSY - (APP_SIZE.h - CAMERA_MARGIN.y);
         }
 
-        this.view_origin.x = Math.max(this.view_origin.x, 0);
+        // Convert screen camera shift back to world coordinates
+        if (camScreenDX !== 0 || camScreenDY !== 0) {
+            const worldDX = (camScreenDX / HALF_W + camScreenDY / HALF_H) / 2;
+            const worldDY = (-camScreenDX / HALF_W + camScreenDY / HALF_H) / 2;
 
-        if (player_in_view_y < CAMERA_MARGIN.y) {
-            this.view_origin.y = this.player.pos.y - CAMERA_MARGIN.y;
-        } else if (player_in_view_y> APP_SIZE.h - CAMERA_MARGIN.y) {
-            this.view_origin.y = this.player.pos.y - (APP_SIZE.h - CAMERA_MARGIN.y);
+            this.view_origin.x += worldDX;
+            this.view_origin.y += worldDY;
         }
 
-        this.view_origin.y = Math.max(this.view_origin.y, 0);
-
-
+        // Clamp (optional)
+        //this.view_origin.x = Math.max(0, this.view_origin.x);
+        //this.view_origin.y = Math.max(0, this.view_origin.y);
     }
 
     initUserInput() {

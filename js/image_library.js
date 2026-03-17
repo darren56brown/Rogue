@@ -39,11 +39,9 @@ export class ImageLibrary {
     }
 
     loadAll(){
-        this.load('player_base',    '../images/player_base.png');
-        this.load('player_shadow',  '../images/player_shadow.png');
-        this.load('dirt_to_water',  '../tilesets/dirt_to_water.png');
-        this.load('grass_to_dirt',  '../tilesets/grass_to_dirt.png');
-        this.load('water',          '../tilesets/water.png');
+        this.load('player_base', '../images/player_base.png');
+        this.load('player_shadow', '../images/player_shadow.png');
+        this.load('iso_tiles', '../tilesets/iso_tiles.png');
     }
 
     onAllLoaded(callback) {

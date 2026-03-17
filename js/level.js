@@ -1,11 +1,10 @@
-
 export class Level {
     constructor(name) {
         this.name = name;
         this.size = { w: 0, h: 0 };
-        this.tileSize = { w: 64, h: 64};
-        this.tilesets = [];           // { firstgid, name, imageName, columns, tilecount, imagewidth, ... }
-        this.mapData = [];            // 2D array [y][x] with raw GIDs
+        this.tileSize = { w: 64, h: 64 };     // will be overwritten by map
+        this.tilesets = [];                   // array of tileset metadata
+        this.layers = [];                     // ← NEW: will hold visible tile layer objects
         this.isLoaded = false;
     }
 
@@ -16,8 +15,6 @@ export class Level {
         try {
             const mapFilename = `${levelName}.tmj`;
             const mapPath = `${basePath}${mapFilename}`;
-
-            //console.log(`Fetching map from: ${mapPath}`);
 
             const mapResponse = await fetch(mapPath);
             if (!mapResponse.ok) {
@@ -31,21 +28,14 @@ export class Level {
             level.tileSize.w = mapData.tilewidth;
             level.tileSize.h = mapData.tileheight;
 
-            // 2. Load all tilesets
+            // Load all tilesets (your original logic – unchanged)
             for (const ts of mapData.tilesets) {
-                let source = ts.source;  // e.g. "water.tsx" or "../tilesets/dirt_to_water.tsx"
+                let source = ts.source;
 
-                // Extract just the filename part
-                const filename = source.split('/').pop();                     // "water.tsx"
-                const baseName = filename.replace(/\.[^.]+$/, "");            // "water"
-                
-                // Force .tsj extension (change to .json if your files are named that way)
+                const filename = source.split('/').pop();
+                const baseName = filename.replace(/\.[^.]+$/, "");
                 const tsFilename = `${baseName}.tsj`;
-                
-                // Build path — assuming tilesets/ folder next to levels/
                 const tsPath = `tilesets/${tsFilename}`;
-
-                //console.log(`Attempting to load tileset: ${tsPath} (original source was ${source})`);
 
                 const tsResponse = await fetch(tsPath);
                 if (!tsResponse.ok) {
@@ -53,11 +43,10 @@ export class Level {
                 }
                 const tilesetJson = await tsResponse.json();
 
-                // Extract image name more robustly
                 let imageName = tilesetJson.image
-                    .split(/[\\/]/)           // handles both / and \
+                    .split(/[\\/]/)
                     .pop()
-                    .replace(/\.[^.]+$/, ""); // remove extension
+                    .replace(/\.[^.]+$/, "");
 
                 level.tilesets.push({
                     firstgid:    ts.firstgid,
@@ -72,22 +61,28 @@ export class Level {
                 });
             }
 
-            // Sort tilesets by firstgid (good practice, though usually already ordered)
+            // Sort tilesets by firstgid
             level.tilesets.sort((a, b) => a.firstgid - b.firstgid);
 
-            // 3. Get the main tile layer (assuming first visible tilelayer)
-            const layer = mapData.layers.find(l => l.type === "tilelayer" && l.visible !== false);
-            if (!layer) throw new Error("No visible tile layer found");
+            // ────────────────────────────────────────────────
+            // CHANGED: Store ALL visible tile layers
+            // ────────────────────────────────────────────────
+            level.layers = mapData.layers
+                .filter(l => l.type === "tilelayer" && l.visible !== false)
+                .map(layer => ({
+                    name:     layer.name,
+                    data:     layer.data,           // flat 1D array of GIDs
+                    opacity:  layer.opacity ?? 1,
+                    offsetX:  layer.offsetx ?? 0,   // in case you use offsets later
+                    offsetY:  layer.offsety ?? 0
+                }));
 
-            // Convert 1D data → 2D array
-            level.mapData = [];
-            for (let y = 0; y < level.size.h; y++) {
-                const start = y * level.size.w;
-                level.mapData[y] = layer.data.slice(start, start + level.size.w);
+            if (level.layers.length === 0) {
+                throw new Error("No visible tile layers found in map");
             }
 
             level.isLoaded = true;
-            //console.log(`Level "${levelName}" loaded — ${level.tilesets.length} tilesets`);
+            //console.log(`Level "${levelName}" loaded — ${level.tilesets.length} tilesets, ${level.layers.length} visible layers`);
             return level;
 
         } catch (err) {
@@ -96,19 +91,28 @@ export class Level {
         }
     }
 
-    getTileInfo(x, y) {
-        if (!this.isLoaded) {
-            return null;
-        }
+    /**
+     * Returns array of visible tile layers in the order they should be drawn
+     * (usually bottom-to-top = back-to-front in isometric)
+     */
+    getVisibleTileLayers() {
+        if (!this.isLoaded) return [];
+        return this.layers;  // already filtered in load()
+    }
 
-        let gid = 0;
-        if (y >= 0 && y < this.size.h && x >= 0 && x < this.size.w) {
-            gid = this.mapData[y][x];
-        }
-        else {
-            gid = this.mapData[0][0]; //Water?
-        }
+    /**
+     * Get tile drawing info for a specific layer at grid position (x,y)
+     * @param {number} x - tile column
+     * @param {number} y - tile row
+     * @param {object} layer - one of the layer objects from this.layers
+     */
+    getTileInfoForLayer(x, y, layer) {
+        if (!this.isLoaded || !layer?.data) return null;
 
+        const idx = y * this.size.w + x;
+        if (idx < 0 || idx >= layer.data.length) return null;
+
+        const gid = layer.data[idx];
         if (gid <= 0) return null;
 
         // Find which tileset owns this GID
@@ -119,10 +123,9 @@ export class Level {
                 break;
             }
         }
-
         if (!tileset) return null;
 
-        const localId = gid - tileset.firstgid;           // 0-based index in this tileset
+        const localId = gid - tileset.firstgid;
         const col = localId % tileset.columns;
         const row = Math.floor(localId / tileset.columns);
 
@@ -133,5 +136,10 @@ export class Level {
             sw: tileset.tilewidth,
             sh: tileset.tileheight
         };
+    }
+
+    // Optional: if some old code still expects the first layer's data
+    getFirstVisibleLayer() {
+        return this.layers[0] || null;
     }
 }

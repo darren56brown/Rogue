@@ -1,4 +1,4 @@
-import { APP_SIZE, GRID_SIZE } from "./constants.js";
+import { APP_SIZE, GRID_SIZE, ISO } from "./constants.js";
 
 export class Renderer {
     constructor(canvas, imageLibrary) {
@@ -9,8 +9,8 @@ export class Renderer {
     }
 
     render(viewOrigin, player, level, fpsTracker = null) {
-        //this.ctx.fillStyle = "#829e71";
-        //this.ctx.fillRect(0, 0, APP_SIZE.w, APP_SIZE.h);
+        this.ctx.fillStyle = "#829e71";
+        this.ctx.fillRect(0, 0, APP_SIZE.w, APP_SIZE.h);
         //this.renderGrid();
         this.renderLevel(viewOrigin, level);
         this.renderPlayer(viewOrigin, player);
@@ -21,56 +21,86 @@ export class Renderer {
     }
 
     renderLevel(viewOrigin, level) {
-        if (!level) return;
-        if (!level.isLoaded) return;
+        if (!level || !level.isLoaded) return;
 
-        const tileSize = level.tileSize;
+        const {HALF_W, HALF_H, TILE_W, IMG_H} = ISO;
 
-        for (let y = 0; y < level.size.h; y++) {
-            const dy = y * tileSize.h - viewOrigin.y;
+        // Project viewOrigin to screen space
+        const originSX = (viewOrigin.x - viewOrigin.y) * HALF_W;
+        const originSY = (viewOrigin.x + viewOrigin.y) * HALF_H;
 
-            if (dy <= -tileSize.h || dy >= this.ctx.canvas.height) continue;
+        // Get layers in draw order (bottom to top = back to front)
+        const tileLayers = level.getVisibleTileLayers();
 
-            for (let x = 0; x < level.size.w; x++) {
-                const dx = x * tileSize.w - viewOrigin.x;
-                
-                if (dx <= -tileSize.w || dx >= this.ctx.canvas.width) continue;
+        for (const layer of tileLayers) {
+            for (let y = 0; y < level.size.h; y++) {
+                for (let x = 0; x < level.size.w; x++) {
+                    const screenX = (x - y) * HALF_W - originSX;
+                    const screenY = (x + y) * HALF_H - originSY;
 
-                const info = level.getTileInfo(x, y);
-                if (!info) continue;
+                    // Cull tiles that are way off-screen
+                    if (screenX <= -TILE_W || screenX >= this.canvas.width + TILE_W ||
+                        screenY <= -IMG_H  || screenY >= this.canvas.height + IMG_H) {
+                        continue;
+                    }
 
-                const img = this.imageLibrary.get(info.imageName);
-                if (!img) continue;  // image not loaded yet
+                    // Get tile for this specific layer
+                    const info = level.getTileInfoForLayer(x, y, layer);
+                    if (!info) continue;
 
-                this.ctx.drawImage(
-                    img,
-                    info.sx, info.sy, info.sw, info.sh,   // source rect
-                    dx, dy, tileSize.w, tileSize.h            // dest rect
-                );
+                    const img = this.imageLibrary.get(info.imageName);
+                    if (!img) continue;
+
+                    // Optional: support layer opacity
+                    if (layer.opacity !== 1) {
+                        this.ctx.globalAlpha = layer.opacity;
+                    }
+
+                    this.ctx.drawImage(
+                        img,
+                        info.sx, info.sy, info.sw, info.sh,
+                        Math.floor(screenX), Math.floor(screenY),
+                        TILE_W, IMG_H
+                    );
+
+                    // Reset alpha if we changed it
+                    if (layer.opacity !== 1) {
+                        this.ctx.globalAlpha = 1;
+                    }
+                }
             }
         }
     }
 
     renderPlayer(viewOrigin, player) {
+        const {HALF_W, HALF_H} = ISO;
 
-        let ulx = player.pos.x - player.origin.x - viewOrigin.x;
-        let uly = player.pos.y - player.origin.y - viewOrigin.y;
+        // Project everything to screen
+        const originSX = (viewOrigin.x - viewOrigin.y) * HALF_W;
+        const originSY = (viewOrigin.x + viewOrigin.y) * HALF_H;
 
+        const playerSX = (player.pos.x - player.pos.y) * HALF_W - originSX;
+        const playerSY = (player.pos.x + player.pos.y) * HALF_H - originSY;
+
+        // Shadow (tweak y offset if needed)
         const player_shadow = this.imageLibrary.get('player_shadow');
         if (player_shadow) {
             this.ctx.drawImage(player_shadow,
                 0, 0, 64, 32,
-                ulx, uly + 42,
+                playerSX - player.origin.x,
+                playerSY - player.origin.y + 42,
                 64, 32);
         }
 
+        // Player base
         const player_base = this.imageLibrary.get('player_base');
         if (player_base) {
             this.ctx.drawImage(player_base,
                 player.size.w * player.imageCoord.col,
                 player.size.h * player.imageCoord.row,
                 player.size.w, player.size.h,
-                ulx, uly,
+                playerSX - player.origin.x,
+                playerSY - player.origin.y,
                 player.size.w, player.size.h);
         }
     }
