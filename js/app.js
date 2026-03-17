@@ -13,7 +13,7 @@ export class App {
         this.image_library = new ImageLibrary();
         this.renderer = new Renderer(this.canvas, this.image_library);
 
-        this.starting_pos = {x: 5, y: 5}
+        this.starting_pos = {x: 3 + 1.5, y: 3+ 0.5, z: 1}
         this.player = new Player(this.starting_pos);
 
         this.level = null;
@@ -95,14 +95,11 @@ export class App {
     updatePhysics(dt) {
         this.player.updatePhysics(dt, this.keys);
 
-        // === ISOMETRIC CAMERA (preserves your original margin behavior) ===
-        const {HALF_W, HALF_H} = ISO;
-
         // Current projected screen position of player
-        const originSX = (this.view_origin.x - this.view_origin.y) * HALF_W;
-        const originSY = (this.view_origin.x + this.view_origin.y) * HALF_H;
-        const playerSX = (this.player.pos.x - this.player.pos.y) * HALF_W - originSX;
-        const playerSY = (this.player.pos.x + this.player.pos.y) * HALF_H - originSY;
+        const originSX = (this.view_origin.x - this.view_origin.y) * ISO.HALF_W;
+        const originSY = (this.view_origin.x + this.view_origin.y) * ISO.HALF_H;
+        const playerSX = (this.player.pos.x - this.player.pos.y) * ISO.HALF_W - originSX;
+        const playerSY = (this.player.pos.x + this.player.pos.y) * ISO.HALF_H - originSY;
 
         let camScreenDX = 0;
         let camScreenDY = 0;
@@ -120,16 +117,12 @@ export class App {
 
         // Convert screen camera shift back to world coordinates
         if (camScreenDX !== 0 || camScreenDY !== 0) {
-            const worldDX = (camScreenDX / HALF_W + camScreenDY / HALF_H) / 2;
-            const worldDY = (-camScreenDX / HALF_W + camScreenDY / HALF_H) / 2;
+            const worldDX = (camScreenDX / ISO.HALF_W + camScreenDY / ISO.HALF_H) / 2;
+            const worldDY = (-camScreenDX / ISO.HALF_W + camScreenDY / ISO.HALF_H) / 2;
 
             this.view_origin.x += worldDX;
             this.view_origin.y += worldDY;
         }
-
-        // Clamp (optional)
-        //this.view_origin.x = Math.max(0, this.view_origin.x);
-        //this.view_origin.y = Math.max(0, this.view_origin.y);
     }
 
     initUserInput() {

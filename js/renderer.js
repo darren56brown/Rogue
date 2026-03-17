@@ -11,62 +11,76 @@ export class Renderer {
     render(viewOrigin, player, level, fpsTracker = null) {
         this.ctx.fillStyle = "#829e71";
         this.ctx.fillRect(0, 0, APP_SIZE.w, APP_SIZE.h);
-        //this.renderGrid();
-        this.renderLevel(viewOrigin, level);
-        this.renderPlayer(viewOrigin, player);
+
+        this.renderLevelWithPlayer(viewOrigin, player, level);
 
         if (fpsTracker) {
             fpsTracker.render(this.ctx, 20, 20);
         }
     }
 
-    renderLevel(viewOrigin, level) {
-        if (!level || !level.isLoaded) return;
+    renderLevelWithPlayer(viewOrigin, player, level) {
+        if (!level || !level.isLoaded || level.layers.length === 0) return;
 
         const {HALF_W, HALF_H, TILE_W, IMG_H} = ISO;
 
-        // Project viewOrigin to screen space
         const originSX = (viewOrigin.x - viewOrigin.y) * HALF_W;
         const originSY = (viewOrigin.x + viewOrigin.y) * HALF_H;
 
-        // Get layers in draw order (bottom to top = back to front)
-        const tileLayers = level.getVisibleTileLayers();
+        const allLayers = level.getVisibleTileLayers(); // already filtered visible ones
 
-        for (const layer of tileLayers) {
-            for (let y = 0; y < level.size.h; y++) {
-                for (let x = 0; x < level.size.w; x++) {
-                    const screenX = (x - y) * HALF_W - originSX;
-                    const screenY = (x + y) * HALF_H - originSY;
+        
+        const playerInsertAfterLayerIndex = 2;
 
-                    // Cull tiles that are way off-screen
-                    if (screenX <= -TILE_W || screenX >= this.canvas.width + TILE_W ||
-                        screenY <= -IMG_H  || screenY >= this.canvas.height + IMG_H) {
-                        continue;
-                    }
+        // Draw layers BEFORE player
+        for (let i = 0; i <= playerInsertAfterLayerIndex && i < allLayers.length; i++) {
+            const layer = allLayers[i];
+            this._drawLayer(viewOrigin, layer, originSX, originSY, level, TILE_W, IMG_H);
+        }
 
-                    // Get tile for this specific layer
-                    const info = level.getTileInfoForLayer(x, y, layer);
-                    if (!info) continue;
+        // ─── Draw player ───────────────────────────────────────
+        this.renderPlayer(viewOrigin, player);
 
-                    const img = this.imageLibrary.get(info.imageName);
-                    if (!img) continue;
+        // Draw layers AFTER player
+        for (let i = playerInsertAfterLayerIndex + 1; i < allLayers.length; i++) {
+            const layer = allLayers[i];
+            this._drawLayer(viewOrigin, layer, originSX, originSY, level, TILE_W, IMG_H);
+        }
+    }
 
-                    // Optional: support layer opacity
-                    if (layer.opacity !== 1) {
-                        this.ctx.globalAlpha = layer.opacity;
-                    }
+    // Helper method – draws one full layer (extracted for clarity)
+    _drawLayer(viewOrigin, layer, originSX, originSY, level, TILE_W, IMG_H) {
+        const {HALF_W, HALF_H} = ISO;
 
-                    this.ctx.drawImage(
-                        img,
-                        info.sx, info.sy, info.sw, info.sh,
-                        Math.floor(screenX), Math.floor(screenY),
-                        TILE_W, IMG_H
-                    );
+        for (let y = 0; y < level.size.h; y++) {
+            for (let x = 0; x < level.size.w; x++) {
+                const screenX = (x - y) * HALF_W - originSX;
+                const screenY = (x + y) * HALF_H - originSY;
 
-                    // Reset alpha if we changed it
-                    if (layer.opacity !== 1) {
-                        this.ctx.globalAlpha = 1;
-                    }
+                if (screenX <= -TILE_W || screenX >= this.canvas.width + TILE_W ||
+                    screenY <= -IMG_H  || screenY >= this.canvas.height + IMG_H) {
+                    continue;
+                }
+
+                const info = level.getTileInfoForLayer(x, y, layer);
+                if (!info) continue;
+
+                const img = this.imageLibrary.get(info.imageName);
+                if (!img) continue;
+
+                if (layer.opacity !== 1) {
+                    this.ctx.globalAlpha = layer.opacity;
+                }
+
+                this.ctx.drawImage(
+                    img,
+                    info.sx, info.sy, info.sw, info.sh,
+                    Math.floor(screenX), Math.floor(screenY),
+                    TILE_W, IMG_H
+                );
+
+                if (layer.opacity !== 1) {
+                    this.ctx.globalAlpha = 1;
                 }
             }
         }
@@ -103,25 +117,5 @@ export class Renderer {
                 playerSY - player.origin.y,
                 player.size.w, player.size.h);
         }
-    }
-
-    renderGrid() {
-        this.ctx.strokeStyle = "yellow";
-        this.ctx.lineWidth = 1;
-
-        for (let x = 0; x < APP_SIZE.w; x += GRID_SIZE.w) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(x, 0);
-            this.ctx.lineTo(x, APP_SIZE.h);
-            this.ctx.stroke();
-        }
-
-        for (let y = 0; y < APP_SIZE.h; y += GRID_SIZE.h) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(0, y);
-            this.ctx.lineTo(APP_SIZE.w, y);
-            this.ctx.stroke();
-        }
-
     }
 }
