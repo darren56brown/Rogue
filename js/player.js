@@ -86,31 +86,36 @@ export class Player {
             const unitDelta = isoToCartesian(unit_move.x, unit_move.y);
             const deltaVec = mult(unitDelta, this.speed * dt);
             setAdd(this.pos, deltaVec);
-            if (game_map.isSolid(this.pos.x, this.pos.y, this.pos.z)) {
+            if (game_map.getObstruction(this.pos.x, this.pos.y,
+                this.pos.z) != "none") {
                 setSub(this.pos, deltaVec);
 
                 const deltaVecMag = Math.hypot(deltaVec.x, deltaVec.y);
 
                 this.pos.x += deltaVec.x;
-                const canMoveX = !game_map.isSolid(this.pos.x, this.pos.y, this.pos.z);
+                const xObstruction = game_map.getObstruction(this.pos.x,
+                    this.pos.y, this.pos.z);
                 this.pos.x -= deltaVec.x;
 
-                if (canMoveX) {
-                    const slow = deltaVecMag / 5;
-                    deltaVec.x = Math.sign(deltaVec.x) * slow;
-                    deltaVec.y = 0;
-                    setAdd(this.pos, deltaVec);
-                } else {
-                    this.pos.y += deltaVec.y;
-                    const canMoveY = !game_map.isSolid(this.pos.x, this.pos.y, this.pos.z);
-                    this.pos.y -= deltaVec.y; 
+                this.pos.y += deltaVec.y;
+                const yObstruction = game_map.getObstruction(this.pos.x,
+                    this.pos.y, this.pos.z);
+                this.pos.y -= deltaVec.y; 
 
-                    if (canMoveY) {
+                if (xObstruction == "none") {
+                    if (yObstruction != "drop") {
+                        const slow = deltaVecMag / 5;
+                        deltaVec.x = Math.sign(deltaVec.x) * slow;
+                        deltaVec.y = 0;
+                        setAdd(this.pos, deltaVec);
+                    }      
+                } else if (yObstruction == "none") {
+                     if (xObstruction != "drop") {
                         const slow = deltaVecMag / 5;
                         deltaVec.x = 0;
                         deltaVec.y = Math.sign(deltaVec.y) * slow;
                         setAdd(this.pos, deltaVec);
-                    }
+                     }
                 }
             } 
 

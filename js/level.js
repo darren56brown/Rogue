@@ -148,8 +148,8 @@ export class Level {
         };
     }
 
-    isSolid(x, y, z) {
-        if (!this.isLoaded) return false;
+    getObstruction(x, y, z) {
+        if (!this.isLoaded) return "none";
 
         // 1. Snap coordinates to integers for grid/layer lookup
         const gridX = Math.floor(x);
@@ -158,7 +158,7 @@ export class Level {
 
         // Boundary check
         if (gridX < 0 || gridX >= this.size.w || gridY < 0 || gridY >= this.size.h) {
-            return true; // Treat "out of bounds" as solid/impassable
+            return "drop"; // Treat "out of bounds" as solid/impassable
         }
 
         // 2. Find the layer(s) matching this snapped z-height
@@ -167,6 +167,9 @@ export class Level {
         for (const layer of layersAtZ) {
             const idx = gridY * this.size.w + gridX;
             const gid = layer.data[idx];
+            if (gid < 1) {
+                return "drop";
+            }
 
             if (!gid || gid <= 0) continue;
 
@@ -182,12 +185,12 @@ export class Level {
             if (tileset) {
                 const localId = gid - tileset.firstgid;
                 if (tileset.solidTiles?.has(localId)) {
-                    return true; 
+                    return "wall"; 
                 }
             }
         }
 
-        return false;
+        return "none";
     }
 
 }
