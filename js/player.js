@@ -1,7 +1,7 @@
 import { ISO } from "./constants.js";
 import { PLAYER_ANIM_FRAME_SIZE, PLAYER_TILE_ORIGIN } from "./constants.js";
 import { PLAYER_ANIM_FPS } from "./constants.js";
-import { vec, add, sub, mult, setAdd, set, setSub } from './vector.js';
+import { vec, add, sub, mult, setAdd, set, setSub, setDiv } from './vector.js';
 import { isoToCartesian } from './util.js';
 
 const AnimWalkSequence = Object.freeze({
@@ -49,7 +49,7 @@ export class Player {
             y: PLAYER_TILE_ORIGIN.y
         };
 
-        this.speed = 25;
+        this.speed = 50;
 
         this.curFacing = PlayerFacing.face_dn;
         this.curWalkFrame = AnimWalkSequence.num_frames;
@@ -59,45 +59,60 @@ export class Player {
     }
 
     updatePhysics(dt, keys, game_map) {
-        let screen_dx = 0;
-        let screen_dy = 0;
+        let unit_move = vec(0, 0);
 
-        if (keys['a'] || keys['arrowleft'])  screen_dx -= 1;
-        if (keys['d'] || keys['arrowright']) screen_dx += 1;
-        if (keys['w'] || keys['arrowup'])    screen_dy -= 1;
-        if (keys['s'] || keys['arrowdown'])  screen_dy += 1;
+        if (keys['a'] || keys['arrowleft']) unit_move.x -= 1;
+        if (keys['d'] || keys['arrowright']) unit_move.x += 1;
+        if (keys['w'] || keys['arrowup']) unit_move.y -= 1;
+        if (keys['s'] || keys['arrowdown']) unit_move.y += 1;
 
-        const moving = screen_dx !== 0 || screen_dy !== 0;
+        const moving = unit_move.x !== 0 || unit_move.y !== 0;
 
         if (moving) {
-            // Normalize screen movement (consistent speed in any direction)
-            const len = Math.hypot(screen_dx, screen_dy);
-            if (len > 0) {
-                screen_dx /= len;
-                screen_dy /= len;
+            // If moving diagonally, tweak the vector to match the 2:1 iso slope
+            if (unit_move.x !== 0 && unit_move.y !== 0) {
+                unit_move.x *= 2.0; 
             }
+            const len = Math.hypot(unit_move.x, unit_move.y);
+            if (len > 0) setDiv(unit_move, len);
 
             // Set facing based on screen direction (you can refine later)
-            if (Math.abs(screen_dx) > Math.abs(screen_dy)) {
-                this.curFacing = screen_dx > 0 ? PlayerFacing.face_rt : PlayerFacing.face_lt;
+            if (Math.abs(unit_move.x) > Math.abs(unit_move.y)) {
+                this.curFacing = unit_move.x > 0 ? PlayerFacing.face_rt : PlayerFacing.face_lt;
             } else {
-                this.curFacing = screen_dy > 0 ? PlayerFacing.face_dn : PlayerFacing.face_up;
+                this.curFacing = unit_move.y > 0 ? PlayerFacing.face_dn : PlayerFacing.face_up;
             }
 
-            const unitDelta = isoToCartesian(screen_dx, screen_dy);
+            const unitDelta = isoToCartesian(unit_move.x, unit_move.y);
             const deltaVec = mult(unitDelta, this.speed * dt);
-
-            //Try moving on the X axis only
-            this.pos.x += deltaVec.x;
+            setAdd(this.pos, deltaVec);
             if (game_map.isSolid(this.pos.x, this.pos.y, this.pos.z)) {
-                this.pos.x -= deltaVec.x; // Hit a wall, undo X
-            }
+                setSub(this.pos, deltaVec);
 
-            //Try moving on the Y axis only
-            this.pos.y += deltaVec.y;
-            if (game_map.isSolid(this.pos.x, this.pos.y, this.pos.z)) {
-                this.pos.y -= deltaVec.y; // Hit a wall, undo Y
-            }
+                const deltaVecMag = Math.hypot(deltaVec.x, deltaVec.y);
+
+                this.pos.x += deltaVec.x;
+                const canMoveX = !game_map.isSolid(this.pos.x, this.pos.y, this.pos.z);
+                this.pos.x -= deltaVec.x;
+
+                if (canMoveX) {
+                    const slow = deltaVecMag / 5;
+                    deltaVec.x = Math.sign(deltaVec.x) * slow;
+                    deltaVec.y = 0;
+                    setAdd(this.pos, deltaVec);
+                } else {
+                    this.pos.y += deltaVec.y;
+                    const canMoveY = !game_map.isSolid(this.pos.x, this.pos.y, this.pos.z);
+                    this.pos.y -= deltaVec.y; 
+
+                    if (canMoveY) {
+                        const slow = deltaVecMag / 5;
+                        deltaVec.x = 0;
+                        deltaVec.y = Math.sign(deltaVec.y) * slow;
+                        setAdd(this.pos, deltaVec);
+                    }
+                }
+            } 
 
             // Was not moving, go to first animation frame
             if (this.curWalkFrame === AnimWalkSequence.num_frames) {
