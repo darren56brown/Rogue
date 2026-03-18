@@ -151,19 +151,26 @@ export class Level {
     isSolid(x, y, z) {
         if (!this.isLoaded) return false;
 
-        // 1. Find the layer(s) matching this z-height
-        // Using filter in case you have multiple layers at the same height (e.g., "Walls" and "Decor")
-        const layersAtZ = this.layers.filter(l => l.zHeight === z);
-        
-        if (layersAtZ.length === 0) return false;
+        // 1. Snap coordinates to integers for grid/layer lookup
+        const gridX = Math.floor(x);
+        const gridY = Math.floor(y);
+        const gridZ = Math.floor(z); // Or Math.round depending on your jumping logic
 
+        // Boundary check
+        if (gridX < 0 || gridX >= this.size.w || gridY < 0 || gridY >= this.size.h) {
+            return true; // Treat "out of bounds" as solid/impassable
+        }
+
+        // 2. Find the layer(s) matching this snapped z-height
+        const layersAtZ = this.layers.filter(l => l.zHeight === gridZ);
+        
         for (const layer of layersAtZ) {
-            const idx = y * this.size.w + x;
+            const idx = gridY * this.size.w + gridX;
             const gid = layer.data[idx];
 
             if (!gid || gid <= 0) continue;
 
-            // 2. Find which tileset this GID belongs to
+            // 3. Find the tileset
             let tileset = null;
             for (let i = this.tilesets.length - 1; i >= 0; i--) {
                 if (gid >= this.tilesets[i].firstgid) {
@@ -172,10 +179,9 @@ export class Level {
                 }
             }
 
-            // 3. Check if that specific tile is marked as solid
             if (tileset) {
                 const localId = gid - tileset.firstgid;
-                if (tileset.solidTiles && tileset.solidTiles.has(localId)) {
+                if (tileset.solidTiles?.has(localId)) {
                     return true; 
                 }
             }

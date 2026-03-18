@@ -57,8 +57,9 @@ export class Renderer {
     _drawLayer(layer, level) {
         for (let y = 0; y < level.size.h; y++) {
             for (let x = 0; x < level.size.w; x++) {
-
-                const screenCoord = cartesianToIso(x, y, layer.zHeight);
+                //I haven't figured out the -1 to my own satisfaction yet
+                //It makes the player and the collision correct though.
+                const screenCoord = cartesianToIso(x - 1, y, layer.zHeight);
                 const screenX = screenCoord.x - this.view_origin_iso.x;
                 const screenY = screenCoord.y - this.view_origin_iso.y;
 

@@ -1,7 +1,7 @@
 import { ISO } from "./constants.js";
 import { PLAYER_ANIM_FRAME_SIZE, PLAYER_TILE_ORIGIN } from "./constants.js";
 import { PLAYER_ANIM_FPS } from "./constants.js";
-import { vec, add, sub, mult, setAdd } from './vector.js';
+import { vec, add, sub, mult, setAdd, set, setSub } from './vector.js';
 import { isoToCartesian } from './util.js';
 
 const AnimWalkSequence = Object.freeze({
@@ -84,8 +84,20 @@ export class Player {
                 this.curFacing = screen_dy > 0 ? PlayerFacing.face_dn : PlayerFacing.face_up;
             }
 
-            const world_delta = isoToCartesian(screen_dx, screen_dy);
-            setAdd(this.pos, mult(world_delta, this.speed * dt));
+            const unitDelta = isoToCartesian(screen_dx, screen_dy);
+            const deltaVec = mult(unitDelta, this.speed * dt);
+
+            //Try moving on the X axis only
+            this.pos.x += deltaVec.x;
+            if (game_map.isSolid(this.pos.x, this.pos.y, this.pos.z)) {
+                this.pos.x -= deltaVec.x; // Hit a wall, undo X
+            }
+
+            //Try moving on the Y axis only
+            this.pos.y += deltaVec.y;
+            if (game_map.isSolid(this.pos.x, this.pos.y, this.pos.z)) {
+                this.pos.y -= deltaVec.y; // Hit a wall, undo Y
+            }
 
             // Was not moving, go to first animation frame
             if (this.curWalkFrame === AnimWalkSequence.num_frames) {
@@ -116,14 +128,5 @@ export class Player {
             //Standing image
             this.imageCoord.col = 0;
         }
-
-        //console.log(this.pos);
-        if (game_map.isSolid(this.pos.x, this.pos.y, this.pos.z)) {
-            console.log("is solid");
-            this.imageCoord.row = 15;
-            this.imageCoord.col = 0;
-        }
-
-
     }
 }

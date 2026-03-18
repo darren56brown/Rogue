@@ -13,7 +13,7 @@ export class App {
         this.image_library = new ImageLibrary();
         this.renderer = new Renderer(this.canvas, this.image_library);
 
-        const starting_pos = {x: 1 + 1.5, y: 1 + 0.5, z: 0}
+        const starting_pos = {x: 1 + 0.5, y: 1 + 0.5, z: 0}
         this.player = new Player(starting_pos);
 
         this.game_map = null;
