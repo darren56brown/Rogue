@@ -16,7 +16,7 @@ export class App {
         const starting_pos = {x: 1 + 1.5, y: 1 + 0.5, z: 0}
         this.player = new Player(starting_pos);
 
-        this.level = null;
+        this.game_map = null;
 
         this.fps_tracker = new FPSTracker();
 
@@ -34,9 +34,9 @@ export class App {
         this.image_library.loadAll();
 
         // 2. Start loading the level data (returns a promise)
-        // We catch the returned level object and assign it to this.level
+        // We catch the returned level object and assign it to this.game_map
         const level_promise = Level.load('level_01')
-            .then(loadedLevel => { this.level = loadedLevel; })
+            .then(loadedLevel => { this.game_map = loadedLevel; })
             .catch(err => console.error("Level loading failed", err));
 
         // 3. Create the image loading promise
@@ -86,14 +86,14 @@ export class App {
 
         this.updatePhysics(delta);
 
-        this.renderer.render(this.view_origin, this.player, this.level,
+        this.renderer.render(this.view_origin, this.player, this.game_map,
             this.fps_tracker);
 
         requestAnimationFrame((t) => this.loop(t));
     }
 
     updatePhysics(dt) {
-        this.player.updatePhysics(dt, this.keys);
+        this.player.updatePhysics(dt, this.keys, this.game_map);
 
         // Current projected screen position of player
         const originSX = (this.view_origin.x - this.view_origin.y) * ISO.HALF_W;

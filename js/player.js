@@ -1,6 +1,8 @@
 import { ISO } from "./constants.js";
 import { PLAYER_ANIM_FRAME_SIZE, PLAYER_TILE_ORIGIN } from "./constants.js";
 import { PLAYER_ANIM_FPS } from "./constants.js";
+import { vec, add, sub, mult, setAdd } from './vector.js';
+import { isoToCartesian } from './util.js';
 
 const AnimWalkSequence = Object.freeze({
     neutral_1: 0,
@@ -56,7 +58,7 @@ export class Player {
         this.imageCoord = {row: 0, col:0};
     }
 
-    updatePhysics(dt, keys) {
+    updatePhysics(dt, keys, game_map) {
         let screen_dx = 0;
         let screen_dy = 0;
 
@@ -82,13 +84,8 @@ export class Player {
                 this.curFacing = screen_dy > 0 ? PlayerFacing.face_dn : PlayerFacing.face_up;
             }
 
-            // Convert screen delta → world delta (the "skew")
-            const {HALF_W, HALF_H} = ISO;
-            const world_dx = (screen_dx / HALF_W + screen_dy / HALF_H) / 2;
-            const world_dy = (-screen_dx / HALF_W + screen_dy / HALF_H) / 2;
-
-            this.pos.x += world_dx * this.speed * dt;
-            this.pos.y += world_dy * this.speed * dt;
+            const world_delta = isoToCartesian(screen_dx, screen_dy);
+            setAdd(this.pos, mult(world_delta, this.speed * dt));
 
             // Was not moving, go to first animation frame
             if (this.curWalkFrame === AnimWalkSequence.num_frames) {
@@ -119,5 +116,14 @@ export class Player {
             //Standing image
             this.imageCoord.col = 0;
         }
+
+        //console.log(this.pos);
+        if (game_map.isSolid(this.pos.x, this.pos.y, this.pos.z)) {
+            console.log("is solid");
+            this.imageCoord.row = 15;
+            this.imageCoord.col = 0;
+        }
+
+
     }
 }

@@ -1,5 +1,5 @@
 { "columns":4,
- "image":"..\/..\/Rogue\/tilesets\/iso_tiles.png",
+ "image":"iso_tiles.png",
  "imageheight":384,
  "imagewidth":512,
  "margin":0,
@@ -8,6 +8,43 @@
  "tilecount":16,
  "tiledversion":"1.12.0-1-gd3530f437",
  "tileheight":96,
+ "tiles":[
+        {
+         "id":4,
+         "properties":[
+                {
+                 "name":"solid",
+                 "type":"bool",
+                 "value":true
+                }]
+        },
+        {
+         "id":5,
+         "properties":[
+                {
+                 "name":"solid",
+                 "type":"bool",
+                 "value":true
+                }]
+        },
+        {
+         "id":6,
+         "properties":[
+                {
+                 "name":"solid",
+                 "type":"bool",
+                 "value":true
+                }]
+        }, 
+        {
+         "id":7,
+         "properties":[
+                {
+                 "name":"solid",
+                 "type":"bool",
+                 "value":true
+                }]
+        }],
  "tilewidth":128,
  "type":"tileset",
  "version":"1.10"

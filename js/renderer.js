@@ -1,4 +1,6 @@
-import { APP_SIZE, GRID_SIZE, ISO } from "./constants.js";
+import { APP_SIZE, ISO } from "./constants.js";
+import { vec, add, sub, mult } from './vector.js';
+import { cartesianToIso } from './util.js';
 
 export class Renderer {
     constructor(canvas, imageLibrary) {
@@ -9,18 +11,17 @@ export class Renderer {
     }
 
     gridToScreen(x, y, z) {
-        return {
-            x: (x - y) * ISO.HALF_W,
-            y: (x + y) * ISO.HALF_H - (z * ISO.TILE_H)
-        };
+        return sub(cartesianToIso(x, y, z),
+            this.view_origin_iso);
     }
 
-    render(viewOrigin, player, level, fpsTracker = null) {
+    render(view_origin, player, level, fpsTracker = null) {
         this.ctx.fillStyle = "#829e71";
         this.ctx.fillRect(0, 0, APP_SIZE.w, APP_SIZE.h);
 
-        this.view_origin_in_screen = this.gridToScreen(viewOrigin.x,
-            viewOrigin.y, 0);
+        this.view_origin = view_origin;
+        this.view_origin_iso = cartesianToIso(view_origin.x,
+            view_origin.y, 0);
         
         this.renderLevel(player, level);
 
@@ -57,9 +58,9 @@ export class Renderer {
         for (let y = 0; y < level.size.h; y++) {
             for (let x = 0; x < level.size.w; x++) {
 
-                const screenCoord = this.gridToScreen(x, y, 0);
-                const screenX = screenCoord.x - this.view_origin_in_screen.x;
-                const screenY = screenCoord.y - this.view_origin_in_screen.y + layer.offsetY;
+                const screenCoord = cartesianToIso(x, y, layer.zHeight);
+                const screenX = screenCoord.x - this.view_origin_iso.x;
+                const screenY = screenCoord.y - this.view_origin_iso.y;
 
                 if (screenX <= -ISO.TILE_W ||
                     screenX >= this.canvas.width + ISO.TILE_W ||
@@ -93,17 +94,15 @@ export class Renderer {
     }
 
     renderPlayer(player) {
-        const screenCoord = this.gridToScreen(player.pos.x,
+        const playerInScreen = this.gridToScreen(player.pos.x,
             player.pos.y, player.pos.z);
-        const playerSX = screenCoord.x - this.view_origin_in_screen.x;
-        const playerSY = screenCoord.y - this.view_origin_in_screen.y;
+        const player_ul = sub(playerInScreen, player.origin);
 
         const player_shadow = this.imageLibrary.get('player_shadow');
         if (player_shadow) {
             this.ctx.drawImage(player_shadow,
                 0, 0, 64, 32,
-                playerSX - player.origin.x,
-                playerSY - player.origin.y + 42,
+                player_ul.x, player_ul.y + 42,
                 64, 32);
         }
 
@@ -113,8 +112,7 @@ export class Renderer {
                 player.size.w * player.imageCoord.col,
                 player.size.h * player.imageCoord.row,
                 player.size.w, player.size.h,
-                playerSX - player.origin.x,
-                playerSY - player.origin.y,
+                player_ul.x, player_ul.y,
                 player.size.w, player.size.h);
         }
     }

@@ -45,6 +45,15 @@ export class Level {
                 }
                 const tilesetJson = await tsResponse.json();
 
+                const solidTiles = new Set();
+                if (tilesetJson.tiles) {
+                    tilesetJson.tiles.forEach(t => {
+                        const isSolid = t.properties?.find(p => p.name === "solid" &&
+                            p.value === true);
+                        if (isSolid) solidTiles.add(t.id);
+                    });
+                }
+
                 let imageName = tilesetJson.image
                     .split(/[\\/]/)
                     .pop()
@@ -59,33 +68,25 @@ export class Level {
                     tilewidth:   tilesetJson.tilewidth,
                     tileheight:  tilesetJson.tileheight,
                     imagewidth:  tilesetJson.imagewidth,
-                    imageheight: tilesetJson.imageheight
+                    imageheight: tilesetJson.imageheight,
+                    solidTiles:  solidTiles
                 });
             }
-
-            // Sort tilesets by firstgid
             level.tilesets.sort((a, b) => a.firstgid - b.firstgid);
 
-            // ────────────────────────────────────────────────
-            // NEW: zHeight from y-offset + sort by height
-            // ────────────────────────────────────────────────
             level.layers = mapData.layers
                 .filter(l => l.type === "tilelayer" && l.visible !== false)
                 .map(raw => {
-
-                    // ─── Normalize / define defaults right here ───
                     const offsetX = raw.offsetx !== undefined ? raw.offsetx : 0;
+                    console.assert(offsetX === 0, "Error: offsetX should be zero, but found:", offsetX);
                     const offsetY = raw.offsety !== undefined ? raw.offsety : 0;
-
                     const zHeight = Math.round(-offsetY / ISO.TILE_H);
 
                     return {
-                        name:     raw.name,
-                        data:     raw.data,
-                        opacity:  raw.opacity !== undefined ? raw.opacity : 1,
-                        zHeight,
-                        offsetX,
-                        offsetY
+                        name: raw.name,
+                        data: raw.data,
+                        opacity: raw.opacity !== undefined ? raw.opacity : 1,
+                        zHeight
                     };
                 })
                 .sort((a, b) => a.zHeight - b.zHeight);   // lowest → highest (back to front)
@@ -147,8 +148,40 @@ export class Level {
         };
     }
 
-    // Optional: if some old code still expects the first layer's data
-    getFirstVisibleLayer() {
-        return this.layers[0] || null;
+    isSolid(x, y, z) {
+        if (!this.isLoaded) return false;
+
+        // 1. Find the layer(s) matching this z-height
+        // Using filter in case you have multiple layers at the same height (e.g., "Walls" and "Decor")
+        const layersAtZ = this.layers.filter(l => l.zHeight === z);
+        
+        if (layersAtZ.length === 0) return false;
+
+        for (const layer of layersAtZ) {
+            const idx = y * this.size.w + x;
+            const gid = layer.data[idx];
+
+            if (!gid || gid <= 0) continue;
+
+            // 2. Find which tileset this GID belongs to
+            let tileset = null;
+            for (let i = this.tilesets.length - 1; i >= 0; i--) {
+                if (gid >= this.tilesets[i].firstgid) {
+                    tileset = this.tilesets[i];
+                    break;
+                }
+            }
+
+            // 3. Check if that specific tile is marked as solid
+            if (tileset) {
+                const localId = gid - tileset.firstgid;
+                if (tileset.solidTiles && tileset.solidTiles.has(localId)) {
+                    return true; 
+                }
+            }
+        }
+
+        return false;
     }
+
 }
