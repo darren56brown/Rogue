@@ -8,57 +8,63 @@ export class Renderer {
         this.imageLibrary = imageLibrary;
     }
 
+    gridToScreen(x, y, z) {
+        return {
+            x: (x - y) * ISO.HALF_W,
+            y: (x + y) * ISO.HALF_H - (z * ISO.TILE_H)
+        };
+    }
+
     render(viewOrigin, player, level, fpsTracker = null) {
         this.ctx.fillStyle = "#829e71";
         this.ctx.fillRect(0, 0, APP_SIZE.w, APP_SIZE.h);
 
-        this.renderLevelWithPlayer(viewOrigin, player, level);
+        this.view_origin_in_screen = this.gridToScreen(viewOrigin.x,
+            viewOrigin.y, 0);
+        
+        this.renderLevel(player, level);
 
         if (fpsTracker) {
             fpsTracker.render(this.ctx, 20, 20);
         }
     }
 
-    renderLevelWithPlayer(viewOrigin, player, level) {
+    renderLevel(player, level) {
         if (!level || !level.isLoaded || level.layers.length === 0) return;
 
-        const {HALF_W, HALF_H, TILE_W, IMG_H} = ISO;
+        const allLayers = level.getVisibleTileLayers();
 
-        const originSX = (viewOrigin.x - viewOrigin.y) * HALF_W;
-        const originSY = (viewOrigin.x + viewOrigin.y) * HALF_H;
-
-        const allLayers = level.getVisibleTileLayers(); // already filtered visible ones
-
-        
-        const playerInsertAfterLayerIndex = 2;
-
-        // Draw layers BEFORE player
-        for (let i = 0; i <= playerInsertAfterLayerIndex && i < allLayers.length; i++) {
-            const layer = allLayers[i];
-            this._drawLayer(viewOrigin, layer, originSX, originSY, level, TILE_W, IMG_H);
+        let playerIdx = allLayers.length;
+        for (let i = 0; i < allLayers.length; i++) {
+            if (allLayers[i].zHeight > player.pos.z) {
+                playerIdx = i;
+                break;
+            }
         }
 
-        // ─── Draw player ───────────────────────────────────────
-        this.renderPlayer(viewOrigin, player);
+        for (let i = 0; i < playerIdx; i++) {
+            this._drawLayer(allLayers[i], level);
+        }
 
-        // Draw layers AFTER player
-        for (let i = playerInsertAfterLayerIndex + 1; i < allLayers.length; i++) {
-            const layer = allLayers[i];
-            this._drawLayer(viewOrigin, layer, originSX, originSY, level, TILE_W, IMG_H);
+        this.renderPlayer(player);
+
+        for (let i = playerIdx; i < allLayers.length; i++) {
+            this._drawLayer(allLayers[i], level);
         }
     }
 
-    // Helper method – draws one full layer (extracted for clarity)
-    _drawLayer(viewOrigin, layer, originSX, originSY, level, TILE_W, IMG_H) {
-        const {HALF_W, HALF_H} = ISO;
-
+    _drawLayer(layer, level) {
         for (let y = 0; y < level.size.h; y++) {
             for (let x = 0; x < level.size.w; x++) {
-                const screenX = (x - y) * HALF_W - originSX;
-                const screenY = (x + y) * HALF_H - originSY;
 
-                if (screenX <= -TILE_W || screenX >= this.canvas.width + TILE_W ||
-                    screenY <= -IMG_H  || screenY >= this.canvas.height + IMG_H) {
+                const screenCoord = this.gridToScreen(x, y, 0);
+                const screenX = screenCoord.x - this.view_origin_in_screen.x;
+                const screenY = screenCoord.y - this.view_origin_in_screen.y + layer.offsetY;
+
+                if (screenX <= -ISO.TILE_W ||
+                    screenX >= this.canvas.width + ISO.TILE_W ||
+                    screenY <= -ISO.IMG_H  ||
+                    screenY >= this.canvas.height + ISO.IMG_H) {
                     continue;
                 }
 
@@ -76,7 +82,7 @@ export class Renderer {
                     img,
                     info.sx, info.sy, info.sw, info.sh,
                     Math.floor(screenX), Math.floor(screenY),
-                    TILE_W, IMG_H
+                    ISO.TILE_W, ISO.IMG_H
                 );
 
                 if (layer.opacity !== 1) {
@@ -86,17 +92,12 @@ export class Renderer {
         }
     }
 
-    renderPlayer(viewOrigin, player) {
-        const {HALF_W, HALF_H} = ISO;
+    renderPlayer(player) {
+        const screenCoord = this.gridToScreen(player.pos.x,
+            player.pos.y, player.pos.z);
+        const playerSX = screenCoord.x - this.view_origin_in_screen.x;
+        const playerSY = screenCoord.y - this.view_origin_in_screen.y;
 
-        // Project everything to screen
-        const originSX = (viewOrigin.x - viewOrigin.y) * HALF_W;
-        const originSY = (viewOrigin.x + viewOrigin.y) * HALF_H;
-
-        const playerSX = (player.pos.x - player.pos.y) * HALF_W - originSX;
-        const playerSY = (player.pos.x + player.pos.y) * HALF_H - originSY;
-
-        // Shadow (tweak y offset if needed)
         const player_shadow = this.imageLibrary.get('player_shadow');
         if (player_shadow) {
             this.ctx.drawImage(player_shadow,
@@ -106,7 +107,6 @@ export class Renderer {
                 64, 32);
         }
 
-        // Player base
         const player_base = this.imageLibrary.get('player_base');
         if (player_base) {
             this.ctx.drawImage(player_base,

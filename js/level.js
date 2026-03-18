@@ -1,3 +1,5 @@
+import { ISO } from "./constants.js";
+
 export class Level {
     constructor(name) {
         this.name = name;
@@ -65,17 +67,28 @@ export class Level {
             level.tilesets.sort((a, b) => a.firstgid - b.firstgid);
 
             // ────────────────────────────────────────────────
-            // CHANGED: Store ALL visible tile layers
+            // NEW: zHeight from y-offset + sort by height
             // ────────────────────────────────────────────────
             level.layers = mapData.layers
                 .filter(l => l.type === "tilelayer" && l.visible !== false)
-                .map(layer => ({
-                    name:     layer.name,
-                    data:     layer.data,           // flat 1D array of GIDs
-                    opacity:  layer.opacity ?? 1,
-                    offsetX:  layer.offsetx ?? 0,   // in case you use offsets later
-                    offsetY:  layer.offsety ?? 0
-                }));
+                .map(raw => {
+
+                    // ─── Normalize / define defaults right here ───
+                    const offsetX = raw.offsetx !== undefined ? raw.offsetx : 0;
+                    const offsetY = raw.offsety !== undefined ? raw.offsety : 0;
+
+                    const zHeight = Math.round(-offsetY / ISO.TILE_H);
+
+                    return {
+                        name:     raw.name,
+                        data:     raw.data,
+                        opacity:  raw.opacity !== undefined ? raw.opacity : 1,
+                        zHeight,
+                        offsetX,
+                        offsetY
+                    };
+                })
+                .sort((a, b) => a.zHeight - b.zHeight);   // lowest → highest (back to front)
 
             if (level.layers.length === 0) {
                 throw new Error("No visible tile layers found in map");
@@ -91,13 +104,9 @@ export class Level {
         }
     }
 
-    /**
-     * Returns array of visible tile layers in the order they should be drawn
-     * (usually bottom-to-top = back-to-front in isometric)
-     */
     getVisibleTileLayers() {
         if (!this.isLoaded) return [];
-        return this.layers;  // already filtered in load()
+        return this.layers; // already sorted by zHeight
     }
 
     /**
