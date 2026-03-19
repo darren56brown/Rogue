@@ -59,6 +59,8 @@ export class Player {
     }
 
     updatePhysics(dt, keys, game_map) {
+        this.current_map = game_map;
+
         let unit_move = vec(0, 0);
 
         if (keys['a'] || keys['arrowleft']) unit_move.x -= 1;
@@ -86,20 +88,17 @@ export class Player {
             const unitDelta = isoToCartesian(unit_move.x, unit_move.y);
             const deltaVec = mult(unitDelta, this.speed * dt);
             setAdd(this.pos, deltaVec);
-            if (game_map.getObstruction(this.pos.x, this.pos.y,
-                this.pos.z) != "none") {
+            if (this.getObstruction() != "none") {
                 setSub(this.pos, deltaVec);
 
                 const deltaVecMag = Math.hypot(deltaVec.x, deltaVec.y);
 
                 this.pos.x += deltaVec.x;
-                const xObstruction = game_map.getObstruction(this.pos.x,
-                    this.pos.y, this.pos.z);
+                const xObstruction = this.getObstruction();
                 this.pos.x -= deltaVec.x;
 
                 this.pos.y += deltaVec.y;
-                const yObstruction = game_map.getObstruction(this.pos.x,
-                    this.pos.y, this.pos.z);
+                const yObstruction = this.getObstruction();
                 this.pos.y -= deltaVec.y; 
 
                 if (xObstruction == "none") {
@@ -148,5 +147,13 @@ export class Player {
             //Standing image
             this.imageCoord.col = 0;
         }
+    }
+
+    getObstruction()
+    {
+        const gridX = Math.floor(this.pos.x);
+        const gridY = Math.floor(this.pos.y);
+        const gridZ = Math.round(this.pos.z);
+        return this.current_map.getObstruction(gridX, gridY, gridZ);
     }
 }

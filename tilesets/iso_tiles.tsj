@@ -5,30 +5,12 @@
  "margin":0,
  "name":"iso_tiles",
  "spacing":0,
- "tilecount":16,
+ "tilecount":12,
  "tiledversion":"1.12.0-1-gd3530f437",
  "tileheight":128,
  "tiles":[
         {
-         "id":4,
-         "properties":[
-                {
-                 "name":"solid",
-                 "type":"bool",
-                 "value":true
-                }]
-        },
-        {
-         "id":5,
-         "properties":[
-                {
-                 "name":"solid",
-                 "type":"bool",
-                 "value":true
-                }]
-        },
-        {
-         "id":6,
+         "id":0,
          "properties":[
                 {
                  "name":"solid",
@@ -37,7 +19,43 @@
                 }]
         }, 
         {
-         "id":7,
+         "id":1,
+         "properties":[
+                {
+                 "name":"solid",
+                 "type":"bool",
+                 "value":true
+                }]
+        }, 
+        {
+         "id":2,
+         "properties":[
+                {
+                 "name":"solid",
+                 "type":"bool",
+                 "value":true
+                }]
+        }, 
+        {
+         "id":3,
+         "properties":[
+                {
+                 "name":"solid",
+                 "type":"bool",
+                 "value":true
+                }]
+        }, 
+        {
+         "id":4,
+         "properties":[
+                {
+                 "name":"solid",
+                 "type":"bool",
+                 "value":true
+                }]
+        }, 
+        {
+         "id":5,
          "properties":[
                 {
                  "name":"solid",

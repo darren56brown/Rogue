@@ -148,32 +148,27 @@ export class Level {
         };
     }
 
-    getObstruction(x, y, z) {
+    getObstruction(gridX, gridY, gridZ) {
         if (!this.isLoaded) return "none";
 
-        // 1. Snap coordinates to integers for grid/layer lookup
-        const gridX = Math.floor(x);
-        const gridY = Math.floor(y);
-        const gridZ = Math.floor(z); // Or Math.round depending on your jumping logic
-
-        // Boundary check
-        if (gridX < 0 || gridX >= this.size.w || gridY < 0 || gridY >= this.size.h) {
-            return "drop"; // Treat "out of bounds" as solid/impassable
+        if (gridX < 0 || gridX >= this.size.w ||
+            gridY < 0 || gridY >= this.size.h) {
+            return "wall";
         }
 
-        // 2. Find the layer(s) matching this snapped z-height
         const layersAtZ = this.layers.filter(l => l.zHeight === gridZ);
-        
         for (const layer of layersAtZ) {
             const idx = gridY * this.size.w + gridX;
             const gid = layer.data[idx];
-            if (gid < 1) {
-                return "drop";
-            }
+            if (!gid || gid <= 0) return "drop";
+        }
 
+        const layersJustAboveZ = this.layers.filter(l => l.zHeight === gridZ + 1);
+        for (const layer of layersJustAboveZ) {
+            const idx = gridY * this.size.w + gridX;
+            const gid = layer.data[idx];
             if (!gid || gid <= 0) continue;
 
-            // 3. Find the tileset
             let tileset = null;
             for (let i = this.tilesets.length - 1; i >= 0; i--) {
                 if (gid >= this.tilesets[i].firstgid) {
