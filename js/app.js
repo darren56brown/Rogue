@@ -4,6 +4,8 @@ import { ImageLibrary } from "./image_library.js";
 import { Player } from "./player.js";
 import { Level } from "./level.js";
 import { FPSTracker } from "./fps_tracker.js";
+import { cartesianToIso, isoToCartesian } from './util.js';
+import { vec, add, sub, mult, setAdd } from './vector.js';
 
 export class App {
     constructor() {
@@ -13,9 +15,9 @@ export class App {
         this.image_library = new ImageLibrary();
         this.renderer = new Renderer(this.canvas, this.image_library);
 
-        const starting_pos = {x: 1 + 0.5, y: 1 + 0.5, z: 1}
-        this.player = new Player(starting_pos);
-
+        this.characters = [];
+        this.player = null;
+       
         this.game_map = null;
 
         this.fps_tracker = new FPSTracker();
@@ -30,30 +32,32 @@ export class App {
         window.addEventListener('resize', () => this.resizeCanvas());
         this.initUserInput();
 
-        // 1. Start loading images
         this.image_library.loadAll();
 
-        // 2. Start loading the level data (returns a promise)
-        // We catch the returned level object and assign it to this.game_map
         const level_promise = Level.load('level_01')
             .then(loadedLevel => { this.game_map = loadedLevel; })
             .catch(err => console.error("Level loading failed", err));
 
-        // 3. Create the image loading promise
         const images_promise = new Promise(resolve => {
             this.image_library.onAllLoaded(resolve);
         });
 
-        // 4. Wait for BOTH to finish
         Promise.all([level_promise, images_promise])
             .then(() => {
-                //console.log("All assets ready — starting game loop");
+                
+                const starting_pos = {x: 1.5, y: 1.5, z: 1};
+                this.player = new Player(starting_pos);
+                this.characters.push(this.player);
+
+                // Add as many NPCs as you want here (they start as identical Player instances)
+                this.characters.push(new Player({x: 4.5, y: 2.5, z: 1}));
+                this.characters.push(new Player({x: 6.5, y: 5.5, z: 1}));
+                // this.characters.push(new Player({x: 3.5, y: 8.5, z: 2}));
+
                 this.last_time = performance.now();
                 requestAnimationFrame(t => this.loop(t));
             })
-            .catch(err => {
-                console.error("Asset loading failed:", err);
-            });
+            .catch(err => console.error("Asset loading failed:", err));
     }
     
     resizeCanvas() {
@@ -80,48 +84,51 @@ export class App {
 
     loop(time) {
         const delta = Math.min((time - this.last_time)/1000, 0.1);
-        if (this.fps_tracker) {
-            this.fps_tracker.update(time);
-        }
+        if (this.fps_tracker) this.fps_tracker.update(time);
 
         this.updatePhysics(delta);
 
         this.renderer.render(this.game_map, this.view_origin, this.player,
             this.fps_tracker);
+        //this.renderer.render(this.game_map, this.view_origin, this.characters,
+         //   this.fps_tracker);
+        
 
         requestAnimationFrame((t) => this.loop(t));
     }
 
     updatePhysics(dt) {
-        this.player.updatePhysics(dt, this.keys, this.game_map);
+        for (const char of this.characters) {
+            if (char === this.player) {
+                char.updatePhysics(dt, this.keys, this.game_map);
+            } else {
+                // TODO: AI later
+                // char.updateAI(dt, this.game_map);
+            }
+        }
 
-        // Current projected screen position of player
-        const originSX = (this.view_origin.x - this.view_origin.y) * ISO.HALF_W;
-        const originSY = (this.view_origin.x + this.view_origin.y) * ISO.HALF_H;
-        const playerSX = (this.player.pos.x - this.player.pos.y) * ISO.HALF_W - originSX;
-        const playerSY = (this.player.pos.x + this.player.pos.y) * ISO.HALF_H - originSY;
+        this.view_origin_iso = cartesianToIso(this.view_origin.x,
+            this.view_origin.y, 0);
+        const playerInScreen = sub(cartesianToIso(this.player.pos.x,
+            this.player.pos.y, this.player.pos.z), this.view_origin_iso);
 
         let camScreenDX = 0;
         let camScreenDY = 0;
 
-        if (playerSX < CAMERA_MARGIN.x) {
-            camScreenDX = playerSX - CAMERA_MARGIN.x;
-        } else if (playerSX > APP_SIZE.w - CAMERA_MARGIN.x) {
-            camScreenDX = playerSX - (APP_SIZE.w - CAMERA_MARGIN.x);
+        if (playerInScreen.x < CAMERA_MARGIN.x) {
+            camScreenDX = playerInScreen.x - CAMERA_MARGIN.x;
+        } else if (playerInScreen.x > APP_SIZE.w - CAMERA_MARGIN.x) {
+            camScreenDX = playerInScreen.x - (APP_SIZE.w - CAMERA_MARGIN.x);
         }
-        if (playerSY < CAMERA_MARGIN.y) {
-            camScreenDY = playerSY - CAMERA_MARGIN.y;
-        } else if (playerSY > APP_SIZE.h - CAMERA_MARGIN.y) {
-            camScreenDY = playerSY - (APP_SIZE.h - CAMERA_MARGIN.y);
+        if (playerInScreen.y < CAMERA_MARGIN.y) {
+            camScreenDY = playerInScreen.y - CAMERA_MARGIN.y;
+        } else if (playerInScreen.y > APP_SIZE.h - CAMERA_MARGIN.y) {
+            camScreenDY = playerInScreen.y - (APP_SIZE.h - CAMERA_MARGIN.y);
         }
 
-        // Convert screen camera shift back to world coordinates
         if (camScreenDX !== 0 || camScreenDY !== 0) {
-            const worldDX = (camScreenDX / ISO.HALF_W + camScreenDY / ISO.HALF_H) / 2;
-            const worldDY = (-camScreenDX / ISO.HALF_W + camScreenDY / ISO.HALF_H) / 2;
-
-            this.view_origin.x += worldDX;
-            this.view_origin.y += worldDY;
+            const worldDelta = isoToCartesian(camScreenDX, camScreenDY);
+            setAdd(this.view_origin, worldDelta);
         }
     }
 

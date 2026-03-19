@@ -10,11 +10,6 @@ export class Renderer {
         this.imageLibrary = imageLibrary;
     }
 
-    gridToScreen(x, y, z) {
-        return sub(cartesianToIso(x, y, z),
-            this.view_origin_iso);
-    }
-
     render(current_map, view_origin, player, fpsTracker = null) {
         this.current_map = current_map;
 
@@ -128,8 +123,8 @@ export class Renderer {
     }
 
     renderPlayer(player, forGhost) {
-        const playerInScreen = this.gridToScreen(player.pos.x,
-            player.pos.y, player.pos.z);
+        const playerInScreen = sub(cartesianToIso(player.pos.x,
+            player.pos.y, player.pos.z), this.view_origin_iso);
         const player_ul = sub(playerInScreen, player.origin);
 
         let oldAlpha = this.ctx.globalAlpha;
