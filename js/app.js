@@ -13,7 +13,7 @@ export class App {
         this.image_library = new ImageLibrary();
         this.renderer = new Renderer(this.canvas, this.image_library);
 
-        const starting_pos = {x: 2 + 0.5, y: 10 + 0.5, z: 0}
+        const starting_pos = {x: 0 + 0.5, y: 0 + 0.5, z: 1}
         this.player = new Player(starting_pos);
 
         this.game_map = null;
@@ -86,7 +86,7 @@ export class App {
 
         this.updatePhysics(delta);
 
-        this.renderer.render(this.view_origin, this.player, this.game_map,
+        this.renderer.render(this.game_map, this.view_origin, this.player,
             this.fps_tracker);
 
         requestAnimationFrame((t) => this.loop(t));

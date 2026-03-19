@@ -15,7 +15,9 @@ export class Renderer {
             this.view_origin_iso);
     }
 
-    render(view_origin, player, level, fpsTracker = null) {
+    render(current_map, view_origin, player, fpsTracker = null) {
+        this.current_map = current_map;
+
         this.ctx.fillStyle = "#829e71";
         this.ctx.fillRect(0, 0, APP_SIZE.w, APP_SIZE.h);
 
@@ -23,17 +25,17 @@ export class Renderer {
         this.view_origin_iso = cartesianToIso(view_origin.x,
             view_origin.y, 0);
         
-        this.renderLevel(player, level);
+        this.renderGameMap(player);
 
         if (fpsTracker) {
             fpsTracker.render(this.ctx, 20, 20);
         }
     }
 
-    renderLevel(player, level) {
-        if (!level || !level.isLoaded || level.layers.length === 0) return;
+    renderGameMap(player) {
+        if (!this.current_map || !this.current_map.isLoaded) return;
 
-        const allLayers = level.getVisibleTileLayers();
+        const allLayers = this.current_map.getVisibleTileLayers();
 
         const playerX = Math.floor(player.pos.x);
         const playerY = Math.floor(player.pos.y);
@@ -46,26 +48,26 @@ export class Renderer {
         }
 
         for (let i = 0; i <= playerIdx; i++) {
-            this._drawLayer(allLayers[i], level, 0, level.size.w,
-                0, level.size.h);
+            this._drawLayer(allLayers[i], 0, this.current_map.size.w,
+                0, this.current_map.size.h);
         }
 
-        this._drawLayer(allLayers[playerIdx + 1], level, 0, playerX + 1,
+        this._drawLayer(allLayers[playerIdx + 1], 0, playerX + 1,
             0, playerY + 1);
         this.renderPlayer(player);
         
-        this._drawLayer(allLayers[playerIdx + 1], level, 0,playerX + 1,
-            playerY + 1, level.size.h);
-        this._drawLayer(allLayers[playerIdx + 1], level, playerX + 1,level.size.w,
-            0, level.size.h);
+        this._drawLayer(allLayers[playerIdx + 1], 0,playerX + 1,
+            playerY + 1, this.current_map.size.h);
+        this._drawLayer(allLayers[playerIdx + 1], playerX + 1, this.current_map.size.w,
+            0, this.current_map.size.h);
 
         for (let i = playerIdx + 2; i < allLayers.length; i++) {
-            this._drawLayer(allLayers[i], level, 0, level.size.w,
-                0, level.size.h);
+            this._drawLayer(allLayers[i], 0, this.current_map.size.w,
+                0, this.current_map.size.h);
         }
     }
 
-    _drawLayer(layer, level, xStart, xEnd, yStart, yEnd) {
+    _drawLayer(layer, xStart, xEnd, yStart, yEnd) {
         for (let y = yStart; y < yEnd; y++) {
             for (let x = xStart; x < xEnd; x++) {
                 //I haven't figured out the -1 to my own satisfaction yet
@@ -81,7 +83,7 @@ export class Renderer {
                     continue;
                 }
 
-                const info = level.getTileInfoForLayer(x, y, layer);
+                const info = this.current_map.getTileInfoForLayer(x, y, layer);
                 if (!info) continue;
 
                 const img = this.imageLibrary.get(info.imageName);
