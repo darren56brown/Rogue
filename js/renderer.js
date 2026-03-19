@@ -35,28 +35,39 @@ export class Renderer {
 
         const allLayers = level.getVisibleTileLayers();
 
+        const playerX = Math.floor(player.pos.x);
+        const playerY = Math.floor(player.pos.y);
+        const playerZ = Math.floor(player.pos.z);
+
         let playerIdx = allLayers.length;
         for (let i = 0; i < allLayers.length; i++) {
-            if (allLayers[i].zHeight > player.pos.z) {
-                playerIdx = i;
-                break;
-            }
+            if (allLayers[i].zHeight > playerZ) break;
+            playerIdx = i;
         }
 
         for (let i = 0; i < playerIdx; i++) {
-            this._drawLayer(allLayers[i], level);
+            this._drawLayer(allLayers[i], level, 0, level.size.w,
+                0, level.size.h);
         }
 
+        this._drawLayer(allLayers[playerIdx], level, 0, playerX + 1,
+            0, playerY + 1);
         this.renderPlayer(player);
+        
+        this._drawLayer(allLayers[playerIdx], level, 0,playerX + 1,
+            playerY + 1, level.size.h);
+        this._drawLayer(allLayers[playerIdx], level, playerX + 1,level.size.w,
+            0, level.size.h);
 
-        for (let i = playerIdx; i < allLayers.length; i++) {
-            this._drawLayer(allLayers[i], level);
+        for (let i = playerIdx + 1; i < allLayers.length; i++) {
+            this._drawLayer(allLayers[i], level, 0, level.size.w,
+                0, level.size.h);
         }
     }
 
-    _drawLayer(layer, level) {
-        for (let y = 0; y < level.size.h; y++) {
-            for (let x = 0; x < level.size.w; x++) {
+    _drawLayer(layer, level, xStart, xEnd, yStart, yEnd) {
+        for (let y = yStart; y < yEnd; y++) {
+            for (let x = xStart; x < xEnd; x++) {
                 //I haven't figured out the -1 to my own satisfaction yet
                 //It makes the player and the collision correct though.
                 const screenCoord = cartesianToIso(x - 1, y, layer.zHeight);

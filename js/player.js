@@ -49,7 +49,7 @@ export class Player {
             y: PLAYER_TILE_ORIGIN.y
         };
 
-        this.speed = 50;
+        this.speed = 30;
 
         this.curFacing = PlayerFacing.face_dn;
         this.curWalkFrame = AnimWalkSequence.num_frames;
