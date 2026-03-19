@@ -52,7 +52,7 @@ export class App {
                 // Add as many NPCs as you want here (they start as identical Player instances)
                 this.characters.push(new Player({x: 4.5, y: 2.5, z: 1}));
                 this.characters.push(new Player({x: 6.5, y: 5.5, z: 1}));
-                // this.characters.push(new Player({x: 3.5, y: 8.5, z: 2}));
+                this.characters.push(new Player({x: 1.5, y: 2.5, z: 1}));
 
                 this.last_time = performance.now();
                 requestAnimationFrame(t => this.loop(t));
@@ -88,12 +88,11 @@ export class App {
 
         this.updatePhysics(delta);
 
-        this.renderer.render(this.game_map, this.view_origin, this.player,
+        //this.renderer.render(this.game_map, this.view_origin, this.player,
+        //    this.fps_tracker);
+        this.renderer.render(this.game_map, this.view_origin, this.characters,
             this.fps_tracker);
-        //this.renderer.render(this.game_map, this.view_origin, this.characters,
-         //   this.fps_tracker);
         
-
         requestAnimationFrame((t) => this.loop(t));
     }
 
@@ -102,8 +101,7 @@ export class App {
             if (char === this.player) {
                 char.updatePhysics(dt, this.keys, this.game_map);
             } else {
-                // TODO: AI later
-                // char.updateAI(dt, this.game_map);
+                char.updatePhysics(dt, null, this.game_map);
             }
         }
 

@@ -63,10 +63,12 @@ export class Player {
 
         let unit_move = vec(0, 0);
 
-        if (keys['a'] || keys['arrowleft']) unit_move.x -= 1;
-        if (keys['d'] || keys['arrowright']) unit_move.x += 1;
-        if (keys['w'] || keys['arrowup']) unit_move.y -= 1;
-        if (keys['s'] || keys['arrowdown']) unit_move.y += 1;
+        if (keys) {
+            if (keys['a'] || keys['arrowleft']) unit_move.x -= 1;
+            if (keys['d'] || keys['arrowright']) unit_move.x += 1;
+            if (keys['w'] || keys['arrowup']) unit_move.y -= 1;
+            if (keys['s'] || keys['arrowdown']) unit_move.y += 1;
+        }
 
         const moving = unit_move.x !== 0 || unit_move.y !== 0;
 
