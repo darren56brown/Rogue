@@ -45,21 +45,21 @@ export class Renderer {
             playerIdx = i;
         }
 
-        for (let i = 0; i < playerIdx; i++) {
+        for (let i = 0; i <= playerIdx; i++) {
             this._drawLayer(allLayers[i], level, 0, level.size.w,
                 0, level.size.h);
         }
 
-        this._drawLayer(allLayers[playerIdx], level, 0, playerX + 1,
+        this._drawLayer(allLayers[playerIdx + 1], level, 0, playerX + 1,
             0, playerY + 1);
         this.renderPlayer(player);
         
-        this._drawLayer(allLayers[playerIdx], level, 0,playerX + 1,
+        this._drawLayer(allLayers[playerIdx + 1], level, 0,playerX + 1,
             playerY + 1, level.size.h);
-        this._drawLayer(allLayers[playerIdx], level, playerX + 1,level.size.w,
+        this._drawLayer(allLayers[playerIdx + 1], level, playerX + 1,level.size.w,
             0, level.size.h);
 
-        for (let i = playerIdx + 1; i < allLayers.length; i++) {
+        for (let i = playerIdx + 2; i < allLayers.length; i++) {
             this._drawLayer(allLayers[i], level, 0, level.size.w,
                 0, level.size.h);
         }

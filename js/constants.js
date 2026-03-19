@@ -11,5 +11,5 @@ export const ISO = {
     TILE_H: 64,            // vertical step ("overlap height")
     HALF_W: 64,            // TILE_W / 2
     HALF_H: 32,            // TILE_H / 2
-    IMG_H: 96              // actual image height
+    IMG_H: 128             // actual image height
 };
