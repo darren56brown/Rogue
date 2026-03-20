@@ -153,15 +153,25 @@ export class Level {
 
         if (gridX < 0 || gridX >= this.size.w ||
             gridY < 0 || gridY >= this.size.h) {
-            return "wall";
+            return {type: "wall"};
         }
 
-        const layersAtZ = this.layers.filter(l => l.zHeight === gridZ);
-        for (const layer of layersAtZ) {
-            const idx = gridY * this.size.w + gridX;
+        const idx = gridY * this.size.w + gridX;
+        let layerAtOrBelow = null;
+        for (let i = this.layers.length - 1; i >= 0; i--) {
+            const layer = this.layers[i];
+            if (layer.zHeight > gridZ) continue;
+
             const gid = layer.data[idx];
-            if (!gid || gid <= 0) return "drop";
+            if (gid && gid > 0) {
+                layerAtOrBelow = layer;
+                break;
+            }
         }
+        if (!layerAtOrBelow) return {type: "drop", dist: Infinity};
+
+        const dropDistance = gridZ - layerAtOrBelow.zHeight;
+        if (dropDistance > 0) return {type: "drop", dist: dropDistance};
 
         const layersJustAboveZ = this.layers.filter(l => l.zHeight === gridZ + 1);
         for (const layer of layersJustAboveZ) {
@@ -180,12 +190,12 @@ export class Level {
             if (tileset) {
                 const localId = gid - tileset.firstgid;
                 if (tileset.solidTiles?.has(localId)) {
-                    return "wall"; 
+                    return {type: "wall"}; 
                 }
             }
         }
 
-        return "none";
+        return {type: "none"};
     }
 
 }

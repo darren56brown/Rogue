@@ -120,11 +120,21 @@ export class Renderer {
         if (forGhost == true) {
             this.ctx.globalAlpha = 0.3;
         } else {
+            const shadowInScreen = sub(cartesianToIso(character.pos.x,
+                character.pos.y, Math.floor(character.pos.z)), this.view_origin_iso);
+            const shadow_ul = sub(shadowInScreen, character.origin);
+
             const character_shadow = this.imageLibrary.get('player_shadow');
             if (character_shadow) {
+
+
+
+
+
+
                 this.ctx.drawImage(character_shadow,
                     0, 0, 64, 32,
-                    character_ul.x, character_ul.y + 42,
+                    shadow_ul.x, shadow_ul.y + 42,
                     64, 32);
             }
         }

@@ -50,6 +50,8 @@ export class Player {
         };
 
         this.speed = 30;
+        this.falling = true;
+        this.fall_speed = .25;
 
         this.curFacing = PlayerFacing.face_dn;
         this.curWalkFrame = AnimWalkSequence.num_frames;
@@ -60,6 +62,21 @@ export class Player {
 
     updatePhysics(dt, keys, game_map) {
         this.current_map = game_map;
+
+        if (this.falling) {
+            const obstruction = this.getObstruction();
+            if (obstruction.type == "drop") {
+                const fallDistance = this.fall_speed * dt;
+                if (fallDistance >= obstruction.dist) {
+                    this.pos.z -= obstruction.dist;
+                    this.falling = false;
+                } else {
+                    this.pos.z -= fallDistance;
+                }  
+            } else {
+                this.falling = false;
+            }
+        }
 
         let unit_move = vec(0, 0);
 
@@ -90,7 +107,10 @@ export class Player {
             const unitDelta = isoToCartesian(unit_move.x, unit_move.y);
             const deltaVec = mult(unitDelta, this.speed * dt);
             setAdd(this.pos, deltaVec);
-            if (this.getObstruction() != "none") {
+            const fullMoveObstruction = this.getObstruction();
+            if (fullMoveObstruction.type == "drop") {
+                this.falling = true;
+            } else if (fullMoveObstruction.type != "none") {
                 setSub(this.pos, deltaVec);
 
                 const deltaVecMag = Math.hypot(deltaVec.x, deltaVec.y);
@@ -103,20 +123,16 @@ export class Player {
                 const yObstruction = this.getObstruction();
                 this.pos.y -= deltaVec.y; 
 
-                if (xObstruction == "none") {
-                    if (yObstruction != "drop") {
-                        const slow = deltaVecMag / 5;
-                        deltaVec.x = Math.sign(deltaVec.x) * slow;
-                        deltaVec.y = 0;
-                        setAdd(this.pos, deltaVec);
-                    }      
-                } else if (yObstruction == "none") {
-                     if (xObstruction != "drop") {
-                        const slow = deltaVecMag / 5;
-                        deltaVec.x = 0;
-                        deltaVec.y = Math.sign(deltaVec.y) * slow;
-                        setAdd(this.pos, deltaVec);
-                     }
+                if (xObstruction.type == "none") {
+                    const slow = deltaVecMag / 5;
+                    deltaVec.x = Math.sign(deltaVec.x) * slow;
+                    deltaVec.y = 0;
+                    setAdd(this.pos, deltaVec);  
+                } else if (yObstruction.type == "none") {
+                    const slow = deltaVecMag / 5;
+                    deltaVec.x = 0;
+                    deltaVec.y = Math.sign(deltaVec.y) * slow;
+                    setAdd(this.pos, deltaVec);
                 }
             } 
 
@@ -155,7 +171,6 @@ export class Player {
     {
         const gridX = Math.floor(this.pos.x);
         const gridY = Math.floor(this.pos.y);
-        const gridZ = Math.round(this.pos.z);
-        return this.current_map.getObstruction(gridX, gridY, gridZ);
+        return this.current_map.getObstruction(gridX, gridY, this.pos.z);
     }
 }
