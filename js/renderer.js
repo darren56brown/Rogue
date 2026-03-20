@@ -37,30 +37,32 @@ export class Renderer {
         for (const layer of allLayers) {
             for (let y = 0; y < this.current_map.size.h; y++) {
                 for (let x = 0; x < this.current_map.size.w; x++) {
+                    //Always cull here to put less stuff in the list
                     const info = this.current_map.getTileInfoForLayer(x, y, layer);
                     if (!info) continue;
 
-                    const isoPos = cartesianToIso(x - 0.5, y + 0.5, layer.zHeight);
-                    const screenPos = sub(isoPos, this.view_origin_iso);
+                    //Upper left of tile in iso is not upper left of tile in Cartesian
+                    const screen_pos_ul = sub(cartesianToIso(x - 0.5, y + 0.5,
+                        layer.zHeight), this.view_origin_iso);
 
-                    if (screenPos.x <= -ISO.TILE_W ||
-                        screenPos.x >= this.canvas.width + ISO.TILE_W ||
-                        screenPos.y <= -ISO.IMG_H  ||
-                        screenPos.y >= this.canvas.height + ISO.IMG_H) {
+                    if (screen_pos_ul.x <= -ISO.TILE_W ||
+                        screen_pos_ul.x >= this.canvas.width + ISO.TILE_W ||
+                        screen_pos_ul.y <= -ISO.IMG_H  ||
+                        screen_pos_ul.y >= this.canvas.height + ISO.IMG_H) {
                         continue;
                     }
+                    if (!this.imageLibrary.get(info.imageName)) continue;
 
-                    const img = this.imageLibrary.get(info.imageName);
-                    if (!img) continue;
+                    //Test y at center of block but down one level
+                    const y_sort_point = sub(cartesianToIso(x + 0.5, y + 0.5,
+                        layer.zHeight - 1), this.view_origin_iso);
 
                     drawList.push({
                         type: 'tile',
-                        screenY: screenY,
-                        img,
-                        sx: info.sx, sy: info.sy,
-                        sw: info.sw, sh: info.sh,
-                        drawX: Math.floor(screenPos.x),
-                        drawY: Math.floor(screenPos.y),
+                        y_sort: y_sort_point.y,
+                        z_sort: layer.zHeight - 0.5, //block center is down in z
+                        info: info,
+                        screen_pos_ul: screen_pos_ul,
                         opacity: layer.opacity || 1
                     });
                 }
@@ -68,29 +70,44 @@ export class Renderer {
         }
 
         for (const character of characters) {
-            const screenPos = sub(cartesianToIso(character.pos.x,
+            //Test y at feet of character
+            const y_sort_point = sub(cartesianToIso(character.pos.x,
                 character.pos.y, character.pos.z), this.view_origin_iso);
+
             drawList.push({
                 type: 'character',
-                screenY: screenPos.y,
-                character
+                y_sort: y_sort_point.y,
+                z_sort: character.pos.z + 0.5, //character center is up in z
+                character: character
             });
         }
 
-        drawList.sort((a, b) => a.screenY - b.screenY);
+        drawList.sort((a, b) => {
+            //If we are close to one layer apart, sort by z
+            if (Math.abs(a.z_sort - b.z_sort) > 0.99) {
+                return a.z_sort - b.z_sort;
+            }
+            return a.y_sort - b.y_sort;
+        });
 
         for (const item of drawList) {
             if (item.type === 'tile') {
                 if (item.opacity !== 1) this.ctx.globalAlpha = item.opacity;
-                this.ctx.drawImage(item.img,
-                    item.sx, item.sy,
-                    item.sw, item.sh,
-                    item.drawX, item.drawY,
-                    item.sw, item.sh);
+                const img = this.imageLibrary.get(item.info.imageName);
+                this.ctx.drawImage(img,
+                    item.info.sx, item.info.sy,
+                    item.info.sw, item.info.sh,
+                    Math.floor(item.screen_pos_ul.x),
+                    Math.floor(item.screen_pos_ul.y),
+                    item.info.sw, item.info.sh);
                 if (item.opacity !== 1) this.ctx.globalAlpha = 1;
             } else if (item.type === 'character') { 
                 this.renderCharacter(item.character, false);
             }
+        }
+
+        for (const character of characters) {
+            this.renderCharacter(character, true);
         }
     }
 

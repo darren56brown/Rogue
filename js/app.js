@@ -88,8 +88,6 @@ export class App {
 
         this.updatePhysics(delta);
 
-        //this.renderer.render(this.game_map, this.view_origin, this.player,
-        //    this.fps_tracker);
         this.renderer.render(this.game_map, this.view_origin, this.characters,
             this.fps_tracker);
         
