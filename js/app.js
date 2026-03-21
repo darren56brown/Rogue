@@ -31,6 +31,7 @@ export class App {
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
         this.initUserInput();
+        this.initUI();
 
         this.image_library.loadAll();
 
@@ -59,6 +60,19 @@ export class App {
             })
             .catch(err => console.error("Asset loading failed:", err));
     }
+
+    initUI(){
+        document.getElementById("playButton").onclick = () => this.startGame();
+    }
+
+    hideAllPanels(){
+        document.querySelectorAll(".ui-panel").forEach(p => p.classList.remove("is-active"));
+    }
+
+    startGame(){
+        this.hideAllPanels();
+    }
+
     
     resizeCanvas() {
         const aspect_ratio = 16/9;
