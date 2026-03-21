@@ -30,13 +30,20 @@ export class Renderer {
     renderGameMap(characters) {
         if (!this.current_map || !this.current_map.isLoaded) return;
 
-        const drawList = [];
-        const allLayers = this.current_map.getVisibleTileLayers();
+        //Add all tiles to a flat list in a perfect order so that
+        //there is no need to sort.
+        const tileDrawList = [];
+        for (const layer of this.current_map.getVisibleTileLayers()) {
+            const map_width = this.current_map.size.w;
+            const map_height = this.current_map.size.h;
 
+            //Add to list in depth order to avoid need to sort
+            for (let depth = 0; depth <= (map_width + map_height - 2); depth++) {
+                 for (let x = 0; x <= depth; x++) {
+                    if (x >= map_width) continue;
+                    let y = depth - x;
+                    if (y >= map_height) continue;
 
-        for (const layer of allLayers) {
-            for (let y = 0; y < this.current_map.size.h; y++) {
-                for (let x = 0; x < this.current_map.size.w; x++) {
                     //Always cull here to put less stuff in the list
                     const info = this.current_map.getTileInfoForLayer(x, y, layer);
                     if (!info) continue;
@@ -57,8 +64,7 @@ export class Renderer {
                     const y_sort_point = sub(cartesianToIso(x + 0.5, y + 0.5,
                         layer.zHeight - 1), this.view_origin_iso);
 
-                    drawList.push({
-                        type: 'tile',
+                    tileDrawList.push({
                         y_sort: y_sort_point.y,
                         z_sort: layer.zHeight - 0.5, //block center is down in z
                         info: info,
@@ -69,45 +75,62 @@ export class Renderer {
             }
         }
 
+        const characterDrawList = [];
         for (const character of characters) {
             //Test y at feet of character
             const y_sort_point = sub(cartesianToIso(character.pos.x,
                 character.pos.y, character.pos.z), this.view_origin_iso);
 
-            drawList.push({
-                type: 'character',
+            characterDrawList.push({
                 y_sort: y_sort_point.y,
                 z_sort: character.pos.z + 0.5, //character center is up in z
                 character: character
             });
         }
 
-        drawList.sort((a, b) => {
+        const compareTiles = (a, b) => {
             //If we are close to one layer apart, sort by z
             if (Math.abs(a.z_sort - b.z_sort) > 0.99) {
                 return a.z_sort - b.z_sort;
             }
             return a.y_sort - b.y_sort;
-        });
+        };
+        characterDrawList.sort(compareTiles);
 
-        for (const item of drawList) {
-            if (item.type === 'tile') {
-                if (item.opacity !== 1) this.ctx.globalAlpha = item.opacity;
-                const img = this.imageLibrary.get(item.info.imageName);
-                this.ctx.drawImage(img,
-                    item.info.sx, item.info.sy,
-                    item.info.sw, item.info.sh,
-                    Math.floor(item.screen_pos_ul.x),
-                    Math.floor(item.screen_pos_ul.y),
-                    item.info.sw, item.info.sh);
-                if (item.opacity !== 1) this.ctx.globalAlpha = 1;
-            } else if (item.type === 'character') { 
-                this.renderCharacter(item.character, false);
+        //Go through character and tile lists at same time as
+        //long as both hold up drawing the correct next one
+        let nextTileIdx = 0;
+        let nextCharacterIdx = 0;
+        while (nextTileIdx < tileDrawList.length &&
+            nextCharacterIdx < characterDrawList.length) {
+            const nextTileItem = tileDrawList[nextTileIdx];
+            const nextCharacterItem = characterDrawList[nextCharacterIdx];
+            if (compareTiles(nextTileItem, nextCharacterItem) <= 0) {
+                this.renderTile(nextTileItem);
+                nextTileIdx++;
+            } else {
+                this.renderCharacter(nextCharacterItem.character);
+                nextCharacterIdx++;
             }
         }
+        //Either character or tile list gave out. Try to draw
+        //any remaining of either list
 
-        for (const character of characters) {
-            this.renderCharacter(character, true);
+        while (nextTileIdx < tileDrawList.length) {
+            const nextTileItem = tileDrawList[nextTileIdx];
+            this.renderTile(nextTileItem);
+            nextTileIdx++;
+        }
+
+        while (nextCharacterIdx < characterDrawList.length) {
+            const nextCharacterItem = characterDrawList[nextCharacterIdx];
+            this.renderCharacter(nextCharacterItem.character);
+            nextCharacterIdx++;
+        }
+
+        //Redraw all characters so that they appear as ghosts behind walls
+        for (const characterItem of characterDrawList) {
+            this.renderCharacter(characterItem.character, true);
         }
     }
 
@@ -126,12 +149,6 @@ export class Renderer {
 
             const character_shadow = this.imageLibrary.get('player_shadow');
             if (character_shadow) {
-
-
-
-
-
-
                 this.ctx.drawImage(character_shadow,
                     0, 0, 64, 32,
                     shadow_ul.x, shadow_ul.y + 42,
@@ -150,5 +167,17 @@ export class Renderer {
         }
 
         this.ctx.globalAlpha = oldAlpha;
+    }
+
+    renderTile(item) {
+        if (item.opacity !== 1) this.ctx.globalAlpha = item.opacity;
+        const img = this.imageLibrary.get(item.info.imageName);
+        this.ctx.drawImage(img,
+            item.info.sx, item.info.sy,
+            item.info.sw, item.info.sh,
+            Math.floor(item.screen_pos_ul.x),
+            Math.floor(item.screen_pos_ul.y),
+            item.info.sw, item.info.sh);
+        if (item.opacity !== 1) this.ctx.globalAlpha = 1;
     }
 }
