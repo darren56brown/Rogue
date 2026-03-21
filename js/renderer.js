@@ -30,51 +30,6 @@ export class Renderer {
     renderGameMap(characters) {
         if (!this.current_map || !this.current_map.isLoaded) return;
 
-        //Add all tiles to a flat list in a perfect order so that
-        //there is no need to sort.
-        const tileDrawList = [];
-        for (const layer of this.current_map.getVisibleTileLayers()) {
-            const map_width = this.current_map.size.w;
-            const map_height = this.current_map.size.h;
-
-            //Add to list in depth order to avoid need to sort
-            for (let depth = 0; depth <= (map_width + map_height - 2); depth++) {
-                 for (let x = 0; x <= depth; x++) {
-                    if (x >= map_width) continue;
-                    let y = depth - x;
-                    if (y >= map_height) continue;
-
-                    //Always cull here to put less stuff in the list
-                    const info = this.current_map.getTileInfoForLayer(x, y, layer);
-                    if (!info) continue;
-
-                    //Upper left of tile in iso is not upper left of tile in Cartesian
-                    const screen_pos_ul = sub(cartesianToIso(x - 0.5, y + 0.5,
-                        layer.zHeight), this.view_origin_iso);
-
-                    if (screen_pos_ul.x <= -ISO.TILE_W ||
-                        screen_pos_ul.x >= this.canvas.width + ISO.TILE_W ||
-                        screen_pos_ul.y <= -ISO.IMG_H  ||
-                        screen_pos_ul.y >= this.canvas.height + ISO.IMG_H) {
-                        continue;
-                    }
-                    if (!this.imageLibrary.get(info.imageName)) continue;
-
-                    //Test y at center of block but down one level
-                    const y_sort_point = sub(cartesianToIso(x + 0.5, y + 0.5,
-                        layer.zHeight - 1), this.view_origin_iso);
-
-                    tileDrawList.push({
-                        y_sort: y_sort_point.y,
-                        z_sort: layer.zHeight - 0.5, //block center is down in z
-                        info: info,
-                        screen_pos_ul: screen_pos_ul,
-                        opacity: layer.opacity || 1
-                    });
-                }
-            }
-        }
-
         const characterDrawList = [];
         for (const character of characters) {
             //Test y at feet of character
@@ -97,31 +52,67 @@ export class Renderer {
         };
         characterDrawList.sort(compareTiles);
 
-        //Go through character and tile lists at same time as
-        //long as both hold up drawing the correct next one
-        let nextTileIdx = 0;
         let nextCharacterIdx = 0;
-        while (nextTileIdx < tileDrawList.length &&
-            nextCharacterIdx < characterDrawList.length) {
-            const nextTileItem = tileDrawList[nextTileIdx];
-            const nextCharacterItem = characterDrawList[nextCharacterIdx];
-            if (compareTiles(nextTileItem, nextCharacterItem) <= 0) {
-                this.renderTile(nextTileItem);
-                nextTileIdx++;
-            } else {
-                this.renderCharacter(nextCharacterItem.character);
-                nextCharacterIdx++;
+        for (const layer of this.current_map.getVisibleTileLayers()) {
+            const map_width = this.current_map.size.w;
+            const map_height = this.current_map.size.h;
+
+            //Traverse tiles in perfect draw order
+            for (let depth = 0; depth <= (map_width + map_height - 2); depth++) {
+                 for (let x = 0; x <= depth; x++) {
+                    if (x >= map_width) continue;
+                    let y = depth - x;
+                    if (y >= map_height) continue;
+
+                    const info = this.current_map.getTileInfoForLayer(x, y, layer);
+                    if (!info) continue;
+
+                    //Upper left of tile in iso is not upper left of tile in Cartesian
+                    const screen_pos_ul = sub(cartesianToIso(x - 0.5, y + 0.5,
+                        layer.zHeight), this.view_origin_iso);
+
+                    if (screen_pos_ul.x <= -ISO.TILE_W ||
+                        screen_pos_ul.x >= this.canvas.width + ISO.TILE_W ||
+                        screen_pos_ul.y <= -ISO.IMG_H  ||
+                        screen_pos_ul.y >= this.canvas.height + ISO.IMG_H) {
+                        continue;
+                    }
+
+                    const img = this.imageLibrary.get(info.imageName);
+                    if (!img) continue;
+
+                    //Test y at center of block but down one level
+                    const y_sort_point = sub(cartesianToIso(x + 0.5, y + 0.5,
+                        layer.zHeight - 1), this.view_origin_iso);
+
+                    const tileSortItem = {
+                        y_sort: y_sort_point.y,
+                        z_sort: layer.zHeight - 0.5, //block center is down in z
+                    }
+
+                    //Draw any characters left to draw which must be drawn before this tile
+                    while (nextCharacterIdx < characterDrawList.length) {
+                        const nextCharacterItem = characterDrawList[nextCharacterIdx];
+                        if (compareTiles(tileSortItem, nextCharacterItem) <= 0) break;
+                        this.renderCharacter(nextCharacterItem.character);
+                        nextCharacterIdx++;
+                    }
+
+                    const opacity = layer.opacity || 1;
+
+                    if (opacity !== 1) this.ctx.globalAlpha = opacity;      
+                    this.ctx.drawImage(img,
+                        info.sx, info.sy,
+                        info.sw, info.sh,
+                        Math.floor(screen_pos_ul.x),
+                        Math.floor(screen_pos_ul.y),
+                        info.sw, info.sh);
+                    if (opacity !== 1) this.ctx.globalAlpha = 1;
+                }
             }
         }
-        //Either character or tile list gave out. Try to draw
-        //any remaining of either list
 
-        while (nextTileIdx < tileDrawList.length) {
-            const nextTileItem = tileDrawList[nextTileIdx];
-            this.renderTile(nextTileItem);
-            nextTileIdx++;
-        }
-
+        //Draw any left over characters
         while (nextCharacterIdx < characterDrawList.length) {
             const nextCharacterItem = characterDrawList[nextCharacterIdx];
             this.renderCharacter(nextCharacterItem.character);

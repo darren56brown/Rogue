@@ -51,7 +51,7 @@ export class Player {
 
         this.speed = 30;
         this.falling = true;
-        this.fall_speed = .25;
+        this.fall_speed = .5;
 
         this.curFacing = PlayerFacing.face_dn;
         this.curWalkFrame = AnimWalkSequence.num_frames;
