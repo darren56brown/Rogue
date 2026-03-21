@@ -28,13 +28,13 @@ body {
 
 .ui-panel {
     position: absolute;
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(10px);
     border: 3px solid #4a9eff;
     padding: 30px;
     border-radius: 15px;
     text-align: center;
-    /*box-shadow: 0 0 30px rgba(74, 158, 255, 0.3);*/
+    box-shadow: 0 0 30px rgba(74, 158, 255, 0.3);
     z-index: 1000;
     display: none;
 }
@@ -47,6 +47,13 @@ body {
     color: #4a9eff;
     margin-bottom: 20px;
     font-size: 40px;
+    text-shadow: 0 0 20px rgba(74, 157, 255, 0.5);
+}
+
+.ui-panel h2 {
+    color: #4a9eff;
+    margin-bottom: 20px;
+    font-size: 35px;
     text-shadow: 0 0 20px rgba(74, 157, 255, 0.5);
 }
 

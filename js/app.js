@@ -19,6 +19,7 @@ export class App {
         this.player = null;
        
         this.game_map = null;
+        this.state = "start_screen";
 
         this.fps_tracker = new FPSTracker();
 
@@ -45,34 +46,67 @@ export class App {
 
         Promise.all([level_promise, images_promise])
             .then(() => {
-                
-                const starting_pos = {x: 1.5, y: 1.5, z: 1};
-                this.player = new Player(starting_pos);
-                this.characters.push(this.player);
-
-                // Add as many NPCs as you want here (they start as identical Player instances)
-                this.characters.push(new Player({x: 4.5, y: 2.5, z: 1}));
-                this.characters.push(new Player({x: 6.5, y: 5.5, z: 1}));
-                this.characters.push(new Player({x: 1.5, y: 2.5, z: 1}));
-
-                this.last_time = performance.now();
+                this.initPhysics();
                 requestAnimationFrame(t => this.loop(t));
             })
             .catch(err => console.error("Asset loading failed:", err));
     }
 
+    initPhysics() {
+        this.characters = [];
+
+        const starting_pos = {x: 1.5, y: 1.5, z: 1};
+            this.player = new Player(starting_pos);
+            this.characters.push(this.player);
+
+        // Add as many NPCs as you want here (they start as identical Player instances)
+        this.characters.push(new Player({x: 4.5, y: 2.5, z: 1}));
+        this.characters.push(new Player({x: 6.5, y: 5.5, z: 1}));
+        this.characters.push(new Player({x: 1.5, y: 2.5, z: 1}));
+
+        this.last_time = performance.now();
+    }
+
     initUI(){
-        document.getElementById("playButton").onclick = () => this.startGame();
+        document.getElementById("playButton").onclick = () => this.onPlayClick();
+        document.getElementById("resumeButton").onclick = () => this.onResumeClick();
+        document.getElementById("quitButton").onclick = () => this.onQuitClick();
+    }
+
+    onPlayClick(){
+        this.state = "running";
+        this.hideAllPanels();
+    }
+
+    onEscapeToggle() {
+        if (this.state === 'running') {
+            this.state = "paused";
+            document.getElementById("pauseMenu").classList.add("is-active");
+        } else if (this.state === 'paused') {
+            this.state = "running";
+            document.getElementById("pauseMenu").classList.remove("is-active");
+        }
+    }
+
+    onResumeClick(){
+        if (this.state === 'running') return;
+        this.onEscapeToggle();
+    }
+
+    onQuitClick(){
+        this.fullRestart();
     }
 
     hideAllPanels(){
         document.querySelectorAll(".ui-panel").forEach(p => p.classList.remove("is-active"));
     }
 
-    startGame(){
+    fullRestart(){
+        this.state = "start_screen";
         this.hideAllPanels();
+        document.getElementById("mainMenu").classList.add("is-active");
+        this.initPhysics();
     }
-
     
     resizeCanvas() {
         const aspect_ratio = 16/9;
@@ -101,14 +135,25 @@ export class App {
         if (this.fps_tracker) this.fps_tracker.update(time);
 
         this.updatePhysics(delta);
-
-        this.renderer.render(this.game_map, this.view_origin, this.characters,
-            this.fps_tracker);
+        this.render();
         
         requestAnimationFrame((t) => this.loop(t));
     }
 
+    render() {
+        if (this.state === "start_screen") {
+            this.ctx.fillStyle = "#0f3460";
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        } else {
+            this.renderer.render(this.game_map, this.view_origin, this.characters,
+                this.fps_tracker);
+
+        }
+    }
+
     updatePhysics(dt) {
+        if (this.state !== "running") return;
+
         for (const char of this.characters) {
             if (char === this.player) {
                 char.updatePhysics(dt, this.keys, this.game_map);
@@ -145,13 +190,18 @@ export class App {
     initUserInput() {
         window.addEventListener('keydown', (e) => {
             this.keys[e.key.toLowerCase()] = true;
+
+            if (e.key === 'Escape') this.onEscapeToggle();
         });
+
         window.addEventListener('keyup', (e) => {
             this.keys[e.key.toLowerCase()] = false;
         });
+
         window.addEventListener('contextmenu', () => {
             this.keys = {};
         });
+
         //Window loses focus
         window.addEventListener('blur', () => {
             this.keys = {};

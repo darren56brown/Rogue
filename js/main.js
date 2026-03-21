@@ -1,7 +1,7 @@
 
 import { App } from './app.js';
 
-function startApp() {
+function createApp() {
     const app = new App();
     app.init();
 }
@@ -9,5 +9,5 @@ function startApp() {
 if (document.readyState === 'loading') {
     window.addEventListener('load', startApp);
 } else {
-    startApp();
+    createApp();
 }
