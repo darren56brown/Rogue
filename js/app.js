@@ -2,7 +2,7 @@ import { APP_SIZE, APP_MARGIN, CAMERA_MARGIN, ISO } from "./constants.js";
 import { Renderer } from "./renderer.js";
 import { ImageLibrary } from "./image_library.js";
 import { Player } from "./player.js";
-import { Level } from "./level.js";
+import { GameMap } from "./game_map.js";
 import { FPSTracker } from "./fps_tracker.js";
 import { cartesianToIso, isoToCartesian } from './util.js';
 import { sub, setAdd } from './vector.js';
@@ -15,6 +15,8 @@ export class App {
         this.image_library = new ImageLibrary();
         this.renderer = new Renderer(this.canvas, this.image_library);
 
+        //Characters are sorted by screen position in render
+        //so do not count on their order in any way.
         this.characters = [];
         this.player = null;
        
@@ -36,7 +38,7 @@ export class App {
 
         this.image_library.loadAll();
 
-        const level_promise = Level.load('level_01')
+        const game_map_promise = GameMap.load('level_01')
             .then(loadedLevel => { this.game_map = loadedLevel; })
             .catch(err => console.error("Level loading failed", err));
 
@@ -44,7 +46,7 @@ export class App {
             this.image_library.onAllLoaded(resolve);
         });
 
-        Promise.all([level_promise, images_promise])
+        Promise.all([game_map_promise, images_promise])
             .then(() => {
                 this.initPhysics();
                 requestAnimationFrame(t => this.loop(t));

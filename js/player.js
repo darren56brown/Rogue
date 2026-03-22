@@ -39,6 +39,9 @@ const AnimWalkSequenceOffset = new Map([
 
 export class Player {
     #pos = {x: 0, y: 0, z: 0};
+    #y_sort = 0;
+    #z_sort = 0;
+
     constructor(pos) {
         this.size = {
             w: PLAYER_ANIM_FRAME_SIZE.w,
@@ -69,20 +72,42 @@ export class Player {
 
     setPosition(pos) {
         this.#pos = pos;
+        this.#computeSortInfo();
     }
-
     moveX(dx) {
         this.#pos.x += dx;
+        this.#computeSortInfo();
     }
     moveY(dy) {
         this.#pos.y += dy;
+        this.#computeSortInfo();
     }
     moveZ(dz) {
         this.#pos.z += dz;
+        this.#computeSortInfo();
     }
     movePosition(delta) {
         setAdd(this.#pos, delta);
+        this.#computeSortInfo();
     }
+
+    #computeSortInfo() {
+        const y_sort_point = this.getIsoPosition();
+        this.#y_sort = y_sort_point.y;
+        this.#z_sort = this.#pos.z + 0.5; //character center is up in z
+    }
+
+    compareToOther(other) {
+        return this.compareToSortInfo(other.#y_sort, other.#z_sort);
+    };
+
+    compareToSortInfo(y_sort, z_sort) {
+        //If we are close to one layer apart, sort by z
+        if (Math.abs(this.#z_sort - z_sort) > 0.99) {
+            return this.#z_sort - z_sort;
+        }
+        return this.#y_sort - y_sort;
+    };
 
     getIsoPosition() {
         return cartesianToIso(this.#pos.x, this.#pos.y, this.#pos.z);

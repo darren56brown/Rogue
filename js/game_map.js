@@ -1,6 +1,6 @@
 import { ISO } from "./constants.js";
 
-export class Level {
+export class GameMap {
     constructor(name) {
         this.name = name;
         this.size = { w: 0, h: 0 };
@@ -12,7 +12,7 @@ export class Level {
 
     static async load(levelName) {
         const basePath = 'tilemaps/';
-        const level = new Level(levelName);
+        const level = new GameMap(levelName);
 
         try {
             const mapFilename = `${levelName}.tmj`;

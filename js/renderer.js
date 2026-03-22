@@ -30,26 +30,7 @@ export class Renderer {
     renderGameMap(characters) {
         if (!this.current_map || !this.current_map.isLoaded) return;
 
-        const characterDrawList = [];
-        for (const character of characters) {
-            //Test y at feet of character
-            const y_sort_point = sub(character.getIsoPosition(), this.view_origin_iso);
-
-            characterDrawList.push({
-                y_sort: y_sort_point.y,
-                z_sort: character.getPosition().z + 0.5, //character center is up in z
-                character: character
-            });
-        }
-
-        const compareTiles = (a, b) => {
-            //If we are close to one layer apart, sort by z
-            if (Math.abs(a.z_sort - b.z_sort) > 0.99) {
-                return a.z_sort - b.z_sort;
-            }
-            return a.y_sort - b.y_sort;
-        };
-        characterDrawList.sort(compareTiles);
+        characters.sort((a, b) => { return a.compareToOther(b); });
 
         let nextCharacterIdx = 0;
         for (const layer of this.current_map.getVisibleTileLayers()) {
@@ -81,19 +62,16 @@ export class Renderer {
                     if (!img) continue;
 
                     //Test y at center of block but down one level
-                    const y_sort_point = sub(cartesianToIso(x + 0.5, y + 0.5,
-                        layer.zHeight - 1), this.view_origin_iso);
-
-                    const tileSortItem = {
-                        y_sort: y_sort_point.y,
-                        z_sort: layer.zHeight - 0.5, //block center is down in z
-                    }
+                    const y_sort_point = cartesianToIso(x + 0.5, y + 0.5,
+                        layer.zHeight - 1);
+                    //Test z down half to center of block
+                    const z_sort = layer.zHeight - 0.5;
 
                     //Draw any characters left to draw which must be drawn before this tile
-                    while (nextCharacterIdx < characterDrawList.length) {
-                        const nextCharacterItem = characterDrawList[nextCharacterIdx];
-                        if (compareTiles(tileSortItem, nextCharacterItem) <= 0) break;
-                        this.renderCharacter(nextCharacterItem.character);
+                    while (nextCharacterIdx < characters.length) {
+                        const nextCharacter = characters[nextCharacterIdx];
+                        if (nextCharacter.compareToSortInfo(y_sort_point.y, z_sort) > 0) break;
+                        this.renderCharacter(nextCharacter);
                         nextCharacterIdx++;
                     }
 
@@ -112,15 +90,15 @@ export class Renderer {
         }
 
         //Draw any left over characters
-        while (nextCharacterIdx < characterDrawList.length) {
-            const nextCharacterItem = characterDrawList[nextCharacterIdx];
-            this.renderCharacter(nextCharacterItem.character);
+        while (nextCharacterIdx < characters.length) {
+            const nextCharacter = characters[nextCharacterIdx];
+            this.renderCharacter(nextCharacter);
             nextCharacterIdx++;
         }
 
         //Redraw all characters so that they appear as ghosts behind walls
-        for (const characterItem of characterDrawList) {
-            this.renderCharacter(characterItem.character, true);
+        for (const character of characters) {
+            this.renderCharacter(character, true);
         }
     }
 
