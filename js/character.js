@@ -1,7 +1,7 @@
 import { ISO } from "./constants.js";
 import { PLAYER_ANIM_FRAME_SIZE, PLAYER_TILE_ORIGIN } from "./constants.js";
 import { PLAYER_ANIM_FPS, MOVE_TARGET_TOL2 } from "./constants.js";
-import { vec, mult, setAdd, setDiv, magSq } from './vector.js';
+import { vec, sub, mult, setAdd, setDiv, magSq } from './vector.js';
 import { cartesianToIso, isoToCartesian } from './util.js';
 
 const AnimWalkSequence = Object.freeze({
@@ -53,7 +53,7 @@ export class Character {
             y: PLAYER_TILE_ORIGIN.y
         };
 
-        this.speed = 30;
+        this.speed = .35;
         this.falling = true;
         this.fall_speed = .5;
 
@@ -138,8 +138,10 @@ export class Character {
             }
         }
 
-        let unit_move = vec(0, 0);
-
+        let world_move_vec = vec(0, 0);
+        let world_move_mag = 0;
+        let iso_move_vec =  vec(0, 0);
+        
         const hasKeyboardInput = keys && (
             keys['a'] || keys['arrowleft'] ||
             keys['d'] || keys['arrowright'] ||
@@ -149,14 +151,26 @@ export class Character {
 
         if (hasKeyboardInput) {
             this.clearWalkTarget();
-            if (keys['a'] || keys['arrowleft']) unit_move.x -= 1;
-            if (keys['d'] || keys['arrowright']) unit_move.x += 1;
-            if (keys['w'] || keys['arrowup']) unit_move.y -= 1;
-            if (keys['s'] || keys['arrowdown']) unit_move.y += 1;
 
-            // If moving diagonally, tweak the vector to match the 2:1 iso slope
-            if (unit_move.x !== 0 && unit_move.y !== 0) {
-                unit_move.x *= 2.0; 
+            if (keys['a'] || keys['arrowleft']) iso_move_vec.x -= 1;
+            if (keys['d'] || keys['arrowright']) iso_move_vec.x += 1;
+            if (keys['w'] || keys['arrowup']) iso_move_vec.y -= 1;
+            if (keys['s'] || keys['arrowdown']) iso_move_vec.y += 1;
+
+            //Diagonal presses are world moves but
+            //single presses are iso screen moves.
+            if (iso_move_vec.x !== 0 && iso_move_vec.y !== 0) {
+                if (iso_move_vec.x > 0 && iso_move_vec.y > 0) {
+                    world_move_vec = vec(1, 0);
+                } else if (iso_move_vec.x > 0 && iso_move_vec.y < 0) {
+                    world_move_vec = vec(0, -1);
+                } else if (iso_move_vec.x < 0 && iso_move_vec.y > 0) {
+                    world_move_vec = vec(0, 1);
+                } else if (iso_move_vec.x < 0 && iso_move_vec.y < 0) {
+                    world_move_vec = vec(-1, 0);
+                }
+            } else {
+                world_move_vec = isoToCartesian(iso_move_vec.x, iso_move_vec.y);
             }
         } 
         else if (this.targetPos) {
@@ -165,43 +179,26 @@ export class Character {
             if (worldDistSq < MOVE_TARGET_TOL2) {
                 this.clearWalkTarget();
             } else {
-                // Direction in iso/screen space (matches your keyboard feel perfectly)
-                const currentIso = this.getIsoPosition();
-                const targetIso = cartesianToIso(this.targetPos.x, this.targetPos.y, this.#pos.z);
-                
-                const isoDx = targetIso.x - currentIso.x;
-                const isoDy = targetIso.y - currentIso.y;
-                const isoDist = Math.hypot(isoDx, isoDy);
-                
-                if (isoDist > 3) {
-                    unit_move.x = isoDx / isoDist;
-                    unit_move.y = isoDy / isoDist;
-                    
-                    // Keep your exact diagonal tweak
-                    if (Math.abs(unit_move.x) > 0.1 && Math.abs(unit_move.y) > 0.1) {
-                        unit_move.x *= 2.0;
-                    }
-                    const len = Math.hypot(unit_move.x, unit_move.y);
-                    if (len > 0) setDiv(unit_move, len);
-                }
+                world_move_vec = sub(this.targetPos, vec(this.#pos.x, this.#pos.y));
             }
         }
 
-        const moving = unit_move.x !== 0 || unit_move.y !== 0;
+        world_move_mag = Math.hypot(world_move_vec.x, world_move_vec.y);
+        if (world_move_mag > 0) {
+            setDiv(world_move_vec, world_move_mag);
+            world_move_mag = 1;
+        }
+        iso_move_vec = cartesianToIso(world_move_vec.x, world_move_vec.y, 0);
 
-        if (moving) {
-            const len = Math.hypot(unit_move.x, unit_move.y);
-            if (len > 0) setDiv(unit_move, len);
-
+        if (world_move_mag > 0) {
             // Set facing based on screen direction
-            if (Math.abs(unit_move.x) > Math.abs(unit_move.y)) {
-                this.curFacing = unit_move.x > 0 ? PlayerFacing.face_rt : PlayerFacing.face_lt;
+            if (Math.abs(iso_move_vec.x) > Math.abs(iso_move_vec.y)) {
+                this.curFacing = iso_move_vec.x > 0 ? PlayerFacing.face_rt : PlayerFacing.face_lt;
             } else {
-                this.curFacing = unit_move.y > 0 ? PlayerFacing.face_dn : PlayerFacing.face_up;
+                this.curFacing = iso_move_vec.y > 0 ? PlayerFacing.face_dn : PlayerFacing.face_up;
             }
 
-            const unitDelta = isoToCartesian(unit_move.x, unit_move.y);
-            const deltaVec = mult(unitDelta, this.speed * dt);
+            const deltaVec = mult(world_move_vec, this.speed * dt);
             this.movePosition(deltaVec);
             const fullMoveObstruction = this.getObstruction();
             if (fullMoveObstruction.type == "drop") {
