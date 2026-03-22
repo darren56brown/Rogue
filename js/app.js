@@ -189,5 +189,41 @@ export class App {
         window.addEventListener('blur', () => {
             this.keys = {};
         });
+
+        this.canvas.addEventListener('click', (e) => this.onMouseClick(e));
+        this.canvas.style.cursor = 'crosshair';
+
+        //Prevent text selection / double-click weirdness
+        this.canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 0) e.preventDefault();
+        });
+
+        this.canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            if (this.player) this.player.clearWalkTarget();
+        });
+    }
+
+    screenToWorld(screenX, screenY, z = 0) {
+        const viewIso = cartesianToIso(this.view_origin.x, this.view_origin.y, 0);
+        const isoX = screenX + viewIso.x;
+        const isoY = screenY + viewIso.y + z * ISO.TILE_H;  // correct z-height plane
+        return isoToCartesian(isoX, isoY);
+    }
+
+    onMouseClick(e) {
+        if (this.state !== "running" || !this.player) return;
+
+        const rect = this.canvas.getBoundingClientRect();
+        
+        // Get canvas-relative coordinates, accounting for stretched/scaled canvas
+        const clickX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
+        const clickY = (e.clientY - rect.top)  * (this.canvas.height / rect.height);
+
+        // Convert screen click → world coordinates at player's current Z height
+        const playerZ = this.player.getPosition().z;
+        const worldPos = this.screenToWorld(clickX, clickY, playerZ);
+
+        this.player.setWalkTarget(worldPos);
     }
 }
