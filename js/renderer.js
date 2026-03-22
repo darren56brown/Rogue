@@ -1,5 +1,5 @@
 import { APP_SIZE, ISO } from "./constants.js";
-import { vec, add, sub, mult } from './vector.js';
+import { sub } from './vector.js';
 import { cartesianToIso } from './util.js';
 
 export class Renderer {
@@ -33,12 +33,11 @@ export class Renderer {
         const characterDrawList = [];
         for (const character of characters) {
             //Test y at feet of character
-            const y_sort_point = sub(cartesianToIso(character.pos.x,
-                character.pos.y, character.pos.z), this.view_origin_iso);
+            const y_sort_point = sub(character.getIsoPosition(), this.view_origin_iso);
 
             characterDrawList.push({
                 y_sort: y_sort_point.y,
-                z_sort: character.pos.z + 0.5, //character center is up in z
+                z_sort: character.getPosition().z + 0.5, //character center is up in z
                 character: character
             });
         }
@@ -126,16 +125,14 @@ export class Renderer {
     }
 
     renderCharacter(character, forGhost) {
-        const characterInScreen = sub(cartesianToIso(character.pos.x,
-            character.pos.y, character.pos.z), this.view_origin_iso);
+        const characterInScreen = sub(character.getIsoPosition(), this.view_origin_iso);
         const character_ul = sub(characterInScreen, character.origin);
 
         let oldAlpha = this.ctx.globalAlpha;
         if (forGhost == true) {
             this.ctx.globalAlpha = 0.3;
         } else {
-            const shadowInScreen = sub(cartesianToIso(character.pos.x,
-                character.pos.y, Math.floor(character.pos.z)), this.view_origin_iso);
+            const shadowInScreen = sub(character.getShadowIsoPosition(), this.view_origin_iso);
             const shadow_ul = sub(shadowInScreen, character.origin);
 
             const character_shadow = this.imageLibrary.get('player_shadow');

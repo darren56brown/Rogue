@@ -5,7 +5,7 @@ import { Player } from "./player.js";
 import { Level } from "./level.js";
 import { FPSTracker } from "./fps_tracker.js";
 import { cartesianToIso, isoToCartesian } from './util.js';
-import { vec, add, sub, mult, setAdd } from './vector.js';
+import { sub, setAdd } from './vector.js';
 
 export class App {
     constructor() {
@@ -164,8 +164,7 @@ export class App {
 
         this.view_origin_iso = cartesianToIso(this.view_origin.x,
             this.view_origin.y, 0);
-        const playerInScreen = sub(cartesianToIso(this.player.pos.x,
-            this.player.pos.y, this.player.pos.z), this.view_origin_iso);
+        const playerInScreen = sub(this.player.getIsoPosition(), this.view_origin_iso);
 
         let camScreenDX = 0;
         let camScreenDY = 0;

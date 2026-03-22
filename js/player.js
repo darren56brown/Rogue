@@ -1,8 +1,8 @@
 import { ISO } from "./constants.js";
 import { PLAYER_ANIM_FRAME_SIZE, PLAYER_TILE_ORIGIN } from "./constants.js";
 import { PLAYER_ANIM_FPS } from "./constants.js";
-import { vec, add, sub, mult, setAdd, set, setSub, setDiv } from './vector.js';
-import { isoToCartesian } from './util.js';
+import { vec, mult, setAdd, setDiv } from './vector.js';
+import { cartesianToIso, isoToCartesian } from './util.js';
 
 const AnimWalkSequence = Object.freeze({
     neutral_1: 0,
@@ -38,12 +38,13 @@ const AnimWalkSequenceOffset = new Map([
 ]);
 
 export class Player {
+    #pos = {x: 0, y: 0, z: 0};
     constructor(pos) {
         this.size = {
             w: PLAYER_ANIM_FRAME_SIZE.w,
             h: PLAYER_ANIM_FRAME_SIZE.h
         };
-        this.pos = pos;
+
         this.origin = {
             x: PLAYER_TILE_ORIGIN.x,
             y: PLAYER_TILE_ORIGIN.y
@@ -58,6 +59,38 @@ export class Player {
         this.animTimer = 0;
 
         this.imageCoord = {row: 0, col:0};
+
+        this.setPosition(pos);
+    }
+
+    getPosition() {
+        return { x: this.#pos.x, y: this.#pos.y, z: this.#pos.z };
+    }
+
+    setPosition(pos) {
+        this.#pos = pos;
+    }
+
+    moveX(dx) {
+        this.#pos.x += dx;
+    }
+    moveY(dy) {
+        this.#pos.y += dy;
+    }
+    moveZ(dz) {
+        this.#pos.z += dz;
+    }
+    movePosition(delta) {
+        setAdd(this.#pos, delta);
+    }
+
+    getIsoPosition() {
+        return cartesianToIso(this.#pos.x, this.#pos.y, this.#pos.z);
+    }
+
+    getShadowIsoPosition() {
+        const zOnGround = Math.floor(this.#pos.z);
+        return cartesianToIso(this.#pos.x, this.#pos.y, zOnGround);
     }
 
     updatePhysics(dt, keys, game_map) {
@@ -68,10 +101,10 @@ export class Player {
             if (obstruction.type == "drop") {
                 const fallDistance = this.fall_speed * dt;
                 if (fallDistance >= obstruction.dist) {
-                    this.pos.z -= obstruction.dist;
+                    this.moveZ(-obstruction.dist);
                     this.falling = false;
                 } else {
-                    this.pos.z -= fallDistance;
+                    this.moveZ(-fallDistance);
                 }  
             } else {
                 this.falling = false;
@@ -106,33 +139,33 @@ export class Player {
 
             const unitDelta = isoToCartesian(unit_move.x, unit_move.y);
             const deltaVec = mult(unitDelta, this.speed * dt);
-            setAdd(this.pos, deltaVec);
+            this.movePosition(deltaVec);
             const fullMoveObstruction = this.getObstruction();
             if (fullMoveObstruction.type == "drop") {
                 this.falling = true;
             } else if (fullMoveObstruction.type != "none") {
-                setSub(this.pos, deltaVec);
+                this.movePosition(mult(deltaVec, -1.0));
 
                 const deltaVecMag = Math.hypot(deltaVec.x, deltaVec.y);
 
-                this.pos.x += deltaVec.x;
+                this.moveX(deltaVec.x);
                 const xObstruction = this.getObstruction();
-                this.pos.x -= deltaVec.x;
+                this.moveX(-deltaVec.x);
 
-                this.pos.y += deltaVec.y;
+                this.moveY(deltaVec.y);
                 const yObstruction = this.getObstruction();
-                this.pos.y -= deltaVec.y; 
+                this.moveY(-deltaVec.y);
 
                 if (xObstruction.type == "none") {
                     const slow = deltaVecMag / 5;
                     deltaVec.x = Math.sign(deltaVec.x) * slow;
                     deltaVec.y = 0;
-                    setAdd(this.pos, deltaVec);  
+                    this.movePosition(deltaVec);
                 } else if (yObstruction.type == "none") {
                     const slow = deltaVecMag / 5;
                     deltaVec.x = 0;
                     deltaVec.y = Math.sign(deltaVec.y) * slow;
-                    setAdd(this.pos, deltaVec);
+                    this.movePosition(deltaVec);
                 }
             } 
 
@@ -169,8 +202,8 @@ export class Player {
 
     getObstruction()
     {
-        const gridX = Math.floor(this.pos.x);
-        const gridY = Math.floor(this.pos.y);
-        return this.current_map.getObstruction(gridX, gridY, this.pos.z);
+        const gridX = Math.floor(this.#pos.x);
+        const gridY = Math.floor(this.#pos.y);
+        return this.current_map.getObstruction(gridX, gridY, this.#pos.z);
     }
 }
