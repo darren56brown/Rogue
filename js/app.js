@@ -27,7 +27,7 @@ export class App {
 
         this.keys = {};   
         this.last_time = 0;
-        this.view_origin = {x: 0, y: 0};
+        this.view_origin = {x: -10.125, y: -.125};
     }
 
     init() {
@@ -157,35 +157,17 @@ export class App {
         if (this.state !== "running") return;
 
         for (const char of this.characters) {
-            if (char === this.player) {
-                char.updatePhysics(dt, this.keys, this.game_map);
-            } else {
-                char.updatePhysics(dt, null, this.game_map);
-            }
+            char.updatePhysics(dt, char === this.player ? this.keys : null, this.game_map);
         }
 
-        this.view_origin_iso = cartesianToIso(this.view_origin.x,
-            this.view_origin.y, 0);
-        const playerInScreen = sub(this.player.getIsoPosition(), this.view_origin_iso);
+        const playerIso = this.player.getIsoPosition();
+        const targetIsoX = playerIso.x - (APP_SIZE.w / 2);
+        const targetIsoY = playerIso.y - (APP_SIZE.h / 2);
 
-        let camScreenDX = 0;
-        let camScreenDY = 0;
-
-        if (playerInScreen.x < CAMERA_MARGIN.x) {
-            camScreenDX = playerInScreen.x - CAMERA_MARGIN.x;
-        } else if (playerInScreen.x > APP_SIZE.w - CAMERA_MARGIN.x) {
-            camScreenDX = playerInScreen.x - (APP_SIZE.w - CAMERA_MARGIN.x);
-        }
-        if (playerInScreen.y < CAMERA_MARGIN.y) {
-            camScreenDY = playerInScreen.y - CAMERA_MARGIN.y;
-        } else if (playerInScreen.y > APP_SIZE.h - CAMERA_MARGIN.y) {
-            camScreenDY = playerInScreen.y - (APP_SIZE.h - CAMERA_MARGIN.y);
-        }
-
-        if (camScreenDX !== 0 || camScreenDY !== 0) {
-            const worldDelta = isoToCartesian(camScreenDX, camScreenDY);
-            setAdd(this.view_origin, worldDelta);
-        }
+        const targetWorld = isoToCartesian(targetIsoX, targetIsoY);
+        const lerpFactor = 1.0; 
+        this.view_origin.x += (targetWorld.x - this.view_origin.x) * lerpFactor * dt;
+        this.view_origin.y += (targetWorld.y - this.view_origin.y) * lerpFactor * dt;
     }
 
     initUserInput() {
