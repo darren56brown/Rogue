@@ -37,7 +37,7 @@ const AnimWalkSequenceOffset = new Map([
   [PlayerFacing.face_rt, 6]
 ]);
 
-export class Player {
+export class Character {
     #pos = {x: 0, y: 0, z: 0};
     #y_sort = 0;
     #z_sort = 0;

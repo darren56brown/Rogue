@@ -1,7 +1,7 @@
 import { APP_SIZE, APP_MARGIN, CAMERA_MARGIN, ISO } from "./constants.js";
 import { Renderer } from "./renderer.js";
 import { ImageLibrary } from "./image_library.js";
-import { Player } from "./player.js";
+import { Character } from "./character.js";
 import { GameMap } from "./game_map.js";
 import { FPSTracker } from "./fps_tracker.js";
 import { cartesianToIso, isoToCartesian } from './util.js';
@@ -58,13 +58,13 @@ export class App {
         this.characters = [];
 
         const starting_pos = {x: 1.5, y: 1.5, z: 1};
-            this.player = new Player(starting_pos);
+            this.player = new Character(starting_pos);
             this.characters.push(this.player);
 
         // Add as many NPCs as you want here (they start as identical Player instances)
-        this.characters.push(new Player({x: 4.5, y: 2.5, z: 1}));
-        this.characters.push(new Player({x: 6.5, y: 5.5, z: 1}));
-        this.characters.push(new Player({x: 1.5, y: 2.5, z: 1}));
+        this.characters.push(new Character({x: 4.5, y: 2.5, z: 1}));
+        this.characters.push(new Character({x: 6.5, y: 5.5, z: 1}));
+        this.characters.push(new Character({x: 1.5, y: 2.5, z: 1}));
 
         this.last_time = performance.now();
     }
