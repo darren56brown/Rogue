@@ -1,7 +1,7 @@
 import { ISO } from "./constants.js";
 import { PLAYER_ANIM_FRAME_SIZE, PLAYER_TILE_ORIGIN } from "./constants.js";
-import { PLAYER_ANIM_FPS } from "./constants.js";
-import { vec, mult, setAdd, setDiv } from './vector.js';
+import { PLAYER_ANIM_FPS, MOVE_TARGET_TOL2 } from "./constants.js";
+import { vec, mult, setAdd, setDiv, magSq } from './vector.js';
 import { cartesianToIso, isoToCartesian } from './util.js';
 
 const AnimWalkSequence = Object.freeze({
@@ -153,13 +153,16 @@ export class Character {
             if (keys['d'] || keys['arrowright']) unit_move.x += 1;
             if (keys['w'] || keys['arrowup']) unit_move.y -= 1;
             if (keys['s'] || keys['arrowdown']) unit_move.y += 1;
+
+            // If moving diagonally, tweak the vector to match the 2:1 iso slope
+            if (unit_move.x !== 0 && unit_move.y !== 0) {
+                unit_move.x *= 2.0; 
+            }
         } 
         else if (this.targetPos) {
-            const dx = this.targetPos.x - this.#pos.x;
-            const dy = this.targetPos.y - this.#pos.y;
-            const worldDistSq = dx * dx + dy * dy;
-
-            if (worldDistSq < 0.08) {               // close enough
+            const worldDistSq = magSq(vec(this.targetPos.x - this.#pos.x,
+                this.targetPos.y - this.#pos.y));
+            if (worldDistSq < MOVE_TARGET_TOL2) {
                 this.clearWalkTarget();
             } else {
                 // Direction in iso/screen space (matches your keyboard feel perfectly)
@@ -187,15 +190,10 @@ export class Character {
         const moving = unit_move.x !== 0 || unit_move.y !== 0;
 
         if (moving) {
-            // If moving diagonally, tweak the vector to match the 2:1 iso slope
-            // (already handled above for target, but kept here for keyboard consistency)
-            if (unit_move.x !== 0 && unit_move.y !== 0) {
-                unit_move.x *= 2.0; 
-            }
             const len = Math.hypot(unit_move.x, unit_move.y);
             if (len > 0) setDiv(unit_move, len);
 
-            // Set facing based on screen direction (you can refine later)
+            // Set facing based on screen direction
             if (Math.abs(unit_move.x) > Math.abs(unit_move.y)) {
                 this.curFacing = unit_move.x > 0 ? PlayerFacing.face_rt : PlayerFacing.face_lt;
             } else {

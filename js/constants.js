@@ -5,6 +5,9 @@ export const PLAYER_TILE_ORIGIN = {x: 32, y: 58};
 export const PLAYER_ANIM_FPS = 3;
 export const CAMERA_MARGIN = {x: 350, y: 250};
 
+export const MOVE_TARGET_TOL = 0.05;
+export const MOVE_TARGET_TOL2 = Math.pow(MOVE_TARGET_TOL, 2);
+
 export const ISO = {
     TILE_W: 128,           // full tile width on screen
     TILE_H: 64,            // vertical step ("overlap height")
