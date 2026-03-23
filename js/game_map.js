@@ -311,21 +311,39 @@ export class GameMap {
     }
 
     _getNeighbors(tileX, tileY, z) {
-        /*const dirs = [
-            [0, 1], [1, 0], [0, -1], [-1, 0],
-            [1, 1], [1, -1], [-1, 1], [-1, -1]
-        ];*/
-        const dirs = [
-            [0, 1], [1, 0], [0, -1], [-1, 0]
-        ];
         const neighbors = [];
-        for (const [dx, dy] of dirs) {
+        const cardinalDirs = [
+            [ 0,  1], [ 1,  0],
+            [ 0, -1], [-1,  0]
+        ];
+        const diagonalDirs = [
+            [ 1,  1], [ 1, -1],
+            [-1,  1], [-1, -1]
+        ];
+
+        const openCardinal = new Set();
+        for (const [dx, dy] of cardinalDirs) {
             const nx = tileX + dx;
             const ny = tileY + dy;
             if (this.isTileWalkable(nx, ny, z)) {
                 neighbors.push({ x: nx, y: ny });
+                openCardinal.add(`${dx},${dy}`);
             }
         }
+        
+        for (const [dx, dy] of diagonalDirs) {
+            const nx = tileX + dx;
+            const ny = tileY + dy;
+            const cardinalA = `${dx},0`;
+            const cardinalB = `0,${dy}`;
+
+            if (openCardinal.has(cardinalA) && openCardinal.has(cardinalB)) {
+                if (this.isTileWalkable(nx, ny, z)) {
+                    neighbors.push({ x: nx, y: ny });
+                }
+            }
+        }
+
         return neighbors;
     }
 }

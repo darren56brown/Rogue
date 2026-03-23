@@ -5,7 +5,7 @@ import { Character } from "./character.js";
 import { GameMap } from "./game_map.js";
 import { FPSTracker } from "./fps_tracker.js";
 import { cartesianToIso, isoToCartesian } from './util.js';
-import { vec, vecCopy, add, sub, mult, norm, dot } from './vector.js';
+import { vec, vecCopy, add, sub, mult, norm, dot, mag } from './vector.js';
 
 export class App {
     constructor() {
@@ -239,23 +239,25 @@ export class App {
         waypoints.push(vecCopy(worldPos));
 
         const subTilePosBeg = sub(startPos, waypoints[0]);
-        const unitNextBeg = norm(sub(waypoints[1], waypoints[0]));
+        const nextBeg = sub(waypoints[1], waypoints[0]);
+        const nextMagBeg = mag(nextBeg);
+        const unitNextBeg = norm(nextBeg);
         if (dot(subTilePosBeg, unitNextBeg) > 0) {
-            const newPos = add(waypoints[0], mult(unitNextBeg, 0.5));
+            const newPos = add(waypoints[0], mult(unitNextBeg, nextMagBeg / 2.0));
             waypoints[0] = vecCopy(newPos);
         }
-
+        
         const subTilePosEnd = sub(waypoints[waypoints.length - 1],
             waypoints[waypoints.length - 2]);
-        const unitNextEnd = norm(sub(waypoints[waypoints.length - 3],
-            waypoints[waypoints.length - 2]));
+        const nextEnd = sub(waypoints[waypoints.length - 3],
+            waypoints[waypoints.length - 2]);
+        const nextMagEnd = mag(nextEnd);
+        const unitNextEnd = norm(nextEnd);
         if (dot(subTilePosEnd, unitNextEnd) > 0) {
             const newPos = add(waypoints[waypoints.length - 2],
-                mult(unitNextEnd, 0.5));
+                mult(unitNextEnd, nextMagEnd / 2.0));
             waypoints[waypoints.length - 2] = vecCopy(newPos);
         }
-
-
 
         //console.log("Built waypoints:", waypoints.map(p => `(${p.x.toFixed(2)},${p.y.toFixed(2)})`));
         this.player.setWaypoints(waypoints);
