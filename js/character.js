@@ -1,7 +1,7 @@
 import { ISO } from "./constants.js";
 import { PLAYER_ANIM_FRAME_SIZE, PLAYER_TILE_ORIGIN } from "./constants.js";
-import { PLAYER_ANIM_FPS, MOVE_TARGET_TOL2 } from "./constants.js";
-import { vec, sub, mult, setAdd, setDiv, magSq } from './vector.js';
+import { PLAYER_ANIM_FPS, MOVE_TARGET_TOL } from "./constants.js";
+import { vec, add, sub, mult, setAdd, setDiv, mag } from './vector.js';
 import { cartesianToIso, isoToCartesian } from './util.js';
 
 const AnimWalkSequence = Object.freeze({
@@ -38,11 +38,12 @@ const AnimWalkSequenceOffset = new Map([
 ]);
 
 export class Character {
-    #pos = {x: 0, y: 0, z: 0};
+    #pos_xy = {x: 0, y: 0};
+    #z = 0;
     #y_sort = 0;
     #z_sort = 0;
 
-    constructor(pos) {
+    constructor(posXY, z) {
         this.size = {
             w: PLAYER_ANIM_FRAME_SIZE.w,
             h: PLAYER_ANIM_FRAME_SIZE.h
@@ -63,40 +64,50 @@ export class Character {
 
         this.imageCoord = {row: 0, col:0};
 
-        this.setPosition(pos);
+        this.setPositionXY(posXY);
+        this.setZ(z);
 
         this.targetPos = null;
     }
 
-    getPosition() {
-        return { x: this.#pos.x, y: this.#pos.y, z: this.#pos.z };
+    getZ() {
+        return this.#z;
+    }
+    getPositionXY() {
+        return { x: this.#pos_xy.x, y: this.#pos_xy.y};
     }
 
-    setPosition(pos) {
-        this.#pos = pos;
+    setPositionXY(pos) {
+        this.#pos_xy.x = pos.x;
+        this.#pos_xy.y = pos.y;
         this.#computeSortInfo();
     }
+    setZ(z) {
+        this.#z = z;
+        this.#computeSortInfo();
+    }
+    
     moveX(dx) {
-        this.#pos.x += dx;
+        this.#pos_xy.x += dx;
         this.#computeSortInfo();
     }
     moveY(dy) {
-        this.#pos.y += dy;
+        this.#pos_xy.y += dy;
         this.#computeSortInfo();
     }
     moveZ(dz) {
-        this.#pos.z += dz;
+        this.#z += dz;
         this.#computeSortInfo();
     }
     movePosition(delta) {
-        setAdd(this.#pos, delta);
+        setAdd(this.#pos_xy, delta);
         this.#computeSortInfo();
     }
 
     #computeSortInfo() {
         const y_sort_point = this.getIsoPosition();
         this.#y_sort = y_sort_point.y;
-        this.#z_sort = this.#pos.z + 0.5; //character center is up in z
+        this.#z_sort = this.#z + 0.5; //character center is up in z
     }
 
     compareToOther(other) {
@@ -112,29 +123,27 @@ export class Character {
     };
 
     getIsoPosition() {
-        return cartesianToIso(this.#pos.x, this.#pos.y, this.#pos.z);
+        return cartesianToIso(this.#pos_xy.x, this.#pos_xy.y, this.#z);
     }
 
     getShadowIsoPosition() {
-        const zOnGround = Math.floor(this.#pos.z);
-        return cartesianToIso(this.#pos.x, this.#pos.y, zOnGround);
+        const zOnGround = Math.floor(this.#z);
+        return cartesianToIso(this.#pos_xy.x, this.#pos_xy.y, zOnGround);
     }
 
     updatePhysics(dt, keys, game_map) {
-        this.current_map = game_map;
-
         if (this.falling) {
-            const obstruction = this.getObstruction();
-            if (obstruction.type == "drop") {
-                const fallDistance = this.fall_speed * dt;
-                if (fallDistance >= obstruction.dist) {
-                    this.moveZ(-obstruction.dist);
+            const drop_distance = game_map.getDropDistance(this.getPositionXY(), this.#z);
+            if (drop_distance === 0) {
+                this.falling = false;
+            } else {
+                const gravity_distance = this.fall_speed * dt;
+                if (gravity_distance >= drop_distance) {
+                    this.moveZ(-drop_distance);
                     this.falling = false;
                 } else {
-                    this.moveZ(-fallDistance);
+                    this.moveZ(-gravity_distance);
                 }  
-            } else {
-                this.falling = false;
             }
         }
 
@@ -149,6 +158,7 @@ export class Character {
             keys['s'] || keys['arrowdown']
         );
 
+        let max_move_mag = Infinity;
         if (hasKeyboardInput) {
             this.clearWalkTarget();
 
@@ -174,16 +184,16 @@ export class Character {
             }
         } 
         else if (this.targetPos) {
-            const worldDistSq = magSq(vec(this.targetPos.x - this.#pos.x,
-                this.targetPos.y - this.#pos.y));
-            if (worldDistSq < MOVE_TARGET_TOL2) {
+            const to_target_pos = sub(this.targetPos, this.getPositionXY());
+            max_move_mag = mag(to_target_pos);
+            if (max_move_mag < MOVE_TARGET_TOL) {
                 this.clearWalkTarget();
             } else {
-                world_move_vec = sub(this.targetPos, vec(this.#pos.x, this.#pos.y));
+                world_move_vec = to_target_pos;
             }
         }
 
-        world_move_mag = Math.hypot(world_move_vec.x, world_move_vec.y);
+        world_move_mag = mag(world_move_vec);
         if (world_move_mag > 0) {
             setDiv(world_move_vec, world_move_mag);
             world_move_mag = 1;
@@ -198,36 +208,44 @@ export class Character {
                 this.curFacing = iso_move_vec.y > 0 ? PlayerFacing.face_dn : PlayerFacing.face_up;
             }
 
-            const deltaVec = mult(world_move_vec, this.speed * dt);
-            this.movePosition(deltaVec);
-            const fullMoveObstruction = this.getObstruction();
-            if (fullMoveObstruction.type == "drop") {
-                this.falling = true;
-            } else if (fullMoveObstruction.type != "none") {
-                this.movePosition(mult(deltaVec, -1.0));
+            const move_mag = Math.min(this.speed * dt, max_move_mag);
+            const delta_vec = mult(world_move_vec, move_mag);
+            const new_2D_pos = add(this.getPositionXY(), delta_vec);
 
-                const deltaVecMag = Math.hypot(deltaVec.x, deltaVec.y);
-
-                this.moveX(deltaVec.x);
-                const xObstruction = this.getObstruction();
-                this.moveX(-deltaVec.x);
-
-                this.moveY(deltaVec.y);
-                const yObstruction = this.getObstruction();
-                this.moveY(-deltaVec.y);
-
-                if (xObstruction.type == "none") {
-                    const slow = deltaVecMag / 5;
-                    deltaVec.x = Math.sign(deltaVec.x) * slow;
-                    deltaVec.y = 0;
-                    this.movePosition(deltaVec);
-                } else if (yObstruction.type == "none") {
-                    const slow = deltaVecMag / 5;
-                    deltaVec.x = 0;
-                    deltaVec.y = Math.sign(deltaVec.y) * slow;
-                    this.movePosition(deltaVec);
+            if (game_map.getTileCoordFromPosition(new_2D_pos) ==
+                game_map.getTileCoordFromPosition(this.getPositionXY())) {
+                //If we're on the same tile, no change to falling or obstruction
+                this.movePosition(delta_vec);
+            } else {
+                if (!this.falling &&
+                    game_map.getDropDistance(new_2D_pos, this.#z) > 0) {
+                        this.falling = true;
                 }
-            } 
+
+                if (game_map.isObstructed(new_2D_pos, this.#z)) {
+                    const delta_vec_mag = mag(delta_vec);
+
+                    const move_only_x = add(this.getPositionXY(), vec(delta_vec.x, 0));
+                    const x_is_obstructed = game_map.isObstructed(move_only_x, this.#z);
+
+                    const move_only_y = add(this.getPositionXY(), vec(0, delta_vec.y));
+                    const y_is_obstructed = game_map.isObstructed(move_only_y, this.#z);
+
+                    if (!x_is_obstructed) {
+                        const slow = delta_vec_mag / 5;
+                        delta_vec.x = Math.sign(delta_vec.x) * slow;
+                        delta_vec.y = 0;
+                        this.movePosition(delta_vec);
+                    } else if (!y_is_obstructed) {
+                        const slow = delta_vec_mag / 5;
+                        delta_vec.x = 0;
+                        delta_vec.y = Math.sign(delta_vec.y) * slow;
+                        this.movePosition(delta_vec);
+                    }
+                } else {
+                    this.movePosition(delta_vec);
+                }
+            }
 
             // Was not moving, go to first animation frame
             if (this.curWalkFrame === AnimWalkSequence.num_frames) {
@@ -258,13 +276,6 @@ export class Character {
             //Standing image
             this.imageCoord.col = 0;
         }
-    }
-
-    getObstruction()
-    {
-        const gridX = Math.floor(this.#pos.x);
-        const gridY = Math.floor(this.#pos.y);
-        return this.current_map.getObstruction(gridX, gridY, this.#pos.z);
     }
 
     setWalkTarget(worldPos) {

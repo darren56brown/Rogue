@@ -123,16 +123,11 @@ export class GameMap {
         if (idx < 0 || idx >= layer.data.length) return null;
 
         const gid = layer.data[idx];
-        if (gid <= 0) return null;
+        return this.getTileInfo(gid);
+    }
 
-        // Find which tileset owns this GID
-        let tileset = null;
-        for (let i = this.tilesets.length - 1; i >= 0; i--) {
-            if (gid >= this.tilesets[i].firstgid) {
-                tileset = this.tilesets[i];
-                break;
-            }
-        }
+    getTileInfo(gid) {
+        const tileset = this.getTileSetFromGid(gid);
         if (!tileset) return null;
 
         const localId = gid - tileset.firstgid;
@@ -148,54 +143,74 @@ export class GameMap {
         };
     }
 
-    getObstruction(gridX, gridY, gridZ) {
-        if (!this.isLoaded) return "none";
-
-        if (gridX < 0 || gridX >= this.size.w ||
-            gridY < 0 || gridY >= this.size.h) {
-            return {type: "wall"};
+    getTileSetFromGid(gid) {
+        if (!gid || gid <= 0) return null;
+        for (let i = this.tilesets.length - 1; i >= 0; i--) {
+            if (gid >= this.tilesets[i].firstgid) return this.tilesets[i];
         }
-
-        const idx = gridY * this.size.w + gridX;
-        let layerAtOrBelow = null;
-        for (let i = this.layers.length - 1; i >= 0; i--) {
-            const layer = this.layers[i];
-            if (layer.zHeight > gridZ) continue;
-
-            const gid = layer.data[idx];
-            if (gid && gid > 0) {
-                layerAtOrBelow = layer;
-                break;
-            }
-        }
-        if (!layerAtOrBelow) return {type: "drop", dist: Infinity};
-
-        const dropDistance = gridZ - layerAtOrBelow.zHeight;
-        if (dropDistance > 0) return {type: "drop", dist: dropDistance};
-
-        const layersJustAboveZ = this.layers.filter(l => l.zHeight === gridZ + 1);
-        for (const layer of layersJustAboveZ) {
-            const idx = gridY * this.size.w + gridX;
-            const gid = layer.data[idx];
-            if (!gid || gid <= 0) continue;
-
-            let tileset = null;
-            for (let i = this.tilesets.length - 1; i >= 0; i--) {
-                if (gid >= this.tilesets[i].firstgid) {
-                    tileset = this.tilesets[i];
-                    break;
-                }
-            }
-
-            if (tileset) {
-                const localId = gid - tileset.firstgid;
-                if (tileset.solidTiles?.has(localId)) {
-                    return {type: "wall"}; 
-                }
-            }
-        }
-
-        return {type: "none"};
+        return null;
     }
 
+    getTileCoordFromXY(worldX, worldY) {
+        return { x: Math.floor(worldX), y: Math.floor(worldY) };
+    }
+
+    getTileCoordFromPosition(pos) {
+        return { x: Math.floor(pos.x), y: Math.floor(pos.y) };
+    }
+
+    getDropDistance(xy_pos, z) {
+        if (!this.isLoaded) return 0;
+
+        const xy_coord = this.getTileCoordFromPosition(xy_pos);
+
+        if (xy_coord.x < 0 || xy_coord.x >= this.size.w ||
+            xy_coord.y < 0 || xy_coord.y >= this.size.h) {
+            return 0; //Don't fall off the edge?
+        }
+
+        const idx = xy_coord.y * this.size.w + xy_coord.x;
+        for (let i = this.layers.length - 1; i >= 0; i--) {
+            const layer = this.layers[i];
+            if (layer.zHeight > z) continue;
+
+            const gid = layer.data[idx];
+            const tileset = this.getTileSetFromGid(gid);
+            if (!tileset) continue;
+
+            const localId = gid - tileset.firstgid;
+            //More checks later
+            return z - layer.zHeight;
+        }
+
+        return Infinity;
+    }
+
+    isObstructed(xy_pos, z) {
+        if (!this.isLoaded) return 0;
+
+        const xy_coord = this.getTileCoordFromPosition(xy_pos);
+
+        if (xy_coord.x < 0 || xy_coord.x >= this.size.w ||
+            xy_coord.y < 0 || xy_coord.y >= this.size.h) {
+            return 0; //Don't fall off the edge?
+        }
+
+        const zToFind = Math.floor(z + 1.0);
+
+        const idx = xy_coord.y * this.size.w + xy_coord.x;
+        for (let i = this.layers.length - 1; i >= 0; i--) {
+            const layer = this.layers[i];
+            if (layer.zHeight != zToFind) continue;
+            const gid = layer.data[idx];
+            const tileset = this.getTileSetFromGid(gid);
+            if (!tileset) continue;
+
+            const localId = gid - tileset.firstgid;
+            //More checks later
+            return true;
+        }
+
+        return false;
+    }
 }

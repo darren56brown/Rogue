@@ -57,14 +57,13 @@ export class App {
     initPhysics() {
         this.characters = [];
 
-        const starting_pos = {x: 1.5, y: 1.5, z: 1};
-            this.player = new Character(starting_pos);
-            this.characters.push(this.player);
+        this.player = new Character({x: 1.5, y: 1.5}, 1);
+        this.characters.push(this.player);
 
         // Add as many NPCs as you want here (they start as identical Player instances)
-        this.characters.push(new Character({x: 4.5, y: 2.5, z: 1}));
-        this.characters.push(new Character({x: 6.5, y: 5.5, z: 1}));
-        this.characters.push(new Character({x: 1.5, y: 2.5, z: 1}));
+        this.characters.push(new Character({x: 4.5, y: 2.5}, 1));
+        this.characters.push(new Character({x: 6.5, y: 5.5}, 1));
+        this.characters.push(new Character({x: 1.5, y: 2.5}, 1));
 
         this.last_time = performance.now();
     }
@@ -221,8 +220,7 @@ export class App {
         const clickY = (e.clientY - rect.top)  * (this.canvas.height / rect.height);
 
         // Convert screen click → world coordinates at player's current Z height
-        const playerZ = this.player.getPosition().z;
-        const worldPos = this.screenToWorld(clickX, clickY, playerZ);
+        const worldPos = this.screenToWorld(clickX, clickY, this.player.getZ());
 
         this.player.setWalkTarget(worldPos);
     }
