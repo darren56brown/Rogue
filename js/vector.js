@@ -1,11 +1,13 @@
 
-export const vec = (x = 0, y = 0) => ({ x, y });
+export const vec = (x = 0, y = 0) => ({x: x, y: y});
 
-export const add = (v1, v2) => ({ x: v1.x + v2.x, y: v1.y + v2.y });
+export const vecCopy = (other) => ({x: other.x, y: other.y});
 
-export const sub = (v1, v2) => ({ x: v1.x - v2.x, y: v1.y - v2.y });
+export const add = (v1, v2) => ({x: v1.x + v2.x, y: v1.y + v2.y});
 
-export const mult = (v, scalar) => ({ x: v.x * scalar, y: v.y * scalar });
+export const sub = (v1, v2) => ({x: v1.x - v2.x, y: v1.y - v2.y});
+
+export const mult = (v, scalar) => ({x: v.x * scalar, y: v.y * scalar});
 
 export const div = (v, scalar) => scalar !== 0 
     ? { x: v.x / scalar, y: v.y / scalar } 
@@ -15,9 +17,9 @@ export const magSq = (v) => v.x * v.x + v.y * v.y;
 
 export const mag = (v) => Math.sqrt(magSq(v));
 
-export const normalize = (v) => {
+export const norm = (v) => {
   const m = mag(v);
-  return m > 0 ? div(v, m) : { x: 0, y: 0 };
+  return m > 0 ? div(v, m) : vec(0, 0);
 };
 
 export const dist = (v1, v2) => mag(sub(v1, v2));
@@ -63,7 +65,7 @@ export const setDiv = (v, scalar) => {
     return v;
 };
 
-export const set = (v, x, y) => {
+export const setVec = (v, x, y) => {
     v.x = x;
     v.y = y;
     return v;
