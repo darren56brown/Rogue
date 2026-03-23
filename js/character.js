@@ -222,29 +222,13 @@ export class Character {
                         this.falling = true;
                 }
 
-                if (game_map.isObstructed(new_2D_pos, this.#z)) {
-                    const delta_vec_mag = mag(delta_vec);
+                //Add some bounce energy by reversing velocity from obstructions
+                const move_only_x = add(this.getPositionXY(), vec(delta_vec.x, 0));
+                if (game_map.isObstructed(move_only_x, this.#z)) delta_vec.x *= -1.5;
+                const move_only_y = add(this.getPositionXY(), vec(0, delta_vec.y));
+                if (game_map.isObstructed(move_only_y, this.#z)) delta_vec.y *= -1.5;
 
-                    const move_only_x = add(this.getPositionXY(), vec(delta_vec.x, 0));
-                    const x_is_obstructed = game_map.isObstructed(move_only_x, this.#z);
-
-                    const move_only_y = add(this.getPositionXY(), vec(0, delta_vec.y));
-                    const y_is_obstructed = game_map.isObstructed(move_only_y, this.#z);
-
-                    if (!x_is_obstructed) {
-                        const slow = delta_vec_mag / 5;
-                        delta_vec.x = Math.sign(delta_vec.x) * slow;
-                        delta_vec.y = 0;
-                        this.movePosition(delta_vec);
-                    } else if (!y_is_obstructed) {
-                        const slow = delta_vec_mag / 5;
-                        delta_vec.x = 0;
-                        delta_vec.y = Math.sign(delta_vec.y) * slow;
-                        this.movePosition(delta_vec);
-                    }
-                } else {
-                    this.movePosition(delta_vec);
-                }
+                this.movePosition(delta_vec);
             }
 
             // Was not moving, go to first animation frame
