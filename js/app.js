@@ -5,7 +5,7 @@ import { Character } from "./character.js";
 import { GameMap } from "./game_map.js";
 import { FPSTracker } from "./fps_tracker.js";
 import { cartesianToIso, isoToCartesian } from './util.js';
-import { sub, setAdd } from './vector.js';
+import { vec, sub, setAdd } from './vector.js';
 
 export class App {
     constructor() {
@@ -228,21 +228,9 @@ export class App {
             // Same tile or no path → direct
             waypoints = [{ ...worldPos }];
         } else if (tilePath.length > 1) {
-            // 1. First beeline: current position → center of starting tile (phase 1)
-            waypoints.push({
-                x: tilePath[0].x + 0.5,
-                y: tilePath[0].y + 0.5
-            });
-
-            // 2. Then center-to-center for all remaining tiles in path (phase 2)
-            for (let i = 1; i < tilePath.length; i++) {
-                waypoints.push({
-                    x: tilePath[i].x + 0.5,
-                    y: tilePath[i].y + 0.5
-                });
+            for (const pathPoint of tilePath) {
+                waypoints.push(vec(pathPoint.x + 0.5, pathPoint.y + 0.5));
             }
-
-            // 3. Final beeline: center of goal tile → exact clicked position (phase 3)
             waypoints.push({ ...worldPos });
         }
 
