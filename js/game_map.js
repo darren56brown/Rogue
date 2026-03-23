@@ -213,4 +213,119 @@ export class GameMap {
 
         return false;
     }
+
+    isTileWalkable(tileX, tileY, z) {
+        if (tileX < 0 || tileX >= this.size.w || tileY < 0 || tileY >= this.size.h) return false;
+        const testPos = { x: tileX + 0.5, y: tileY + 0.5 };
+        return !this.isObstructed(testPos, z);
+    }
+
+    findPath(startWorldPos, goalWorldPos, z) {
+        const startTile = this.getTileCoordFromPosition(startWorldPos);
+        const goalTile  = this.getTileCoordFromPosition(goalWorldPos);
+
+        if (!this.isTileWalkable(startTile.x, startTile.y, z) ||
+            !this.isTileWalkable(goalTile.x, goalTile.y, z)) {
+            return [];
+        }
+
+        if (startTile.x === goalTile.x && startTile.y === goalTile.y) {
+            return [startTile];
+        }
+
+        const openSet = [];
+        const cameFrom = {};
+        const gScore = {};
+        const fScore = {};
+        const nodeKey = n => `${n.x},${n.y}`;
+
+        const startKey = nodeKey(startTile);
+        gScore[startKey] = 0;
+        fScore[startKey] = this._heuristic(startTile, goalTile);
+
+        openSet.push(startTile);
+
+        while (openSet.length > 0) {
+            // Find node with lowest fScore
+            let lowestIndex = 0;
+            for (let i = 1; i < openSet.length; i++) {
+                const keyA = nodeKey(openSet[lowestIndex]);
+                const keyB = nodeKey(openSet[i]);
+                if ((fScore[keyB] ?? Infinity) < (fScore[keyA] ?? Infinity)) {
+                    lowestIndex = i;
+                }
+            }
+
+            const current = openSet[lowestIndex];
+            const currKey = nodeKey(current);
+
+            if (current.x === goalTile.x && current.y === goalTile.y) {
+                return this._reconstructPath(cameFrom, current);
+            }
+
+            // Remove current from openSet
+            openSet.splice(lowestIndex, 1);
+
+            for (const neighbor of this._getNeighbors(current.x, current.y, z)) {
+                const neighKey = nodeKey(neighbor);
+                const tentativeG = (gScore[currKey] ?? Infinity) + this._getMovementCost(current, neighbor);
+
+                if (tentativeG < (gScore[neighKey] ?? Infinity)) {
+                    cameFrom[neighKey] = current;
+                    gScore[neighKey] = tentativeG;
+                    fScore[neighKey] = tentativeG + this._heuristic(neighbor, goalTile);
+
+                    // Add to openSet if not already present
+                    if (!openSet.some(n => nodeKey(n) === neighKey)) {
+                        openSet.push(neighbor);
+                    }
+                }
+            }
+        }
+
+        return []; // no path found
+    }
+
+    _heuristic(a, b) {
+        return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+    }
+
+    _getMovementCost(fromTile, toTile) {
+        const dx = Math.abs(fromTile.x - toTile.x);
+        const dy = Math.abs(fromTile.y - toTile.y);
+        return (dx + dy === 2) ? 1.414 : 1.0; // diagonal cost slightly higher
+    }
+
+    _reconstructPath(cameFrom, current) {
+        const path = [current];
+        let curr = current;
+        while (cameFrom[`${curr.x},${curr.y}`]) {
+            curr = cameFrom[`${curr.x},${curr.y}`];
+            path.unshift(curr);
+        }
+        return path;
+    }
+
+    _heuristic(a, b) {
+        return Math.abs(a.x - b.x) + Math.abs(a.y - b.y); // Manhattan (works great with 8-dir)
+    }
+
+    _getNeighbors(tileX, tileY, z) {
+        /*const dirs = [
+            [0, 1], [1, 0], [0, -1], [-1, 0],
+            [1, 1], [1, -1], [-1, 1], [-1, -1]
+        ];*/
+        const dirs = [
+            [0, 1], [1, 0], [0, -1], [-1, 0]
+        ];
+        const neighbors = [];
+        for (const [dx, dy] of dirs) {
+            const nx = tileX + dx;
+            const ny = tileY + dy;
+            if (this.isTileWalkable(nx, ny, z)) {
+                neighbors.push({ x: nx, y: ny });
+            }
+        }
+        return neighbors;
+    }
 }

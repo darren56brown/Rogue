@@ -67,7 +67,8 @@ export class Character {
         this.setPositionXY(posXY);
         this.setZ(z);
 
-        this.targetPos = null;
+        this.waypoints = [];
+        this.currentWaypointIndex = 0;
     }
 
     getZ() {
@@ -183,11 +184,13 @@ export class Character {
                 world_move_vec = isoToCartesian(iso_move_vec.x, iso_move_vec.y);
             }
         } 
-        else if (this.targetPos) {
-            const to_target_pos = sub(this.targetPos, this.getPositionXY());
+        else if (this.waypoints.length > 0 && this.currentWaypointIndex < this.waypoints.length) {
+            const targetPos = this.waypoints[this.currentWaypointIndex];
+            const to_target_pos = sub(targetPos, this.getPositionXY());
             max_move_mag = mag(to_target_pos);
             if (max_move_mag < MOVE_TARGET_TOL) {
-                this.clearWalkTarget();
+                this.currentWaypointIndex++;
+                if (this.currentWaypointIndex >= this.waypoints.length) this.clearPath();
             } else {
                 world_move_vec = to_target_pos;
             }
@@ -262,11 +265,13 @@ export class Character {
         }
     }
 
-    setWalkTarget(worldPos) {
-        this.targetPos = { x: worldPos.x, y: worldPos.y };
+    setWaypoints(waypoints) {
+        this.waypoints = waypoints || [];
+        this.currentWaypointIndex = 0;
     }
 
-    clearWalkTarget() {
-        this.targetPos = null;
+    clearPath() {
+        this.waypoints = [];
+        this.currentWaypointIndex = 0;
     }
 }

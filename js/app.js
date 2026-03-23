@@ -199,7 +199,7 @@ export class App {
 
         this.canvas.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            if (this.player) this.player.clearWalkTarget();
+            if (this.player) this.player.clearPath();
         });
     }
 
@@ -211,17 +211,42 @@ export class App {
     }
 
     onMouseClick(e) {
-        if (this.state !== "running" || !this.player) return;
+        if (this.state !== "running" || !this.player || !this.game_map) return;
 
         const rect = this.canvas.getBoundingClientRect();
         
-        // Get canvas-relative coordinates, accounting for stretched/scaled canvas
         const clickX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
         const clickY = (e.clientY - rect.top)  * (this.canvas.height / rect.height);
 
-        // Convert screen click → world coordinates at player's current Z height
         const worldPos = this.screenToWorld(clickX, clickY, this.player.getZ());
+        const startPos = this.player.getPositionXY();
 
-        this.player.setWalkTarget(worldPos);
+        const tilePath = this.game_map.findPath(startPos, worldPos, this.player.getZ());
+
+        let waypoints = [];
+        if (tilePath.length == 1) {
+            // Same tile or no path → direct
+            waypoints = [{ ...worldPos }];
+        } else if (tilePath.length > 1) {
+            // 1. First beeline: current position → center of starting tile (phase 1)
+            waypoints.push({
+                x: tilePath[0].x + 0.5,
+                y: tilePath[0].y + 0.5
+            });
+
+            // 2. Then center-to-center for all remaining tiles in path (phase 2)
+            for (let i = 1; i < tilePath.length; i++) {
+                waypoints.push({
+                    x: tilePath[i].x + 0.5,
+                    y: tilePath[i].y + 0.5
+                });
+            }
+
+            // 3. Final beeline: center of goal tile → exact clicked position (phase 3)
+            waypoints.push({ ...worldPos });
+        }
+
+        //console.log("Built waypoints:", waypoints.map(p => `(${p.x.toFixed(2)},${p.y.toFixed(2)})`));
+        this.player.setWaypoints(waypoints);
     }
 }
