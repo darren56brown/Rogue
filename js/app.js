@@ -246,10 +246,8 @@ export class App {
 
             if (this.game_map.getTileInfoForLayer(tx, ty, layer)) {
                 return {
-                    tileX: tx,
-                    tileY: ty,
-                    layerZ: layer.zHeight,
-                    worldCenter: { x: tx + 0.5, y: ty + 0.5 }
+                    tileCoord: vec(tx, ty),
+                    layerZ: layer.zHeight
                 };
             }
         }
@@ -264,17 +262,18 @@ export class App {
         const clickX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
         const clickY = (e.clientY - rect.top)  * (this.canvas.height / rect.height);
 
-        const worldPos = this.screenToWorld(clickX, clickY, this.player.getZ());
-        const startPos = this.player.getPositionXY();
+        const clickedTile = this.getHoveredTile(clickX, clickY);
+        const world_pos_xy = this.screenToWorld(clickX, clickY, this.player.getZ());
+        const start_pos_xy = this.player.getPositionXY();
 
-        const tilePath = this.game_map.findPath(startPos, worldPos, this.player.getZ());
+        const tilePath = this.game_map.findPath(start_pos_xy, world_pos_xy, this.player.getZ());
         if (!tilePath.length) {
             this.player.clearPath();
             return;
         }
 
         if (tilePath.length <= 2) {
-            this.player.setWaypoints([vecCopy(worldPos)]);
+            this.player.setWaypoints([vecCopy(world_pos_xy)]);
             return;
         }
 
@@ -282,9 +281,9 @@ export class App {
         for (const pathPoint of tilePath) {
             waypoints.push(vec(pathPoint.x + 0.5, pathPoint.y + 0.5));
         }
-        waypoints.push(vecCopy(worldPos));
+        waypoints.push(vecCopy(world_pos_xy));
 
-        const subTilePosBeg = sub(startPos, waypoints[0]);
+        const subTilePosBeg = sub(start_pos_xy, waypoints[0]);
         const nextBeg = sub(waypoints[1], waypoints[0]);
         const nextMagBeg = mag(nextBeg);
         const unitNextBeg = norm(nextBeg);

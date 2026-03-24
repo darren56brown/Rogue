@@ -89,10 +89,10 @@ export class Renderer {
 
                     // Debug highlight - glowing outline on the hovered tile
                     if (this.hoveredTile &&
-                        x === this.hoveredTile.tileX &&
-                        y === this.hoveredTile.tileY &&
+                        x === this.hoveredTile.tileCoord.x &&
+                        y === this.hoveredTile.tileCoord.y &&
                         Math.abs(layer.zHeight - this.hoveredTile.layerZ) < 0.1) {
-                        
+                        //Is a distance check for z appropriate?
                         this.drawIsoTileOutline(screen_pos_ul);
                     }
                 }
