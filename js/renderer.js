@@ -10,8 +10,9 @@ export class Renderer {
         this.imageLibrary = imageLibrary;
     }
 
-    render(current_map, view_origin, characters, fpsTracker = null) {
+    render(current_map, view_origin, characters, hoveredTile, fpsTracker) {
         this.current_map = current_map;
+        this.hoveredTile = hoveredTile;
 
         this.ctx.fillStyle = "#829e71";
         this.ctx.fillRect(0, 0, APP_SIZE.w, APP_SIZE.h);
@@ -85,6 +86,15 @@ export class Renderer {
                         Math.floor(screen_pos_ul.y),
                         info.sw, info.sh);
                     if (opacity !== 1) this.ctx.globalAlpha = 1;
+
+                    // Debug highlight - glowing outline on the hovered tile
+                    if (this.hoveredTile &&
+                        x === this.hoveredTile.tileX &&
+                        y === this.hoveredTile.tileY &&
+                        Math.abs(layer.zHeight - this.hoveredTile.layerZ) < 0.1) {
+                        
+                        this.drawIsoTileOutline(screen_pos_ul);
+                    }
                 }
             }
         }
@@ -145,5 +155,27 @@ export class Renderer {
             Math.floor(item.screen_pos_ul.y),
             item.info.sw, item.info.sh);
         if (item.opacity !== 1) this.ctx.globalAlpha = 1;
+    }
+
+    drawIsoTileOutline(screen_pos_ul) {
+        const x = Math.floor(screen_pos_ul.x);
+        const y = Math.floor(screen_pos_ul.y);
+
+        this.ctx.save();
+        this.ctx.strokeStyle = "#ffaa0065";
+        this.ctx.lineWidth = 2;
+        this.ctx.shadowColor = "#ff5500";
+        this.ctx.shadowBlur = 4;
+        this.ctx.lineJoin = "round";
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(x + 64, y);           // top
+        this.ctx.lineTo(x + 128, y + 32);     // right
+        this.ctx.lineTo(x + 64, y + 64);      // bottom
+        this.ctx.lineTo(x, y + 32);           // left
+        this.ctx.closePath();
+        this.ctx.stroke();
+
+        this.ctx.restore();
     }
 }

@@ -28,6 +28,9 @@ export class App {
         this.keys = {};   
         this.last_time = 0;
         this.view_origin = {x: -10.125, y: -.125};
+
+        this.hoveredTile = null;
+        this.debugTileHighlight = false;
     }
 
     init() {
@@ -147,7 +150,7 @@ export class App {
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         } else {
             this.renderer.render(this.game_map, this.view_origin, this.characters,
-                this.fps_tracker);
+                this.hoveredTile, this.fps_tracker);
 
         }
     }
@@ -172,8 +175,11 @@ export class App {
     initUserInput() {
         window.addEventListener('keydown', (e) => {
             this.keys[e.key.toLowerCase()] = true;
-
-            if (e.key === 'Escape') this.onEscapeToggle();
+            if (e.key === 'Escape') {
+                this.onEscapeToggle();
+            } else if (e.key.toLowerCase() === 'h') {
+                this.debugTileHighlight = !this.debugTileHighlight;
+            }
         });
 
         window.addEventListener('keyup', (e) => {
@@ -197,6 +203,8 @@ export class App {
             if (e.button === 0) e.preventDefault();
         });
 
+        this.canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
+
         this.canvas.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             if (this.player) this.player.clearPath();
@@ -208,6 +216,44 @@ export class App {
         const isoX = screenX + viewIso.x;
         const isoY = screenY + viewIso.y + z * ISO.TILE_H;  // correct z-height plane
         return isoToCartesian(isoX, isoY);
+    }
+
+    onMouseMove(e) {
+        if (!this.debugTileHighlight || this.state !== "running" || !this.game_map) {
+            this.hoveredTile = null;
+            return;
+        }
+
+        const rect = this.canvas.getBoundingClientRect();
+        const screenX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
+        const screenY = (e.clientY - rect.top)  * (this.canvas.height / rect.height);
+
+        this.hoveredTile = this.getHoveredTile(screenX, screenY);
+    }
+
+    getHoveredTile(screenX, screenY) {
+        if (!this.game_map?.isLoaded) return null;
+
+        // Test layers front-to-back (highest z first)
+        for (let i = this.game_map.layers.length - 1; i >= 0; i--) {
+            const layer = this.game_map.layers[i];
+            const worldPos = this.screenToWorld(screenX, screenY, layer.zHeight);
+            
+            const tx = Math.floor(worldPos.x);
+            const ty = Math.floor(worldPos.y);
+
+            if (tx < 0 || tx >= this.game_map.size.w || ty < 0 || ty >= this.game_map.size.h) continue;
+
+            if (this.game_map.getTileInfoForLayer(tx, ty, layer)) {
+                return {
+                    tileX: tx,
+                    tileY: ty,
+                    layerZ: layer.zHeight,
+                    worldCenter: { x: tx + 0.5, y: ty + 0.5 }
+                };
+            }
+        }
+        return null;
     }
 
     onMouseClick(e) {

@@ -161,7 +161,7 @@ export class Character {
 
         let max_move_mag = Infinity;
         if (hasKeyboardInput) {
-            this.clearWalkTarget();
+            this.clearPath();
 
             if (keys['a'] || keys['arrowleft']) iso_move_vec.x -= 1;
             if (keys['d'] || keys['arrowright']) iso_move_vec.x += 1;
