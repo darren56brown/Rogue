@@ -1,7 +1,7 @@
 import { ISO } from "./constants.js";
 import { PLAYER_ANIM_FRAME_SIZE, PLAYER_TILE_ORIGIN } from "./constants.js";
 import { PLAYER_ANIM_FPS, MOVE_TARGET_TOL } from "./constants.js";
-import { vec, add, sub, mult, setAdd, setDiv, mag } from './vector.js';
+import { vec2D, add, sub, mult, setAdd, setDiv, mag } from './vec2D.js';
 import { cartesianToIso, isoToCartesian } from './util.js';
 
 const AnimWalkSequence = Object.freeze({
@@ -148,9 +148,9 @@ export class Character {
             }
         }
 
-        let world_move_vec = vec(0, 0);
+        let world_move_vec = vec2D(0, 0);
         let world_move_mag = 0;
-        let iso_move_vec =  vec(0, 0);
+        let iso_move_vec =  vec2D(0, 0);
         
         const hasKeyboardInput = keys && (
             keys['a'] || keys['arrowleft'] ||
@@ -172,13 +172,13 @@ export class Character {
             //single presses are iso screen moves.
             if (iso_move_vec.x !== 0 && iso_move_vec.y !== 0) {
                 if (iso_move_vec.x > 0 && iso_move_vec.y > 0) {
-                    world_move_vec = vec(1, 0);
+                    world_move_vec = vec2D(1, 0);
                 } else if (iso_move_vec.x > 0 && iso_move_vec.y < 0) {
-                    world_move_vec = vec(0, -1);
+                    world_move_vec = vec2D(0, -1);
                 } else if (iso_move_vec.x < 0 && iso_move_vec.y > 0) {
-                    world_move_vec = vec(0, 1);
+                    world_move_vec = vec2D(0, 1);
                 } else if (iso_move_vec.x < 0 && iso_move_vec.y < 0) {
-                    world_move_vec = vec(-1, 0);
+                    world_move_vec = vec2D(-1, 0);
                 }
             } else {
                 world_move_vec = isoToCartesian(iso_move_vec.x, iso_move_vec.y);
@@ -226,9 +226,9 @@ export class Character {
                 }
 
                 //Add some bounce energy by reversing velocity from obstructions
-                const move_only_x = add(this.getPositionXY(), vec(delta_vec.x, 0));
+                const move_only_x = add(this.getPositionXY(), vec2D(delta_vec.x, 0));
                 if (game_map.isObstructed(move_only_x, this.#z)) delta_vec.x *= -1.5;
-                const move_only_y = add(this.getPositionXY(), vec(0, delta_vec.y));
+                const move_only_y = add(this.getPositionXY(), vec2D(0, delta_vec.y));
                 if (game_map.isObstructed(move_only_y, this.#z)) delta_vec.y *= -1.5;
 
                 this.movePosition(delta_vec);

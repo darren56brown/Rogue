@@ -5,7 +5,7 @@ import { Character } from "./character.js";
 import { GameMap } from "./game_map.js";
 import { FPSTracker } from "./fps_tracker.js";
 import { cartesianToIso, isoToCartesian } from './util.js';
-import { vec, vecCopy, add, sub, mult, norm, dot, mag } from './vector.js';
+import { vec2D, add, sub, mult, norm, dot, mag } from './vec2D.js';
 
 export class App {
     constructor() {
@@ -246,7 +246,7 @@ export class App {
 
             if (this.game_map.getTileInfoForLayer(tx, ty, layer)) {
                 return {
-                    tileCoord: vec(tx, ty),
+                    tileCoord: vec2D(tx, ty),
                     layerZ: layer.zHeight
                 };
             }
@@ -263,46 +263,65 @@ export class App {
         const clickY = (e.clientY - rect.top)  * (this.canvas.height / rect.height);
 
         const clickedTile = this.getHoveredTile(clickX, clickY);
-        const world_pos_xy = this.screenToWorld(clickX, clickY, this.player.getZ());
-        const start_pos_xy = this.player.getPositionXY();
+        if (!clickedTile) {
+            this.player.clearPath();
+            return;
+        }
 
-        const tilePath = this.game_map.findPath(start_pos_xy, world_pos_xy, this.player.getZ());
+        const goalZ = clickedTile.layerZ;
+        const world_pos_xy = this.screenToWorld(clickX, clickY, goalZ);
+        const start_pos_xy = this.player.getPositionXY();
+        const startZ = this.player.getZ();
+
+        const tilePath = this.game_map.findPath(start_pos_xy, world_pos_xy, startZ, goalZ);
         if (!tilePath.length) {
             this.player.clearPath();
             return;
         }
 
+        let waypoints = [];
         if (tilePath.length <= 2) {
-            this.player.setWaypoints([vecCopy(world_pos_xy)]);
+            waypoints.push({
+                x: world_pos_xy.x,
+                y: world_pos_xy.y,
+                z: goalZ
+            });
+            this.player.setWaypoints(waypoints);
             return;
         }
 
-        let waypoints = [];
         for (const pathPoint of tilePath) {
-            waypoints.push(vec(pathPoint.x + 0.5, pathPoint.y + 0.5));
+            waypoints.push({
+                x: pathPoint.x + 0.5,
+                y: pathPoint.y + 0.5,
+                z: pathPoint.z
+            });
         }
-        waypoints.push(vecCopy(world_pos_xy));
+        waypoints.push({
+            x: world_pos_xy.x,
+            y: world_pos_xy.y,
+            z: goalZ
+        });
 
         const subTilePosBeg = sub(start_pos_xy, waypoints[0]);
         const nextBeg = sub(waypoints[1], waypoints[0]);
         const nextMagBeg = mag(nextBeg);
         const unitNextBeg = norm(nextBeg);
-        if (dot(subTilePosBeg, unitNextBeg) > 0) {
-            const newPos = add(waypoints[0], mult(unitNextBeg, nextMagBeg / 2.0));
-            waypoints[0] = vecCopy(newPos);
-        }
+        //if (dot(subTilePosBeg, unitNextBeg) > 0) {
+            const newPosBeg = add(waypoints[0], mult(unitNextBeg, nextMagBeg / 2.0));
+            waypoints[0] = { x: newPosBeg.x, y: newPosBeg.y, z: waypoints[0].z };
+        //}
         
-        const subTilePosEnd = sub(waypoints[waypoints.length - 1],
-            waypoints[waypoints.length - 2]);
-        const nextEnd = sub(waypoints[waypoints.length - 3],
-            waypoints[waypoints.length - 2]);
+        const c = waypoints.length - 2;
+        const subTilePosEnd = sub(waypoints[c + 1], waypoints[c]);
+        const nextEnd = sub(waypoints[c - 1], waypoints[c]);
         const nextMagEnd = mag(nextEnd);
         const unitNextEnd = norm(nextEnd);
-        if (dot(subTilePosEnd, unitNextEnd) > 0) {
-            const newPos = add(waypoints[waypoints.length - 2],
+        //if (dot(subTilePosEnd, unitNextEnd) > 0) {
+            const newPosEnd = add(waypoints[c],
                 mult(unitNextEnd, nextMagEnd / 2.0));
-            waypoints[waypoints.length - 2] = vecCopy(newPos);
-        }
+            waypoints[c] = { x: newPosEnd.x, y: newPosEnd.y, z: waypoints[c].z };
+        //}
 
         //console.log("Built waypoints:", waypoints.map(p => `(${p.x.toFixed(2)},${p.y.toFixed(2)})`));
         this.player.setWaypoints(waypoints);

@@ -1,7 +1,7 @@
 
-export const vec = (x = 0, y = 0) => ({x: x, y: y});
+export const vec2D = (x = 0, y = 0) => ({x: x, y: y});
 
-export const vecCopy = (other) => ({x: other.x, y: other.y});
+export const vec2DCopy = (other) => ({x: other.x, y: other.y});
 
 export const add = (v1, v2) => ({x: v1.x + v2.x, y: v1.y + v2.y});
 
@@ -19,7 +19,7 @@ export const mag = (v) => Math.sqrt(magSq(v));
 
 export const norm = (v) => {
   const m = mag(v);
-  return m > 0 ? div(v, m) : vec(0, 0);
+  return m > 0 ? div(v, m) : vec2D(0, 0);
 };
 
 export const dist = (v1, v2) => mag(sub(v1, v2));
@@ -65,8 +65,12 @@ export const setDiv = (v, scalar) => {
     return v;
 };
 
-export const setVec = (v, x, y) => {
+export const vec2DSet = (v, x, y) => {
     v.x = x;
     v.y = y;
     return v;
+};
+
+export const vec2DEqual = (v1, v2) => {
+    return v1.x === v2.x && v1.y === v2.y;
 };

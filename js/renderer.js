@@ -1,5 +1,5 @@
 import { APP_SIZE, ISO } from "./constants.js";
-import { sub } from './vector.js';
+import { sub } from './vec2D.js';
 import { cartesianToIso } from './util.js';
 
 export class Renderer {
@@ -110,6 +110,8 @@ export class Renderer {
         for (const character of characters) {
             this.renderCharacter(character, true);
         }
+
+        this.drawWaypointPath(characters);
     }
 
     renderCharacter(character, forGhost) {
@@ -175,6 +177,49 @@ export class Renderer {
         this.ctx.lineTo(x, y + 32);           // left
         this.ctx.closePath();
         this.ctx.stroke();
+
+        this.ctx.restore();
+    }
+
+    drawWaypointPath(characters) {
+        this.ctx.save();
+        this.ctx.strokeStyle = "#00ffcc";
+        this.ctx.lineWidth = 3;
+        this.ctx.lineJoin = "round";
+        this.ctx.lineCap = "round";
+        this.ctx.shadowColor = "#00ffcc";
+        this.ctx.shadowBlur = 8;
+
+        for (const character of characters) {
+            if (character.waypoints && character.waypoints.length >= 2) {
+                this.ctx.beginPath();
+
+                let first = true;
+                for (const wp of character.waypoints) {
+                    // Convert world (x,y,z) → screen iso position
+                    const isoPos = cartesianToIso(wp.x, wp.y, wp.z);
+                    const screenPos = sub(isoPos, this.view_origin_iso);
+
+                    if (first) {
+                        this.ctx.moveTo(screenPos.x, screenPos.y);
+                        first = false;
+                    } else {
+                        this.ctx.lineTo(screenPos.x, screenPos.y);
+                    }
+                }
+                this.ctx.stroke();
+            }
+
+            for (const wp of character.waypoints) {
+                const isoPos = cartesianToIso(wp.x, wp.y, wp.z);
+                const screenPos = sub(isoPos, this.view_origin_iso);
+
+                this.ctx.fillStyle = "#ff0088";
+                this.ctx.beginPath();
+                this.ctx.arc(screenPos.x, screenPos.y, 4, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+        }
 
         this.ctx.restore();
     }

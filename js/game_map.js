@@ -1,4 +1,5 @@
-import { ISO } from "./constants.js";
+import {ISO, MAX_DROP} from "./constants.js";
+import { vec2D, add } from './vec2D.js';
 
 export class GameMap {
     constructor(name) {
@@ -110,12 +111,6 @@ export class GameMap {
         return this.layers; // already sorted by zHeight
     }
 
-    /**
-     * Get tile drawing info for a specific layer at grid position (x,y)
-     * @param {number} x - tile column
-     * @param {number} y - tile row
-     * @param {object} layer - one of the layer objects from this.layers
-     */
     getTileInfoForLayer(x, y, layer) {
         if (!this.isLoaded || !layer?.data) return null;
 
@@ -220,16 +215,13 @@ export class GameMap {
         return !this.isObstructed(testPos, z);
     }
 
-    findPath(startWorldPos, goalWorldPos, z) {
-        const startTile = this.getTileCoordFromPosition(startWorldPos);
-        const goalTile  = this.getTileCoordFromPosition(goalWorldPos);
+    findPath(startWorldPos, goalWorldPos, startZ, goalZ) {
+        const startTile = { ...this.getTileCoordFromPosition(startWorldPos), z: Math.round(startZ) };
+        const goalTile  = { ...this.getTileCoordFromPosition(goalWorldPos), z: Math.round(goalZ) };
 
-        if (!this.isTileWalkable(startTile.x, startTile.y, z) ||
-            !this.isTileWalkable(goalTile.x, goalTile.y, z)) {
-            return [];
-        }
+        if (!this.isTileWalkable(startTile) || !this.isTileWalkable(goalTile)) return [];
 
-        if (startTile.x === goalTile.x && startTile.y === goalTile.y) {
+        if (startTile.x === goalTile.x && startTile.y === goalTile.y && startTile.z === goalTile.z) {
             return [startTile];
         }
 
@@ -237,16 +229,15 @@ export class GameMap {
         const cameFrom = {};
         const gScore = {};
         const fScore = {};
-        const nodeKey = n => `${n.x},${n.y}`;
+        const nodeKey = n => `${n.x},${n.y},${n.z}`;
 
         const startKey = nodeKey(startTile);
         gScore[startKey] = 0;
-        fScore[startKey] = this._heuristic(startTile, goalTile);
+        fScore[startKey] = this._manhattan(startTile, goalTile);
 
         openSet.push(startTile);
 
         while (openSet.length > 0) {
-            // Find node with lowest fScore
             let lowestIndex = 0;
             for (let i = 1; i < openSet.length; i++) {
                 const keyA = nodeKey(openSet[lowestIndex]);
@@ -259,58 +250,58 @@ export class GameMap {
             const current = openSet[lowestIndex];
             const currKey = nodeKey(current);
 
-            if (current.x === goalTile.x && current.y === goalTile.y) {
+            if (current.x === goalTile.x && current.y === goalTile.y && current.z === goalTile.z) {
                 return this._reconstructPath(cameFrom, current);
             }
 
-            // Remove current from openSet
             openSet.splice(lowestIndex, 1);
 
-            for (const neighbor of this._getNeighbors(current.x, current.y, z)) {
+            for (const neighbor of this._getNeighbors3D(current)) {
                 const neighKey = nodeKey(neighbor);
                 const tentativeG = (gScore[currKey] ?? Infinity) + this._getMovementCost(current, neighbor);
 
                 if (tentativeG < (gScore[neighKey] ?? Infinity)) {
                     cameFrom[neighKey] = current;
                     gScore[neighKey] = tentativeG;
-                    fScore[neighKey] = tentativeG + this._heuristic(neighbor, goalTile);
+                    fScore[neighKey] = tentativeG + this._manhattan(neighbor, goalTile);
 
-                    // Add to openSet if not already present
                     if (!openSet.some(n => nodeKey(n) === neighKey)) {
                         openSet.push(neighbor);
                     }
                 }
             }
         }
-
-        return []; // no path found
+        return [];
     }
 
-    _heuristic(a, b) {
-        return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+    _manhattan(a, b) {
+        return Math.abs(a.x - b.x) + Math.abs(a.y - b.y) + Math.abs(a.z - b.z) * 0.5;
     }
 
-    _getMovementCost(fromTile, toTile) {
-        const dx = Math.abs(fromTile.x - toTile.x);
-        const dy = Math.abs(fromTile.y - toTile.y);
-        return (dx + dy === 2) ? 1.414 : 1.0; // diagonal cost slightly higher
+    _getMovementCost(from, to) {
+        const dx = Math.abs(from.x - to.x);
+        const dy = Math.abs(from.y - to.y);
+        let cost = (dx + dy === 2) ? 1.414 : 1.0;
+
+        // Discourage level changes — prefer ramps / staying on same layer
+        if (from.z !== to.z) {
+            cost += 3.0;
+        }
+
+        return cost;
     }
 
     _reconstructPath(cameFrom, current) {
         const path = [current];
         let curr = current;
-        while (cameFrom[`${curr.x},${curr.y}`]) {
-            curr = cameFrom[`${curr.x},${curr.y}`];
+        while (cameFrom[`${curr.x},${curr.y},${curr.z}`]) {
+            curr = cameFrom[`${curr.x},${curr.y},${curr.z}`];
             path.unshift(curr);
         }
         return path;
     }
 
-    _heuristic(a, b) {
-        return Math.abs(a.x - b.x) + Math.abs(a.y - b.y); // Manhattan (works great with 8-dir)
-    }
-
-    _getNeighbors(tileX, tileY, z) {
+    _getNeighbors3D(tile_coord) {
         const neighbors = [];
         const cardinalDirs = [
             [ 0,  1], [ 1,  0],
@@ -323,24 +314,42 @@ export class GameMap {
 
         const openCardinal = new Set();
         for (const [dx, dy] of cardinalDirs) {
-            const nx = tileX + dx;
-            const ny = tileY + dy;
-            if (this.isTileWalkable(nx, ny, z)) {
-                neighbors.push({ x: nx, y: ny });
+            const nx = tile_coord.x + dx;
+            const ny = tile_coord.y + dy;
+            if (nx < 0 || nx >= this.size.w || ny < 0 || ny >= this.size.h) continue;
+
+            if (this.isTileWalkable(nx, ny, tile_coord.z)) {
+                neighbors.push({ x: nx, y: ny, z: tile_coord.z });
                 openCardinal.add(`${dx},${dy}`);
             }
         }
-        
+
         for (const [dx, dy] of diagonalDirs) {
-            const nx = tileX + dx;
-            const ny = tileY + dy;
+            const nx = tile_coord.x + dx;
+            const ny = tile_coord.y + dy;
+            if (nx < 0 || nx >= this.size.w || ny < 0 || ny >= this.size.h) continue;
+
             const cardinalA = `${dx},0`;
             const cardinalB = `0,${dy}`;
 
             if (openCardinal.has(cardinalA) && openCardinal.has(cardinalB)) {
-                if (this.isTileWalkable(nx, ny, z)) {
-                    neighbors.push({ x: nx, y: ny });
+                if (this.isTileWalkable(nx, ny, tile_coord.z)) {
+                    neighbors.push({ x: nx, y: ny, z: tile_coord.z });
                 }
+            }
+        }
+
+        for (const [dx, dy] of cardinalDirs) {
+            const nx = tile_coord.x + dx;
+            const ny = tile_coord.y + dy;
+            if (nx < 0 || nx >= this.size.w || ny < 0 || ny >= this.size.h) continue;
+
+            const neighCenter = { x: nx + 0.5, y: ny + 0.5 };
+            const drop = this.getDropDistance(neighCenter, tile_coord.z);
+
+            if (drop !== Infinity && drop > 0 && drop <= MAX_DROP) {
+                const landingZ = tile_coord.z - drop;
+                neighbors.push({ x: nx, y: ny, z: landingZ });
             }
         }
 

@@ -5,6 +5,7 @@ export const PLAYER_TILE_ORIGIN = {x: 32, y: 58};
 export const PLAYER_ANIM_FPS = 3;
 export const CAMERA_MARGIN = {x: 350, y: 250};
 export const MOVE_TARGET_TOL = 1e-7;
+export const MAX_DROP = 1.1;
 
 export const ISO = {
     TILE_W: 128,           // full tile width on screen
