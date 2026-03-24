@@ -159,7 +159,7 @@ export class App {
         if (this.state !== "running") return;
 
         for (const char of this.characters) {
-            char.updatePhysics(dt, char === this.player ? this.keys : null, this.game_map);
+            char.updatePhysics(dt, this.game_map);
         }
 
         const playerIso = this.player.getIsoPosition();
@@ -211,11 +211,17 @@ export class App {
         });
     }
 
-    screenToWorld(screenX, screenY, z = 0) {
+    screenToWorld(screenPos, z = 0) {
         const viewIso = cartesianToIso(this.view_origin.x, this.view_origin.y, 0);
-        const isoX = screenX + viewIso.x;
-        const isoY = screenY + viewIso.y + z * ISO.TILE_H;  // correct z-height plane
+        const isoX = screenPos.x + viewIso.x;
+        const isoY = screenPos.y + viewIso.y + z * ISO.TILE_H;  // correct z-height plane
         return isoToCartesian(isoX, isoY);
+    }
+
+    getPositionFromEvent(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        return vec2D((e.clientX - rect.left) * (this.canvas.width / rect.width),
+            (e.clientY - rect.top)  * (this.canvas.height / rect.height));
     }
 
     onMouseMove(e) {
@@ -223,27 +229,18 @@ export class App {
             this.hoveredTile = null;
             return;
         }
-
-        const rect = this.canvas.getBoundingClientRect();
-        const screenX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
-        const screenY = (e.clientY - rect.top)  * (this.canvas.height / rect.height);
-
-        this.hoveredTile = this.getHoveredTile(screenX, screenY);
+        this.hoveredTile = this.getHoveredTile(this.getPositionFromEvent(e));
     }
 
-    getHoveredTile(screenX, screenY) {
+    getHoveredTile(screenPos) {
         if (!this.game_map?.isLoaded) return null;
 
-        // Test layers front-to-back (highest z first)
         for (let i = this.game_map.layers.length - 1; i >= 0; i--) {
             const layer = this.game_map.layers[i];
-            const worldPos = this.screenToWorld(screenX, screenY, layer.zHeight);
+            const worldPos = this.screenToWorld(screenPos, layer.zHeight);
             
             const tx = Math.floor(worldPos.x);
             const ty = Math.floor(worldPos.y);
-
-            if (tx < 0 || tx >= this.game_map.size.w || ty < 0 || ty >= this.game_map.size.h) continue;
-
             if (this.game_map.getTileInfoForLayer(tx, ty, layer)) {
                 return {
                     tileCoord: vec2D(tx, ty),
@@ -257,19 +254,15 @@ export class App {
     onMouseClick(e) {
         if (this.state !== "running" || !this.player || !this.game_map) return;
 
-        const rect = this.canvas.getBoundingClientRect();
-        
-        const clickX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
-        const clickY = (e.clientY - rect.top)  * (this.canvas.height / rect.height);
-
-        const clickedTile = this.getHoveredTile(clickX, clickY);
+        const clickPos = this.getPositionFromEvent(e);
+        const clickedTile = this.getHoveredTile(clickPos);
         if (!clickedTile) {
             this.player.clearPath();
             return;
         }
 
         const goalZ = clickedTile.layerZ;
-        const world_pos_xy = this.screenToWorld(clickX, clickY, goalZ);
+        const world_pos_xy = this.screenToWorld(clickPos, goalZ);
         const start_pos_xy = this.player.getPositionXY();
         const startZ = this.player.getZ();
 

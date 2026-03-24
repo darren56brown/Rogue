@@ -132,7 +132,7 @@ export class Character {
         return cartesianToIso(this.#pos_xy.x, this.#pos_xy.y, zOnGround);
     }
 
-    updatePhysics(dt, keys, game_map) {
+    updatePhysics(dt, game_map) {
         if (this.falling) {
             const drop_distance = game_map.getDropDistance(this.getPositionXY(), this.#z);
             if (drop_distance === 0) {
@@ -149,42 +149,8 @@ export class Character {
         }
 
         let world_move_vec = vec2D(0, 0);
-        let world_move_mag = 0;
-        let iso_move_vec =  vec2D(0, 0);
-        
-        const hasKeyboardInput = keys && (
-            keys['a'] || keys['arrowleft'] ||
-            keys['d'] || keys['arrowright'] ||
-            keys['w'] || keys['arrowup'] ||
-            keys['s'] || keys['arrowdown']
-        );
-
         let max_move_mag = Infinity;
-        if (hasKeyboardInput) {
-            this.clearPath();
-
-            if (keys['a'] || keys['arrowleft']) iso_move_vec.x -= 1;
-            if (keys['d'] || keys['arrowright']) iso_move_vec.x += 1;
-            if (keys['w'] || keys['arrowup']) iso_move_vec.y -= 1;
-            if (keys['s'] || keys['arrowdown']) iso_move_vec.y += 1;
-
-            //Diagonal presses are world moves but
-            //single presses are iso screen moves.
-            if (iso_move_vec.x !== 0 && iso_move_vec.y !== 0) {
-                if (iso_move_vec.x > 0 && iso_move_vec.y > 0) {
-                    world_move_vec = vec2D(1, 0);
-                } else if (iso_move_vec.x > 0 && iso_move_vec.y < 0) {
-                    world_move_vec = vec2D(0, -1);
-                } else if (iso_move_vec.x < 0 && iso_move_vec.y > 0) {
-                    world_move_vec = vec2D(0, 1);
-                } else if (iso_move_vec.x < 0 && iso_move_vec.y < 0) {
-                    world_move_vec = vec2D(-1, 0);
-                }
-            } else {
-                world_move_vec = isoToCartesian(iso_move_vec.x, iso_move_vec.y);
-            }
-        } 
-        else if (this.waypoints.length > 0 && this.currentWaypointIndex < this.waypoints.length) {
+        if (this.waypoints.length > 0 && this.currentWaypointIndex < this.waypoints.length) {
             const targetPos = this.waypoints[this.currentWaypointIndex];
             const to_target_pos = sub(targetPos, this.getPositionXY());
             max_move_mag = mag(to_target_pos);
@@ -196,15 +162,12 @@ export class Character {
             }
         }
 
-        world_move_mag = mag(world_move_vec);
+        const world_move_mag = mag(world_move_vec);
         if (world_move_mag > 0) {
             setDiv(world_move_vec, world_move_mag);
-            world_move_mag = 1;
-        }
-        iso_move_vec = cartesianToIso(world_move_vec.x, world_move_vec.y, 0);
 
-        if (world_move_mag > 0) {
             // Set facing based on screen direction
+            const iso_move_vec = cartesianToIso(world_move_vec.x, world_move_vec.y, 0);
             if (Math.abs(iso_move_vec.x) > Math.abs(iso_move_vec.y)) {
                 this.curFacing = iso_move_vec.x > 0 ? PlayerFacing.face_rt : PlayerFacing.face_lt;
             } else {

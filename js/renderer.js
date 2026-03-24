@@ -17,7 +17,6 @@ export class Renderer {
         this.ctx.fillStyle = "#829e71";
         this.ctx.fillRect(0, 0, APP_SIZE.w, APP_SIZE.h);
 
-        this.view_origin = view_origin;
         this.view_origin_iso = cartesianToIso(view_origin.x,
             view_origin.y, 0);
         
@@ -41,10 +40,7 @@ export class Renderer {
             //Traverse tiles in perfect draw order
             for (let depth = 0; depth <= (map_width + map_height - 2); depth++) {
                  for (let x = 0; x <= depth; x++) {
-                    if (x >= map_width) continue;
-                    let y = depth - x;
-                    if (y >= map_height) continue;
-
+                    const y = depth - x;
                     const info = this.current_map.getTileInfoForLayer(x, y, layer);
                     if (!info) continue;
 
