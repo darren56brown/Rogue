@@ -215,11 +215,14 @@ export class GameMap {
         return !this.isObstructed(testPos, z);
     }
 
-    findPath(startWorldPos, goalWorldPos, startZ, goalZ) {
+    findPath(startWorldPos, startZ, goalWorldPos, goalZ) {
         const startTile = { ...this.getTileCoordFromPosition(startWorldPos), z: Math.round(startZ) };
         const goalTile  = { ...this.getTileCoordFromPosition(goalWorldPos), z: Math.round(goalZ) };
 
-        if (!this.isTileWalkable(startTile) || !this.isTileWalkable(goalTile)) return [];
+        if (!this.isTileWalkable(startTile.x, startTile.y, startTile.z) ||
+            !this.isTileWalkable(goalTile.x, goalTile.y, goalTile.z)) {
+            return [];
+        }
 
         if (startTile.x === goalTile.x && startTile.y === goalTile.y && startTile.z === goalTile.z) {
             return [startTile];
@@ -250,7 +253,9 @@ export class GameMap {
             const current = openSet[lowestIndex];
             const currKey = nodeKey(current);
 
-            if (current.x === goalTile.x && current.y === goalTile.y && current.z === goalTile.z) {
+            if (current.x === goalTile.x &&
+                current.y === goalTile.y &&
+                current.z === goalTile.z) {
                 return this._reconstructPath(cameFrom, current);
             }
 
@@ -258,7 +263,8 @@ export class GameMap {
 
             for (const neighbor of this._getNeighbors3D(current)) {
                 const neighKey = nodeKey(neighbor);
-                const tentativeG = (gScore[currKey] ?? Infinity) + this._getMovementCost(current, neighbor);
+                const tentativeG = (gScore[currKey] ?? Infinity) +
+                    this._getMovementCost(current, neighbor);
 
                 if (tentativeG < (gScore[neighKey] ?? Infinity)) {
                     cameFrom[neighKey] = current;
@@ -319,8 +325,15 @@ export class GameMap {
             if (nx < 0 || nx >= this.size.w || ny < 0 || ny >= this.size.h) continue;
 
             if (this.isTileWalkable(nx, ny, tile_coord.z)) {
-                neighbors.push({ x: nx, y: ny, z: tile_coord.z });
-                openCardinal.add(`${dx},${dy}`);
+                const neighCenter = { x: nx + 0.5, y: ny + 0.5 };
+                const drop = this.getDropDistance(neighCenter, tile_coord.z);
+
+                if (drop === 0) openCardinal.add(`${dx},${dy}`);
+
+                if (drop <= MAX_DROP) {
+                    const landingZ = tile_coord.z - drop;
+                    neighbors.push({ x: nx, y: ny, z: landingZ });
+                }
             }
         }
 
@@ -336,20 +349,6 @@ export class GameMap {
                 if (this.isTileWalkable(nx, ny, tile_coord.z)) {
                     neighbors.push({ x: nx, y: ny, z: tile_coord.z });
                 }
-            }
-        }
-
-        for (const [dx, dy] of cardinalDirs) {
-            const nx = tile_coord.x + dx;
-            const ny = tile_coord.y + dy;
-            if (nx < 0 || nx >= this.size.w || ny < 0 || ny >= this.size.h) continue;
-
-            const neighCenter = { x: nx + 0.5, y: ny + 0.5 };
-            const drop = this.getDropDistance(neighCenter, tile_coord.z);
-
-            if (drop !== Infinity && drop > 0 && drop <= MAX_DROP) {
-                const landingZ = tile_coord.z - drop;
-                neighbors.push({ x: nx, y: ny, z: landingZ });
             }
         }
 

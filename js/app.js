@@ -266,24 +266,23 @@ export class App {
         const start_pos_xy = this.player.getPositionXY();
         const startZ = this.player.getZ();
 
-        const tilePath = this.game_map.findPath(start_pos_xy, world_pos_xy, startZ, goalZ);
+        const tilePath = this.game_map.findPath(start_pos_xy, startZ,
+            world_pos_xy, goalZ);
+
         if (!tilePath.length) {
             this.player.clearPath();
             return;
         }
 
         let waypoints = [];
-        if (tilePath.length <= 2) {
-            waypoints.push({
-                x: world_pos_xy.x,
-                y: world_pos_xy.y,
-                z: goalZ
-            });
-            this.player.setWaypoints(waypoints);
-            return;
-        }
-
-        for (const pathPoint of tilePath) {
+        waypoints.push({
+            x: start_pos_xy.x,
+            y: start_pos_xy.y,
+            z: startZ
+        });
+        for (let i = 1; i < tilePath.length - 1; ++i)
+        {
+            const pathPoint = tilePath[i];
             waypoints.push({
                 x: pathPoint.x + 0.5,
                 y: pathPoint.y + 0.5,
@@ -296,27 +295,6 @@ export class App {
             z: goalZ
         });
 
-        const subTilePosBeg = sub(start_pos_xy, waypoints[0]);
-        const nextBeg = sub(waypoints[1], waypoints[0]);
-        const nextMagBeg = mag(nextBeg);
-        const unitNextBeg = norm(nextBeg);
-        //if (dot(subTilePosBeg, unitNextBeg) > 0) {
-            const newPosBeg = add(waypoints[0], mult(unitNextBeg, nextMagBeg / 2.0));
-            waypoints[0] = { x: newPosBeg.x, y: newPosBeg.y, z: waypoints[0].z };
-        //}
-        
-        const c = waypoints.length - 2;
-        const subTilePosEnd = sub(waypoints[c + 1], waypoints[c]);
-        const nextEnd = sub(waypoints[c - 1], waypoints[c]);
-        const nextMagEnd = mag(nextEnd);
-        const unitNextEnd = norm(nextEnd);
-        //if (dot(subTilePosEnd, unitNextEnd) > 0) {
-            const newPosEnd = add(waypoints[c],
-                mult(unitNextEnd, nextMagEnd / 2.0));
-            waypoints[c] = { x: newPosEnd.x, y: newPosEnd.y, z: waypoints[c].z };
-        //}
-
-        //console.log("Built waypoints:", waypoints.map(p => `(${p.x.toFixed(2)},${p.y.toFixed(2)})`));
         this.player.setWaypoints(waypoints);
     }
 }
