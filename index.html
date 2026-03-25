@@ -10,9 +10,21 @@
     <div id="mainContainer">
         <canvas id="mainCanvas"></canvas>
 
+        <div id="hud" class="hud">
+            <div class="status-panel">
+                <div id="hearts-container" class="hearts-container"></div>
+            </div>
+
+            <div class="hotbar-container">
+                <div id="hotbar" class="hotbar">
+                    <div id="hotbar-slots" class="slots"></div>
+                </div>
+            </div>
+        </div>
+
         <div id="mainMenu" class="ui-panel is-active">
             <h1>Some Game!</h1>
-            <button id ="playButton">Play</button>
+            <button id="playButton">Play</button>
             <div style="margin-top: 20px; font-size: 12px;"></div>
             <div>
                 <div>Mouse - Move</div>
@@ -22,10 +34,9 @@
 
         <div id="pauseMenu" class="ui-panel">
             <h2>PAUSED</h2>
-            <button id ="resumeButton">Resume</button>
-            <button id ="quitButton">Quit</button>
+            <button id="resumeButton">Resume</button>
+            <button id="quitButton">Quit</button>
         </div>
-
     </div>
     <script type="module" src="js/main.js"></script>
 </body>

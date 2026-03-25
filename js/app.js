@@ -32,6 +32,21 @@ export class App {
 
         this.hoveredTile = null;
         this.debugTileHighlight = false;
+
+
+        this.selectedSlot = 0;
+        this.hotbarItems = [
+            { icon: '🗡️', count: 1 },
+            { icon: '⛏️', count: 1 },
+            { icon: '🪓', count: 1 },
+            { icon: '', count: 0 },
+            { icon: '🏹', count: 1 },
+            { icon: '', count: 0 },
+            { icon: '🍎', count: 64 },
+            { icon: '🛡️', count: 1 },
+            { icon: '🔥', count: 1 }
+        ];
+        this.healthPoints = 20; // 20 = 10 full hearts
     }
 
     init() {
@@ -69,6 +84,8 @@ export class App {
         this.characters.push(new Npc({x: 6.5, y: 5.5}, 1));
         this.characters.push(new Npc({x: 1.5, y: 2.5}, 1));
 
+        this.createHUD();
+
         this.last_time = performance.now();
     }
 
@@ -81,6 +98,7 @@ export class App {
     onPlayClick(){
         this.state = "running";
         this.hideAllPanels();
+        this.showHUD();
     }
 
     onEscapeToggle() {
@@ -109,6 +127,7 @@ export class App {
     fullRestart(){
         this.state = "start_screen";
         this.hideAllPanels();
+        this.hideHUD();
         document.getElementById("mainMenu").classList.add("is-active");
         this.initPhysics();
     }
@@ -133,6 +152,20 @@ export class App {
         this.canvas.style.width = w + 'px';
         this.canvas.style.height = h + 'px';
         this.canvas.style.margin = `${APP_MARGIN}px`;
+
+        const container = document.getElementById('mainContainer');
+        const hud = document.getElementById('hud');
+
+        if (hud) {
+            const centeredLeft = (container.clientWidth - w) / 2;
+            const centeredTop  = (container.clientHeight - h) / 2;
+
+            hud.style.left   = centeredLeft + 'px';
+            hud.style.top    = centeredTop + 'px';
+            hud.style.width  = w + 'px';
+            hud.style.height = h + 'px';
+            hud.style.margin = '0';           // HUD has no margin
+        }
     }
 
     loop(time) {
@@ -180,6 +213,12 @@ export class App {
                 this.onEscapeToggle();
             } else if (e.key.toLowerCase() === 'h') {
                 this.debugTileHighlight = !this.debugTileHighlight;
+            } else if (this.state === 'running') {
+                const num = parseInt(e.key);
+                if (num >= 1 && num <= 9) {
+                    this.selectSlot(num - 1);
+                    e.preventDefault();
+                }
             }
         });
 
@@ -266,4 +305,81 @@ export class App {
         const world_pos_xy = this.screenToWorld(clickPos, goalZ);
         this.player.buildPathToPosition(this.game_map, world_pos_xy, goalZ);
     }
+
+    createHUD() {
+        this.updateHotbarUI();
+        this.updateHealthUI();
+    }
+
+    showHUD() {
+        const hud = document.getElementById("hud");
+        if (hud) hud.classList.add("is-active");
+    }
+
+    hideHUD() {
+        const hud = document.getElementById("hud");
+        if (hud) hud.classList.remove("is-active");
+    }
+
+    updateHotbarUI() {
+        const slotsContainer = document.getElementById("hotbar-slots");
+        if (!slotsContainer) return;
+        
+        slotsContainer.innerHTML = "";
+
+        this.hotbarItems.forEach((item, index) => {
+            const slot = document.createElement("div");
+            slot.className = `slot ${index === this.selectedSlot ? "selected" : ""}`;
+            slot.dataset.index = index;
+
+            const iconDiv = document.createElement("div");
+            iconDiv.className = "item-icon";
+            iconDiv.textContent = item.icon || "";
+            slot.appendChild(iconDiv);
+
+            if (item.count > 1) {
+                const countSpan = document.createElement("span");
+                countSpan.className = "item-count";
+                countSpan.textContent = item.count;
+                slot.appendChild(countSpan);
+            }
+
+            // Click-to-select (mouse support)
+            slot.addEventListener("click", () => this.selectSlot(index));
+
+            slotsContainer.appendChild(slot);
+        });
+    }
+
+    selectSlot(index) {
+        if (index < 0 || index > 8) return;
+        this.selectedSlot = index;
+        this.updateHotbarUI();
+
+        // TODO: later hook this up to your Player inventory / active item
+        console.log(`🎮 Hotbar slot ${index + 1} selected →`, this.hotbarItems[index]);
+    }
+
+    updateHealthUI() {
+        const container = document.getElementById("hearts-container");
+        if (!container) return;
+
+        container.innerHTML = "";
+
+        const numFullHearts = Math.floor(this.healthPoints / 2);
+
+        for (let i = 0; i < 10; i++) {
+            const heart = document.createElement("div");
+            heart.className = "heart";
+
+            if (i < numFullHearts) {
+                heart.textContent = "❤️";           // full heart
+            } else {
+                heart.textContent = "♡";           // empty heart
+                heart.style.color = "#555";
+            }
+            container.appendChild(heart);
+        }
+    }
+
 }

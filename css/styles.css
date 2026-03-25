@@ -76,3 +76,119 @@ button:hover {
     box-shadow: 0 0 25px rgba(74, 157, 255, 0.5);
     transform: translateY(-2px);
 }
+
+/* MINECRAFT-STYLE HUD - scaled to ~2/3 size */
+.hud {
+    position: absolute;
+    pointer-events: none;
+    z-index: 1001;
+    display: none;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+}
+
+.hud.is-active {
+    display: block;
+}
+
+/* HEALTH HEARTS - Upper Right, 2/3 overall scale */
+.status-panel {
+    position: absolute;
+    top: 3.2%;           /* reduced padding */
+    right: 3.2%;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.hearts-container {
+    display: flex;
+    gap: 0.17vh;         /* tighter for smaller size */
+}
+
+.heart {
+    font-size: 2.1vh;    /* 2/3 of previous size */
+    line-height: 1;
+    filter: drop-shadow(1.5px 1.5px 1.5px #111);
+}
+
+/* HOTBAR - Bottom Center, 2/3 scale */
+.hotbar-container {
+    position: absolute;
+    bottom: 3.5%;        /* moved up slightly to compensate for smaller size */
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.75vh 1.15vh;   /* scaled down */
+    background: linear-gradient(#3d3d3d, #2a2a2a);
+    border: 3.3px solid #5c5c5c;     /* thinner border */
+    border-top-color: #a8a8a8;
+    border-left-color: #a8a8a8;
+    box-shadow: 0 5px 0 -3px #111,
+                0 3px 14px rgba(0, 0, 0, 0.6);
+    border-radius: 4px;
+}
+
+.hotbar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.slots {
+    display: flex;
+    flex-direction: row;
+    gap: 0.55vh;         /* scaled gap */
+    flex-wrap: nowrap;
+}
+
+.slot {
+    width: 5.95vh;       /* ~2/3 of 8.9vh */
+    height: 5.95vh;
+    background: #4f4f4f;
+    border: 0.37vh solid #b8b8b8;
+    border-bottom-color: #383838;
+    border-right-color: #383838;
+    box-shadow: inset 0.27vh 0.27vh 0 #1f1f1f,
+                inset -0.27vh -0.27vh 0 #1f1f1f;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.85vh;   /* scaled emoji size */
+    pointer-events: auto;
+    transition: all 0.1s ease;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.slot:hover {
+    filter: brightness(1.15);
+}
+
+.slot.selected {
+    border-color: #ffffff;
+    border-bottom-color: #e0e0e0;
+    border-right-color: #e0e0e0;
+    box-shadow: inset 0.27vh 0.27vh 0 #ffffff,
+                inset -0.27vh -0.27vh 0 #777;
+}
+
+.slot .item-icon {
+    width: 80%;
+    height: 80%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.slot .item-count {
+    position: absolute;
+    bottom: 8%;
+    right: 12%;
+    font-size: 1.9vh;    /* scaled count */
+    font-weight: bold;
+    color: #fff;
+    text-shadow: -1.5px -1.5px 0 #000,
+                  1.5px -1.5px 0 #000,
+                 -1.5px  1.5px 0 #000,
+                  1.5px  1.5px 0 #000;
+}
