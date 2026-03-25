@@ -1,4 +1,4 @@
-import {ISO, MAX_DROP} from "./constants.js";
+import {ISO, MAX_DROP, MAX_HOP} from "./constants.js";
 import { vec2D, add } from './vec2D.js';
 
 export class GameMap {
@@ -147,35 +147,53 @@ export class GameMap {
     }
 
     getTileCoordFromXY(worldX, worldY) {
-        return { x: Math.floor(worldX), y: Math.floor(worldY) };
+        return vec2D(Math.floor(worldX), Math.floor(worldY));
     }
 
     getTileCoordFromPosition(pos) {
-        return { x: Math.floor(pos.x), y: Math.floor(pos.y) };
+        return vec2D(Math.floor(pos.x), Math.floor(pos.y));
     }
 
     getDropDistance(xy_pos, z) {
         if (!this.isLoaded) return 0;
 
         const xy_coord = this.getTileCoordFromPosition(xy_pos);
-
         if (xy_coord.x < 0 || xy_coord.x >= this.size.w ||
             xy_coord.y < 0 || xy_coord.y >= this.size.h) {
-            return 0; //Don't fall off the edge?
+            return 0;
         }
 
-        const idx = xy_coord.y * this.size.w + xy_coord.x;
         for (let i = this.layers.length - 1; i >= 0; i--) {
             const layer = this.layers[i];
             if (layer.zHeight > z) continue;
 
-            const gid = layer.data[idx];
-            const tileset = this.getTileSetFromGid(gid);
-            if (!tileset) continue;
+            const tileInfo =
+                this.getTileInfoForLayer(xy_coord.x, xy_coord.y, layer);
+            if (!tileInfo) continue;
 
-            const localId = gid - tileset.firstgid;
-            //More checks later
             return z - layer.zHeight;
+        }
+
+        return Infinity;
+    }
+
+    getHopDistance(xy_pos, z) {
+        if (!this.isLoaded) return 0;
+
+        const xy_coord = this.getTileCoordFromPosition(xy_pos);
+        if (xy_coord.x < 0 || xy_coord.x >= this.size.w ||
+            xy_coord.y < 0 || xy_coord.y >= this.size.h) {
+            return 0;
+        }
+
+        for (const layer of this.layers) {
+            if (layer.zHeight <= z) continue;
+
+            const tileInfo =
+                this.getTileInfoForLayer(xy_coord.x, xy_coord.y, layer);
+            if (!tileInfo) continue;
+
+            return layer.zHeight - z;
         }
 
         return Infinity;
@@ -323,18 +341,24 @@ export class GameMap {
             const nx = tile_coord.x + dx;
             const ny = tile_coord.y + dy;
             if (nx < 0 || nx >= this.size.w || ny < 0 || ny >= this.size.h) continue;
+            const neighCenter = { x: nx + 0.5, y: ny + 0.5 };
 
             if (this.isTileWalkable(nx, ny, tile_coord.z)) {
-                const neighCenter = { x: nx + 0.5, y: ny + 0.5 };
                 const drop = this.getDropDistance(neighCenter, tile_coord.z);
-
-                if (drop === 0) openCardinal.add(`${dx},${dy}`);
+                if (drop < 0.1) openCardinal.add(`${dx},${dy}`);
 
                 if (drop <= MAX_DROP) {
                     const landingZ = tile_coord.z - drop;
                     neighbors.push({ x: nx, y: ny, z: landingZ });
                 }
+            } else {
+                const hop = this.getHopDistance(neighCenter, tile_coord.z);
+                if (hop <= MAX_DROP) {
+                    const landingZ = tile_coord.z + hop;
+                    neighbors.push({ x: nx, y: ny, z: landingZ });
+                }
             }
+
         }
 
         for (const [dx, dy] of diagonalDirs) {
