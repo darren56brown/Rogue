@@ -102,12 +102,12 @@ export class Renderer {
             nextCharacterIdx++;
         }
 
+        this.drawWaypointPath(characters);
+
         //Redraw all characters so that they appear as ghosts behind walls
         for (const character of characters) {
             this.renderCharacter(character, true);
         }
-
-        //this.drawWaypointPath(characters);
     }
 
     renderCharacter(character, forGhost) {
