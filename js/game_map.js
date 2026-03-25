@@ -1,5 +1,6 @@
 import {ISO, MAX_DROP, MAX_HOP} from "./constants.js";
 import { vec2D, add } from './vec2D.js';
+import { getTileCoordFromPosition } from './util.js';
 
 export class GameMap {
     constructor(name) {
@@ -146,18 +147,10 @@ export class GameMap {
         return null;
     }
 
-    getTileCoordFromXY(worldX, worldY) {
-        return vec2D(Math.floor(worldX), Math.floor(worldY));
-    }
-
-    getTileCoordFromPosition(pos) {
-        return vec2D(Math.floor(pos.x), Math.floor(pos.y));
-    }
-
     getDropDistance(xy_pos, z) {
         if (!this.isLoaded) return 0;
 
-        const xy_coord = this.getTileCoordFromPosition(xy_pos);
+        const xy_coord = getTileCoordFromPosition(xy_pos);
         if (xy_coord.x < 0 || xy_coord.x >= this.size.w ||
             xy_coord.y < 0 || xy_coord.y >= this.size.h) {
             return 0;
@@ -180,7 +173,7 @@ export class GameMap {
     getHopDistance(xy_pos, z) {
         if (!this.isLoaded) return 0;
 
-        const xy_coord = this.getTileCoordFromPosition(xy_pos);
+        const xy_coord = getTileCoordFromPosition(xy_pos);
         if (xy_coord.x < 0 || xy_coord.x >= this.size.w ||
             xy_coord.y < 0 || xy_coord.y >= this.size.h) {
             return 0;
@@ -202,7 +195,7 @@ export class GameMap {
     isObstructed(xy_pos, z) {
         if (!this.isLoaded) return 0;
 
-        const xy_coord = this.getTileCoordFromPosition(xy_pos);
+        const xy_coord = getTileCoordFromPosition(xy_pos);
 
         if (xy_coord.x < 0 || xy_coord.x >= this.size.w ||
             xy_coord.y < 0 || xy_coord.y >= this.size.h) {
@@ -234,8 +227,8 @@ export class GameMap {
     }
 
     findPath(startWorldPos, startZ, goalWorldPos, goalZ) {
-        const startTile = { ...this.getTileCoordFromPosition(startWorldPos), z: Math.round(startZ) };
-        const goalTile  = { ...this.getTileCoordFromPosition(goalWorldPos), z: Math.round(goalZ) };
+        const startTile = { ...getTileCoordFromPosition(startWorldPos), z: Math.round(startZ) };
+        const goalTile  = { ...getTileCoordFromPosition(goalWorldPos), z: Math.round(goalZ) };
 
         if (!this.isTileWalkable(startTile.x, startTile.y, startTile.z) ||
             !this.isTileWalkable(goalTile.x, goalTile.y, goalTile.z)) {

@@ -5,7 +5,8 @@ import { Character } from "./character.js";
 import { GameMap } from "./game_map.js";
 import { FPSTracker } from "./fps_tracker.js";
 import { cartesianToIso, isoToCartesian } from './util.js';
-import { vec2D, add, sub, mult, norm, dot, mag } from './vec2D.js';
+import { getTileCoordFromXY } from './util.js';
+import { vec2D, add, sub, div, norm, dist, mag, intersect, mult } from './vec2D.js';
 
 export class App {
     constructor() {
@@ -275,26 +276,79 @@ export class App {
         }
 
         let waypoints = [];
-        waypoints.push({
-            x: start_pos_xy.x,
-            y: start_pos_xy.y,
-            z: startZ
-        });
+        this._pushWaypoint(waypoints, start_pos_xy.x, start_pos_xy.y, startZ);
         for (let i = 1; i < tilePath.length - 1; ++i)
         {
             const pathPoint = tilePath[i];
-            waypoints.push({
-                x: pathPoint.x + 0.5,
-                y: pathPoint.y + 0.5,
-                z: pathPoint.z
-            });
+            this._pushWaypoint(waypoints, pathPoint.x + 0.5,
+                pathPoint.y + 0.5, pathPoint.z);
         }
-        waypoints.push({
-            x: world_pos_xy.x,
-            y: world_pos_xy.y,
-            z: goalZ
-        });
-
+        this._pushWaypoint(waypoints, world_pos_xy.x, world_pos_xy.y, goalZ);
         this.player.setWaypoints(waypoints);
+    }
+
+    _pushWaypoint(waypoints, x, y, z) {
+        if (waypoints.length == 0) {
+            waypoints.push({x: x, y: y, z: z});
+            return;
+        }
+
+        const last_waypoint = waypoints[waypoints.length - 1];
+        const step_down = last_waypoint.z - z;
+        if (Math.abs(step_down) < 0.1) {
+            waypoints.push({x: x, y: y, z: z});
+            return;
+        }
+        const from_tile_center = add(getTileCoordFromXY(last_waypoint.x, last_waypoint.y),
+            vec2D(0.5, 0.5));
+        const to_tile_center = add(getTileCoordFromXY(x, y), vec2D(0.5, 0.5));
+        const unit_tile_to_tile_dir = norm(sub(to_tile_center, from_tile_center));
+        const along_edge = vec2D(-unit_tile_to_tile_dir.y, unit_tile_to_tile_dir.x);
+        const tile_to_tile_midpoint = div(add(from_tile_center, to_tile_center), 2.0);
+
+        const xy_pos = vec2D(x, y);
+        const cliff_edge_point = intersect(last_waypoint, xy_pos,
+            tile_to_tile_midpoint, add(tile_to_tile_midpoint, along_edge));
+        
+        if (step_down > .1) {
+            const step_xy_dist = dist(cliff_edge_point, xy_pos);
+            if (step_xy_dist < .45) {
+                waypoints.push({x: tile_to_tile_midpoint.x,
+                    y: tile_to_tile_midpoint.y, z: last_waypoint.z});
+                waypoints.push({x: to_tile_center.x,
+                    y: to_tile_center.y, z: z});
+                waypoints.push({x: x, y: y, z: z});
+                return;
+            }
+
+            waypoints.push({x: cliff_edge_point.x, y: cliff_edge_point.y, z: last_waypoint.z});
+            if (step_xy_dist > .55)
+            {
+                const along_unit = norm(sub(xy_pos, cliff_edge_point));
+                const extra_point = add(cliff_edge_point, mult(along_unit, 0.5));
+                waypoints.push({x: extra_point.x, y: extra_point.y, z: z}); 
+            }
+            waypoints.push({x: x, y: y, z: z});
+            return;
+        }
+
+        const step_xy_dist = dist(last_waypoint, cliff_edge_point);
+        if (step_xy_dist < .45) {
+            waypoints.push({x: from_tile_center.x,
+                y: from_tile_center.y, z: last_waypoint.z});
+            waypoints.push({x: tile_to_tile_midpoint.x,
+                y: tile_to_tile_midpoint.y, z: z});
+            waypoints.push({x: x, y: y, z: z});
+            return;
+        }
+
+        if (step_xy_dist > .55)
+        {
+            const along_unit = norm(sub(last_waypoint, cliff_edge_point));
+            const jump_point = add(cliff_edge_point, mult(along_unit, 0.5));
+            waypoints.push({x: jump_point.x, y: jump_point.y, z: last_waypoint.z}); 
+        }
+        waypoints.push({x: cliff_edge_point.x, y: cliff_edge_point.y, z: z});
+        waypoints.push({x: x, y: y, z: z}); 
     }
 }

@@ -107,7 +107,7 @@ export class Renderer {
             this.renderCharacter(character, true);
         }
 
-        this.drawWaypointPath(characters);
+        //this.drawWaypointPath(characters);
     }
 
     renderCharacter(character, forGhost) {

@@ -74,3 +74,21 @@ export const vec2DSet = (v, x, y) => {
 export const vec2DEqual = (v1, v2) => {
     return v1.x === v2.x && v1.y === v2.y;
 };
+
+export const intersect = (a1, a2, b1, b2) => {
+    const r = sub(a2, a1); // Direction of line A
+    const s = sub(b2, b1); // Direction of line B
+
+    // 2D determinant (cross product)
+    const det = r.x * s.y - r.y * s.x;
+
+    // Parallel or collinear if determinant is 0
+    if (Math.abs(det) < 1e-10) return null;
+
+    const b1MinusA1 = sub(b1, a1);
+
+    // t is the scalar for line A: point = a1 + t * r
+    const t = (b1MinusA1.x * s.y - b1MinusA1.y * s.x) / det;
+
+    return add(a1, mult(r, t));
+};

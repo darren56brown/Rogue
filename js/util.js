@@ -1,4 +1,5 @@
-import { ISO } from "./constants.js";
+import {ISO} from "./constants.js";
+import {vec2D} from './vec2D.js';
 
 export function cartesianToIso(x, y, z) {
     return {
@@ -12,4 +13,12 @@ export function isoToCartesian(x, y) {
         x: (x / ISO.HALF_W + y / ISO.HALF_H) / 2,
         y: (-x / ISO.HALF_W + y / ISO.HALF_H) / 2
     };
+}
+
+export function getTileCoordFromXY(worldX, worldY) {
+    return vec2D(Math.floor(worldX), Math.floor(worldY));
+}
+
+export function getTileCoordFromPosition(pos) {
+    return vec2D(Math.floor(pos.x), Math.floor(pos.y));
 }
