@@ -1,8 +1,8 @@
-import { ISO } from "./constants.js";
-import { PLAYER_ANIM_FRAME_SIZE, PLAYER_TILE_ORIGIN } from "./constants.js";
-import { PLAYER_ANIM_FPS, MOVE_TARGET_TOL } from "./constants.js";
-import { vec2D, add, sub, mult, setAdd, setDiv, mag } from './vec2D.js';
-import { cartesianToIso, isoToCartesian } from './util.js';
+
+import {PLAYER_ANIM_FRAME_SIZE, PLAYER_TILE_ORIGIN} from "./constants.js";
+import {PLAYER_ANIM_FPS, MOVE_TARGET_TOL} from "./constants.js";
+import {vec2D, add, sub, mult, setAdd, setDiv, mag} from './vec2D.js';
+import {cartesianToIso, isoToCartesian} from './util.js';
 
 const AnimWalkSequence = Object.freeze({
     neutral_1: 0,
@@ -55,7 +55,6 @@ export class Character {
         };
 
         this.speed = .35;
-        this.falling = true;
         this.fall_speed = .5;
 
         this.curFacing = PlayerFacing.face_dn;
@@ -100,6 +99,12 @@ export class Character {
         this.#z += dz;
         this.#computeSortInfo();
     }
+    moveXYZ(dx, dy, dz) {
+        this.#pos_xy.x += dx;
+        this.#pos_xy.y += dy;
+        this.#z += dz;
+        this.#computeSortInfo();
+    }
     movePosition(delta) {
         setAdd(this.#pos_xy, delta);
         this.#computeSortInfo();
@@ -133,69 +138,50 @@ export class Character {
     }
 
     updatePhysics(dt, game_map) {
-        if (this.falling) {
-            const drop_distance = game_map.getDropDistance(this.getPositionXY(), this.#z);
-            if (drop_distance === 0) {
-                this.falling = false;
-            } else {
-                const gravity_distance = this.fall_speed * dt;
-                if (gravity_distance >= drop_distance) {
-                    this.moveZ(-drop_distance);
-                    this.falling = false;
-                } else {
-                    this.moveZ(-gravity_distance);
-                }  
-            }
-        }
+        let world_move_vec = {x: 0, y: 0, z: 0};
+        let world_move_mag = 0;
+        if (this.currentWaypointIndex < this.waypoints.length) {
+            const target_xyz = this.waypoints[this.currentWaypointIndex];
+            world_move_vec = {
+                x: target_xyz.x - this.#pos_xy.x,
+                y: target_xyz.y - this.#pos_xy.y,
+                z: target_xyz.z - this.#z
+            };
+            world_move_mag = Math.sqrt(
+                world_move_vec.x * world_move_vec.x +
+                world_move_vec.y * world_move_vec.y +
+                world_move_vec.z * world_move_vec.z);
 
-        let world_move_vec = vec2D(0, 0);
-        let max_move_mag = Infinity;
-        if (this.waypoints.length > 0 && this.currentWaypointIndex < this.waypoints.length) {
-            const targetPos = this.waypoints[this.currentWaypointIndex];
-            const to_target_pos = sub(targetPos, this.getPositionXY());
-            max_move_mag = mag(to_target_pos);
-            if (max_move_mag < MOVE_TARGET_TOL) {
+            if (world_move_mag < MOVE_TARGET_TOL) {
+                world_move_vec = {x: 0, y: 0, z: 0};
+                world_move_mag = 0;
                 this.currentWaypointIndex++;
                 if (this.currentWaypointIndex >= this.waypoints.length) this.clearPath();
-            } else {
-                world_move_vec = to_target_pos;
             }
         }
 
-        const world_move_mag = mag(world_move_vec);
         if (world_move_mag > 0) {
-            setDiv(world_move_vec, world_move_mag);
+            const unit_move_vec = {
+                x: world_move_vec.x / world_move_mag,
+                y: world_move_vec.y / world_move_mag,
+                z: world_move_vec.z / world_move_mag
+            };
 
-            // Set facing based on screen direction
-            const iso_move_vec = cartesianToIso(world_move_vec.x, world_move_vec.y, 0);
+            // Set facing based on screen direction (fall doesn't effect facing)
+            const iso_move_vec = cartesianToIso(unit_move_vec.x, unit_move_vec.y, 0);
             if (Math.abs(iso_move_vec.x) > Math.abs(iso_move_vec.y)) {
                 this.curFacing = iso_move_vec.x > 0 ? PlayerFacing.face_rt : PlayerFacing.face_lt;
             } else {
                 this.curFacing = iso_move_vec.y > 0 ? PlayerFacing.face_dn : PlayerFacing.face_up;
             }
 
-            const move_mag = Math.min(this.speed * dt, max_move_mag);
-            const delta_vec = mult(world_move_vec, move_mag);
-            const new_2D_pos = add(this.getPositionXY(), delta_vec);
-
-            if (game_map.getTileCoordFromPosition(new_2D_pos) ==
-                game_map.getTileCoordFromPosition(this.getPositionXY())) {
-                //If we're on the same tile, no change to falling or obstruction
-                this.movePosition(delta_vec);
-            } else {
-                if (!this.falling &&
-                    game_map.getDropDistance(new_2D_pos, this.#z) > 0) {
-                        this.falling = true;
-                }
-
-                //Add some bounce energy by reversing velocity from obstructions
-                const move_only_x = add(this.getPositionXY(), vec2D(delta_vec.x, 0));
-                if (game_map.isObstructed(move_only_x, this.#z)) delta_vec.x *= -1.5;
-                const move_only_y = add(this.getPositionXY(), vec2D(0, delta_vec.y));
-                if (game_map.isObstructed(move_only_y, this.#z)) delta_vec.y *= -1.5;
-
-                this.movePosition(delta_vec);
-            }
+            const actual_move_mag = Math.min(world_move_mag, this.speed * dt);
+            const delta_vec = {
+                x: unit_move_vec.x * actual_move_mag,
+                y: unit_move_vec.y * actual_move_mag,
+                z: unit_move_vec.z * actual_move_mag
+            };
+            this.moveXYZ(delta_vec.x, delta_vec.y, delta_vec.z);
 
             // Was not moving, go to first animation frame
             if (this.curWalkFrame === AnimWalkSequence.num_frames) {
