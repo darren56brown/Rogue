@@ -115,6 +115,9 @@ export class GameMap {
     getTileInfoForLayer(x, y, layer) {
         if (!this.isLoaded || !layer?.data) return null;
 
+        if (x < 0 || x >= this.size.w ||
+            y < 0 || y >= this.size.h) return null;
+
         const idx = y * this.size.w + x;
         if (idx < 0 || idx >= layer.data.length) return null;
 

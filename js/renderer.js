@@ -34,9 +34,6 @@ export class Renderer {
 
         let nextCharacterIdx = 0;
         for (const layer of this.current_map.getVisibleTileLayers()) {
-            const map_width = this.current_map.size.w;
-            const map_height = this.current_map.size.h;
-
             //Traverse tiles in perfect draw order
             for (let depth = 0; depth <= (map_width + map_height - 2); depth++) {
                  for (let x = 0; x <= depth; x++) {

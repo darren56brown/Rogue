@@ -1,6 +1,5 @@
 import { Character } from "./character.js";
 import { PlayerFacing } from "./character.js";
-import { getTileCoordFromPosition } from './util.js';
 
 const NPC_STATES = Object.freeze({
     ENGAGED:  'engaged',
@@ -104,7 +103,6 @@ export class Npc extends Character {
 
     _attemptWander(game_map) {
         const pos = this.getPositionXY();
-        const z = this.getZ();
         const currentTileX = Math.floor(pos.x);
         const currentTileY = Math.floor(pos.y);
 
@@ -115,26 +113,25 @@ export class Npc extends Character {
             const tx = currentTileX + (Math.floor(Math.random() * (SEARCH_RADIUS * 2 + 1)) - SEARCH_RADIUS);
             const ty = currentTileY + (Math.floor(Math.random() * (SEARCH_RADIUS * 2 + 1)) - SEARCH_RADIUS);
 
+            if (tx < 0 || tx >= game_map.size.w || ty < 0 || ty >= game_map.size.h) continue;
             if (tx === currentTileX && ty === currentTileY) continue;
-            if (!game_map.isTileWalkable(tx, ty, z)) continue;
 
             const goalPos = { x: tx + 0.5, y: ty + 0.5 };
 
-            const path = game_map.findPath(pos, z, goalPos, z);
-            if (path.length < 2 || path.length > 9) continue; // keep walks short & sweet
+            // Start way above the highest possible layer → getDropDistance returns distance to the TOPMOST tile
+            const dropFromSky = game_map.getDropDistance(goalPos, 1000);
+            if (dropFromSky === Infinity || dropFromSky < 0) continue;
 
-            // Build waypoint list exactly like the player click handler does
-            const waypoints = [];
-            waypoints.push({ x: pos.x, y: pos.y, z }); // exact current position
+            const goalZ = 1000 - dropFromSky;
 
-            for (let i = 1; i < path.length; i++) {
-                const tile = path[i];
-                waypoints.push({ x: tile.x + 0.5, y: tile.y + 0.5, z: tile.z });
+            // ← This is the magic: let Character do ALL the heavy lifting (A*, cliff edges, ramps, everything)
+            this.buildPathToPosition(game_map, goalPos, goalZ);
+
+            if (this.waypoints.length >= 2) {
+                this._transitionTo(NPC_STATES.WALKING);
+                return;
             }
-
-            this.setWaypoints(waypoints);
-            this._transitionTo(NPC_STATES.WALKING);
-            return;
+            // (if pathfinding failed or goal was unreachable, just try the next random spot)
         }
 
         // couldn’t find a good spot — just stand
