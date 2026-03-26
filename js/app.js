@@ -384,19 +384,13 @@ export class App {
             heart.className = "heart";
 
             if (i < fullHearts) {
-                // Full heart
-                heart.textContent = "❤️";
-                heart.style.color = "#ff4444";        // Bright red
+                heart.classList.add("full");
             } 
             else if (i === fullHearts && hasHalfHeart) {
-                // Half heart
-                heart.textContent = "♥";              // Slightly different character for half
-                heart.style.color = "#ff8888";        // Lighter red for half heart
+                heart.classList.add("half");
             } 
             else {
-                // Empty heart
-                heart.textContent = "♡";
-                heart.style.color = "#555555";        // Visible dark gray
+                heart.classList.add("empty");
             }
 
             container.appendChild(heart);
