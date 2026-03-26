@@ -16,8 +16,6 @@ export class App {
         this.image_library = new ImageLibrary();
         this.renderer = new Renderer(this.canvas, this.image_library);
 
-        //Characters are sorted by screen position in render
-        //so do not count on their order in any way.
         this.characters = [];
         this.player = null;
        
@@ -33,20 +31,7 @@ export class App {
         this.hoveredTile = null;
         this.debugTileHighlight = false;
 
-
-        this.selectedSlot = 0;
-        this.hotbarItems = [
-            { icon: '🗡️', count: 1 },
-            { icon: '⛏️', count: 1 },
-            { icon: '🪓', count: 1 },
-            { icon: '', count: 0 },
-            { icon: '🏹', count: 1 },
-            { icon: '', count: 0 },
-            { icon: '🍎', count: 64 },
-            { icon: '🛡️', count: 1 },
-            { icon: '🔥', count: 1 }
-        ];
-        this.healthPoints = 20; // 20 = 10 full hearts
+        this.healthPoints = 11;
     }
 
     init() {
@@ -77,9 +62,10 @@ export class App {
         this.characters = [];
 
         this.player = new Player({x: 1.5, y: 1.5}, 1);
+        this.player.initializeDefaultItems();   // All item setup now lives on Player
+
         this.characters.push(this.player);
 
-        // Add as many NPCs as you want here (they start as identical Player instances)
         this.characters.push(new Npc({x: 4.5, y: 2.5}, 1));
         this.characters.push(new Npc({x: 6.5, y: 5.5}, 1));
         this.characters.push(new Npc({x: 1.5, y: 2.5}, 1));
@@ -164,7 +150,7 @@ export class App {
             hud.style.top    = centeredTop + 'px';
             hud.style.width  = w + 'px';
             hud.style.height = h + 'px';
-            hud.style.margin = '0';           // HUD has no margin
+            hud.style.margin = '0';
         }
     }
 
@@ -185,7 +171,6 @@ export class App {
         } else {
             this.renderer.render(this.game_map, this.view_origin, this.characters,
                 this.hoveredTile, this.fps_tracker);
-
         }
     }
 
@@ -230,7 +215,6 @@ export class App {
             this.keys = {};
         });
 
-        //Window loses focus
         window.addEventListener('blur', () => {
             this.keys = {};
         });
@@ -238,7 +222,6 @@ export class App {
         this.canvas.addEventListener('click', (e) => this.onMouseClick(e));
         this.canvas.style.cursor = 'crosshair';
 
-        //Prevent text selection / double-click weirdness
         this.canvas.addEventListener('mousedown', (e) => {
             if (e.button === 0) e.preventDefault();
         });
@@ -254,7 +237,7 @@ export class App {
     screenToWorld(screenPos, z = 0) {
         const viewIso = cartesianToIso(this.view_origin.x, this.view_origin.y, 0);
         const isoX = screenPos.x + viewIso.x;
-        const isoY = screenPos.y + viewIso.y + z * ISO.TILE_H;  // correct z-height plane
+        const isoY = screenPos.y + viewIso.y + z * ISO.TILE_H;
         return isoToCartesian(isoX, isoY);
     }
 
@@ -306,6 +289,7 @@ export class App {
         this.player.buildPathToPosition(this.game_map, world_pos_xy, goalZ);
     }
 
+    // ====================== HUD ======================
     createHUD() {
         this.updateHotbarUI();
         this.updateHealthUI();
@@ -327,25 +311,49 @@ export class App {
         
         slotsContainer.innerHTML = "";
 
-        this.hotbarItems.forEach((item, index) => {
+        this.player.hotbar.forEach((slotData, index) => {
             const slot = document.createElement("div");
-            slot.className = `slot ${index === this.selectedSlot ? "selected" : ""}`;
+            slot.className = `slot ${index === this.player.selectedSlot ? "selected" : ""}`;
             slot.dataset.index = index;
+            slot.draggable = true;
 
             const iconDiv = document.createElement("div");
             iconDiv.className = "item-icon";
-            iconDiv.textContent = item.icon || "";
+            iconDiv.textContent = slotData?.item?.icon || "";
             slot.appendChild(iconDiv);
 
-            if (item.count > 1) {
+            if (slotData?.item && slotData.count > 1) {
                 const countSpan = document.createElement("span");
                 countSpan.className = "item-count";
-                countSpan.textContent = item.count;
+                countSpan.textContent = slotData.count;
                 slot.appendChild(countSpan);
             }
 
-            // Click-to-select (mouse support)
-            slot.addEventListener("click", () => this.selectSlot(index));
+            // Drag & Drop support
+            slot.addEventListener("dragstart", (e) => {
+                e.dataTransfer.setData("text/plain", index.toString());
+            });
+
+            slot.addEventListener("dragover", (e) => {
+                e.preventDefault();
+            });
+
+            slot.addEventListener("drop", (e) => {
+                e.preventDefault();
+                const fromIndex = parseInt(e.dataTransfer.getData("text/plain"));
+                const toIndex = parseInt(slot.dataset.index);
+                
+                if (fromIndex !== toIndex) {
+                    this.player.swapHotbarSlots(fromIndex, toIndex);
+                    this.updateHotbarUI();
+                }
+            });
+
+            // Click to select
+            slot.addEventListener("click", () => {
+                this.player.selectedSlot = index;
+                this.updateHotbarUI();
+            });
 
             slotsContainer.appendChild(slot);
         });
@@ -353,11 +361,13 @@ export class App {
 
     selectSlot(index) {
         if (index < 0 || index > 8) return;
-        this.selectedSlot = index;
+        this.player.selectedSlot = index;
         this.updateHotbarUI();
 
-        // TODO: later hook this up to your Player inventory / active item
-        console.log(`🎮 Hotbar slot ${index + 1} selected →`, this.hotbarItems[index]);
+        const selected = this.player.hotbar[index];
+        if (selected && selected.item) {
+            console.log(`🎮 Selected: ${selected.item.name} (x${selected.count})`);
+        }
     }
 
     updateHealthUI() {
@@ -366,20 +376,30 @@ export class App {
 
         container.innerHTML = "";
 
-        const numFullHearts = Math.floor(this.healthPoints / 2);
+        const fullHearts = Math.floor(this.healthPoints / 2);
+        const hasHalfHeart = this.healthPoints % 2 === 1;
 
         for (let i = 0; i < 10; i++) {
             const heart = document.createElement("div");
             heart.className = "heart";
 
-            if (i < numFullHearts) {
-                heart.textContent = "❤️";           // full heart
-            } else {
-                heart.textContent = "♡";           // empty heart
-                heart.style.color = "#555";
+            if (i < fullHearts) {
+                // Full heart
+                heart.textContent = "❤️";
+                heart.style.color = "#ff4444";        // Bright red
+            } 
+            else if (i === fullHearts && hasHalfHeart) {
+                // Half heart
+                heart.textContent = "♥";              // Slightly different character for half
+                heart.style.color = "#ff8888";        // Lighter red for half heart
+            } 
+            else {
+                // Empty heart
+                heart.textContent = "♡";
+                heart.style.color = "#555555";        // Visible dark gray
             }
+
             container.appendChild(heart);
         }
     }
-
 }

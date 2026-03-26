@@ -91,24 +91,28 @@ button:hover {
     display: block;
 }
 
-/* HEALTH HEARTS - Upper Right, 2/3 overall scale */
 .status-panel {
     position: absolute;
-    top: 3.2%;           /* reduced padding */
-    right: 3.2%;
+    top: 3.5%;
+    right: 3.5%;
     display: flex;
     justify-content: flex-end;
 }
 
 .hearts-container {
     display: flex;
-    gap: 0.17vh;         /* tighter for smaller size */
+    gap: 0.35vh;
 }
 
 .heart {
-    font-size: 2.1vh;    /* 2/3 of previous size */
+    font-size: 3.2vh;
     line-height: 1;
-    filter: drop-shadow(1.5px 1.5px 1.5px #111);
+    filter: drop-shadow(2px 2px 3px #111);
+    transition: transform 0.1s ease;
+}
+
+.heart:hover {
+    transform: scale(1.12);
 }
 
 /* HOTBAR - Bottom Center, 2/3 scale */
