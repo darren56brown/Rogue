@@ -101,19 +101,23 @@ button:hover {
 
 .hearts-container {
     display: flex;
-    gap: 0.35vh;
+    gap: 4px;
 }
 
 .heart {
-    font-size: 3.2vh;
-    line-height: 1;
+    width: 3.8vh;                 /* scales with window height */
+    height: 3.8vh;
+    background-image: url('../images/hearts.png');
+    background-repeat: no-repeat;
+    background-size: 300% 100%;   /* keep for scaling */
+    image-rendering: pixelated;
+    flex-shrink: 0;
     filter: drop-shadow(2px 2px 3px #111);
-    transition: transform 0.1s ease;
 }
 
-.heart:hover {
-    transform: scale(1.12);
-}
+.heart.full  { background-position: 0% 0%; }
+.heart.half  { background-position: 50% 0%; }
+.heart.empty { background-position: 100% 0%; }
 
 /* HOTBAR - Bottom Center, 2/3 scale */
 .hotbar-container {
