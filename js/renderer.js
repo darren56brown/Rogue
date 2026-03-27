@@ -159,10 +159,10 @@ export class Renderer {
         this.ctx.lineJoin = "round";
 
         this.ctx.beginPath();
-        this.ctx.moveTo(x + 64, y);           // top
-        this.ctx.lineTo(x + 128, y + 32);     // right
-        this.ctx.lineTo(x + 64, y + 64);      // bottom
-        this.ctx.lineTo(x, y + 32);           // left
+        this.ctx.moveTo(x + 32, y);           // top
+        this.ctx.lineTo(x + 64, y + 16);     // right
+        this.ctx.lineTo(x + 32, y + 32);      // bottom
+        this.ctx.lineTo(x, y + 16);           // left
         this.ctx.closePath();
         this.ctx.stroke();
 

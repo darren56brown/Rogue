@@ -26,7 +26,7 @@ export class App {
 
         this.keys = {};   
         this.last_time = 0;
-        this.view_origin = {x: -10.25, y: -.25};
+        this.view_origin = {x: -20.875, y: -.875};
 
         this.hoveredTile = null;
         this.debugTileHighlight = false;

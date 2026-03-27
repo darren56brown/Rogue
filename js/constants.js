@@ -10,9 +10,9 @@ export const MAX_DROP = 1.1;
 export const MAX_HOP = 1.1;
 
 export const ISO = {
-    TILE_W: 128,
-    TILE_H: 64,
-    HALF_W: 64,            // TILE_W / 2
-    HALF_H: 32,            // TILE_H / 2
-    TILE_Z: 72
+    TILE_W: 64,
+    TILE_H: 32,
+    HALF_W: 32,            // TILE_W / 2
+    HALF_H: 16,            // TILE_H / 2
+    TILE_Z: 36
 };

@@ -52,8 +52,8 @@ export class Character {
             y: PLAYER_TILE_ORIGIN.y
         };
 
-        this.speed = .35;
-        this.fall_speed = .5;
+        this.speed = .7;
+        this.fall_speed = 1.0;
 
         this.curFacing = PlayerFacing.face_dn;
         this.curWalkFrame = AnimWalkSequence.num_frames;

@@ -1,13 +1,13 @@
 { "columns":4,
  "image":"iso_tiles.png",
- "imageheight":408,
- "imagewidth":512,
+ "imageheight":204,
+ "imagewidth":256,
  "margin":0,
  "name":"iso_tiles",
  "spacing":0,
  "tilecount":12,
  "tiledversion":"1.12.1-8-g449813058",
- "tileheight":136,
+ "tileheight":68,
  "tiles":[
         {
          "id":0,
@@ -63,7 +63,7 @@
                  "value":true
                 }]
         }],
- "tilewidth":128,
+ "tilewidth":64,
  "type":"tileset",
  "version":"1.10"
 }
