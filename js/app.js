@@ -186,7 +186,7 @@ export class App {
         const targetIsoY = playerIso.y - (APP_SIZE.h / 2);
 
         const targetWorld = isoToCartesian(targetIsoX, targetIsoY);
-        const lerpFactor = 1.0; 
+        const lerpFactor = 0.2; 
         this.view_origin.x += (targetWorld.x - this.view_origin.x) * lerpFactor * dt;
         this.view_origin.y += (targetWorld.y - this.view_origin.y) * lerpFactor * dt;
         //console.log(this.view_origin);

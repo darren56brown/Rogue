@@ -6,8 +6,8 @@ export const PLAYER_ANIM_FPS = 3;
 export const CAMERA_MARGIN = {x: 350, y: 250};
 export const MOVE_TARGET_TOL = 1e-6;
 export const MOVE_TARGET_TOL_SQ = MOVE_TARGET_TOL * MOVE_TARGET_TOL;
-export const MAX_DROP = 1.1;
-export const MAX_HOP = 1.1;
+export const MAX_DROP = 2.01;
+export const MAX_HOP = 1.01;
 
 export const ISO = {
     TILE_W: 64,

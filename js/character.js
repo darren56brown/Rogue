@@ -53,7 +53,7 @@ export class Character {
         };
 
         this.speed = .7;
-        this.fall_speed = 1.0;
+        this.fall_speed = 1.5;
 
         this.curFacing = PlayerFacing.face_dn;
         this.curWalkFrame = AnimWalkSequence.num_frames;
@@ -156,7 +156,9 @@ export class Character {
                 this.curFacing = iso_move_vec.y > 0 ? PlayerFacing.face_dn : PlayerFacing.face_up;
             }
 
-            const actual_move_mag = Math.min(world_move_mag, this.speed * dt);
+            let speed = this.speed;
+            if (Math.abs(unit_move_vec.z) > 0.2) speed = this.fall_speed;
+            const actual_move_mag = Math.min(world_move_mag, speed * dt);
             const delta_vec = {
                 x: unit_move_vec.x * actual_move_mag,
                 y: unit_move_vec.y * actual_move_mag,

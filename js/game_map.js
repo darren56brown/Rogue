@@ -198,14 +198,30 @@ export class GameMap {
             return 0;
         }
 
-        for (const layer of this.layers) {
+        for (let i = 0; i < this.layers.length; i++) {
+            const layer = this.layers[i];
             if (layer.zHeight <= z) continue;
 
             const tileInfo =
                 this.getTileInfoForLayer(xy_coord.x, xy_coord.y, layer);
             if (!tileInfo) continue;
 
-            return layer.zHeight - z;
+            let obstructed_above = false;
+            for (let j = i + 1; j < this.layers.length; j++) {
+                const layer_above = this.layers[i + 1];
+                const height_gap = layer_above.zHeight - layer.zHeight;
+                if (height_gap < 0.1) continue; 
+                if (height_gap > 1.9) break;
+
+                const tileInfoAbove =
+                    this.getTileInfoForLayer(xy_coord.x, xy_coord.y, layer_above);
+                if (tileInfoAbove) {
+                    obstructed_above = true;
+                    break;
+                }
+            }
+
+            if (!obstructed_above) return layer.zHeight - z;
         }
 
         return Infinity;
@@ -365,7 +381,7 @@ export class GameMap {
                 }
             } else {
                 const hop = this.getHopDistance(neighCenter, tile_coord.z);
-                if (hop <= MAX_DROP) {
+                if (hop <= MAX_HOP) {
                     const landingZ = tile_coord.z + hop;
                     neighbors.push({ x: nx, y: ny, z: landingZ });
                 }
