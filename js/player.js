@@ -1,5 +1,6 @@
 import { Character } from "./character.js";
 import { GameItem } from "./game_item.js";
+import { PlayerFacing } from "./character.js";   // ← NEW: needed for offsets
 
 export class Player extends Character {
     constructor(posXY, z) {
@@ -10,11 +11,12 @@ export class Player extends Character {
         this.hotbar = [];           // Hotbar: exactly 9 slots, can contain null
         this.selectedSlot = 0;      // Currently selected hotbar slot (0-8)
 
+        // === FOLLOW MODE (improved) ===
         this.followTarget = null;          // Npc reference or null
-        this.followLastTargetPos = null;   // {x, y, z} snapshot when we last built a path
+        this.followLastDesiredPos = null;  // {x, y, z} of the exact spot we last built a path to
     }
 
-    // Initialize starting items (called from App)
+    // Initialize starting items (unchanged)
     initializeDefaultItems() {
         const woodenSword = new GameItem({
             id: "wooden_sword",
@@ -114,19 +116,20 @@ export class Player extends Character {
         this.inventory.push({ item: gameItem.clone(), count });
     }
 
+    // ====================== IMPROVED FOLLOW MODE ======================
     startFollowing(target) {
         if (!target || target === this) return;
         this.followTarget = target;
-        this.followLastTargetPos = null;   // force immediate rebuild on next update
+        this.followLastDesiredPos = null;   // force immediate rebuild
         this.clearPath();
     }
 
     stopFollowing() {
         this.followTarget = null;
-        this.followLastTargetPos = null;
+        this.followLastDesiredPos = null;
     }
 
-    // Override updatePhysics so we can manage follow mode every frame
+    // Override so we can inject follow logic before the normal movement code
     updatePhysics(dt, game_map) {
         if (this.followTarget) {
             this._updateFollow(dt, game_map);
@@ -137,38 +140,67 @@ export class Player extends Character {
     _updateFollow(dt, game_map) {
         if (!this.followTarget || !game_map) return;
 
-        const targetPos = this.followTarget.getPositionXY();
-        const targetZ = this.followTarget.getZ();
+        const npc = this.followTarget;
+        const npcPos = npc.getPositionXY();
+        const npcZ   = npc.getZ();
+        const facing = npc.curFacing;
 
+        // Offsets = exactly 3/4 tile directly in front of the NPC
+        // (based on the same coordinate system the pathfinding and movement use)
+        const offsets = {
+            [PlayerFacing.face_up]: { x:  0.00, y: -0.75 },
+            [PlayerFacing.face_lt]: { x: -0.75, y:  0.00 },
+            [PlayerFacing.face_dn]: { x:  0.00, y: +0.75 },
+            [PlayerFacing.face_rt]: { x: +0.75, y:  0.00 }
+        };
+
+        const offset = offsets[facing] || { x: 0, y: 0 };
+
+        const desiredPos = {
+            x: npcPos.x + offset.x,
+            y: npcPos.y + offset.y
+        };
+        const desiredZ = npcZ;
+
+        // How close are we to the perfect “in-front” spot?
         const myPos = this.getPositionXY();
-        const myZ = this.getZ();
-
-        // Distance to target (full 3D — works even if NPC changes layers)
-        const dist = Math.hypot(
-            myPos.x - targetPos.x,
-            myPos.y - targetPos.y,
-            myZ - targetZ
+        const myZ   = this.getZ();
+        const distToDesired = Math.hypot(
+            myPos.x - desiredPos.x,
+            myPos.y - desiredPos.y,
+            myZ   - desiredZ
         );
 
-        // Stop moving when we are close
-        if (dist <= 1.0) {
+        const CLOSE_ENOUGH = 0.25;   // once inside this radius we stop moving and just face the NPC
+
+        if (distToDesired <= CLOSE_ENOUGH) {
             this.clearPath();
-            return;                     // stay in follow mode, just idle
+
+            // Face directly toward the NPC (opposite of their facing)
+            const oppositeFacing = (facing + 2) % 4;
+            this.curFacing = oppositeFacing;
+
+            return;   // we are perfectly positioned — no more movement this frame
         }
 
-        // Only rebuild path when the target has moved meaningfully
-        const last = this.followLastTargetPos;
-        const moved = last
-            ? Math.hypot(
-                targetPos.x - last.x,
-                targetPos.y - last.y,
-                targetZ - last.z
-            )
-            : Infinity;   // first time = always rebuild
+        // Not close enough → we need to walk toward the desired spot.
+        // Only rebuild the full A* path when the desired spot has moved significantly
+        // (this is the performance win you asked for)
+        const last = this.followLastDesiredPos;
+        let needsRebuild = !last;
 
-        if (moved > 0.25 || !last) {
-            this.buildPathToPosition(game_map, targetPos, targetZ);
-            this.followLastTargetPos = { x: targetPos.x, y: targetPos.y, z: targetZ };
+        if (last) {
+            const moved = Math.hypot(
+                desiredPos.x - last.x,
+                desiredPos.y - last.y,
+                desiredZ   - last.z
+            );
+            if (moved > 0.25) needsRebuild = true;
+        }
+
+        if (needsRebuild) {
+            this.buildPathToPosition(game_map, desiredPos, desiredZ);
+            this.followLastDesiredPos = { x: desiredPos.x, y: desiredPos.y, z: desiredZ };
         }
     }
 }
