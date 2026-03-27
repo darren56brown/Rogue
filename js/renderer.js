@@ -8,17 +8,19 @@ export class Renderer {
         this.ctx = canvas.getContext('2d');
         this.ctx.imageSmoothingEnabled = false;
         this.imageLibrary = imageLibrary;
+
+        this.hoveredCharacter = null;   // ← NEW
     }
 
-    render(current_map, view_origin, characters, hoveredTile, fpsTracker) {
+    render(current_map, view_origin, characters, hoveredTile, fpsTracker, hoveredCharacter = null) {
         this.current_map = current_map;
         this.hoveredTile = hoveredTile;
+        this.hoveredCharacter = hoveredCharacter;   // ← NEW
 
         this.ctx.fillStyle = "#829e71";
         this.ctx.fillRect(0, 0, APP_SIZE.w, APP_SIZE.h);
 
-        this.view_origin_iso = cartesianToIso(view_origin.x,
-            view_origin.y, 0);
+        this.view_origin_iso = cartesianToIso(view_origin.x, view_origin.y, 0);
         
         this.renderGameMap(characters);
 
@@ -30,22 +32,20 @@ export class Renderer {
     renderGameMap(characters) {
         if (!this.current_map || !this.current_map.isLoaded) return;
 
-        characters.sort((a, b) => { return a.compareToOther(b); });
+        characters.sort((a, b) => a.compareToOther(b));
 
         let nextCharacterIdx = 0;
 
         for (const drawItem of this.current_map.drawList) {
-            //Upper left of tile in iso is not upper left of tile in Cartesian
             const screen_pos_ul = sub(cartesianToIso(drawItem.x - 0.5, drawItem.y + 0.5,
                 drawItem.layer.zHeight), this.view_origin_iso);
 
-            const info = this.current_map.getTileInfoForLayer(drawItem.x,
-                drawItem.y, drawItem.layer);
+            const info = this.current_map.getTileInfoForLayer(drawItem.x, drawItem.y, drawItem.layer);
             if (!info) continue;
 
             if (screen_pos_ul.x <= -info.sw ||
                 screen_pos_ul.x >= this.canvas.width + info.sw ||
-                screen_pos_ul.y <= -info.sh  ||
+                screen_pos_ul.y <= -info.sh ||
                 screen_pos_ul.y >= this.canvas.height + info.sh) {
                 continue;
             }
@@ -53,63 +53,56 @@ export class Renderer {
             const img = this.imageLibrary.get(info.imageName);
             if (!img) continue;
 
-            //This has to match sorting in game_map
             const xy_sort = vec2D(drawItem.x + 0.5, drawItem.y + 0.5);
             const z_sort = drawItem.layer.zHeight - 0.5;
 
-            //Draw any characters left to draw which must be drawn before this tile
             while (nextCharacterIdx < characters.length) {
                 const nextCharacter = characters[nextCharacterIdx];
                 if (nextCharacter.compareToSortInfo(xy_sort, z_sort) > 0) break;
-                const sortVal = nextCharacter.compareToSortInfo(xy_sort, z_sort);
-                this.renderCharacter(nextCharacter);
+
+                const isHovered = (nextCharacter === this.hoveredCharacter);
+                this.renderCharacter(nextCharacter, false, isHovered);   // ← updated
                 nextCharacterIdx++;
             }
 
             const opacity = drawItem.layer.opacity || 1;
-
-            if (opacity !== 1) this.ctx.globalAlpha = opacity;      
+            if (opacity !== 1) this.ctx.globalAlpha = opacity;
             this.ctx.drawImage(img,
-                info.sx, info.sy,
-                info.sw, info.sh,
-                Math.floor(screen_pos_ul.x),
-                Math.floor(screen_pos_ul.y),
+                info.sx, info.sy, info.sw, info.sh,
+                Math.floor(screen_pos_ul.x), Math.floor(screen_pos_ul.y),
                 info.sw, info.sh);
             if (opacity !== 1) this.ctx.globalAlpha = 1;
 
-            // Debug highlight - glowing outline on the hovered tile
             if (this.hoveredTile &&
                 drawItem.x === this.hoveredTile.tileCoord.x &&
                 drawItem.y === this.hoveredTile.tileCoord.y &&
                 Math.abs(drawItem.layer.zHeight - this.hoveredTile.layerZ) < 0.1) {
-                //Is a distance check for z appropriate?
                 this.drawIsoTileOutline(screen_pos_ul);
             }
-        }        
+        }
 
-        //Draw any left over characters
         while (nextCharacterIdx < characters.length) {
             const nextCharacter = characters[nextCharacterIdx];
-            this.renderCharacter(nextCharacter);
+            const isHovered = (nextCharacter === this.hoveredCharacter);
+            this.renderCharacter(nextCharacter, false, isHovered);   // ← updated
             nextCharacterIdx++;
         }
 
-        //this.drawWaypointPath(characters);
-
-        //Redraw all characters so that they appear as ghosts behind walls
+        // Ghost pass (behind walls) – never glow
         for (const character of characters) {
-            this.renderCharacter(character, true);
+            this.renderCharacter(character, true, false);
         }
     }
 
-    renderCharacter(character, forGhost) {
+    renderCharacter(character, forGhost = false, isHovered = false) {
         const characterInScreen = sub(character.getIsoPosition(), this.view_origin_iso);
         const character_ul = sub(characterInScreen, character.origin);
+        const oldAlpha = this.ctx.globalAlpha;
 
-        let oldAlpha = this.ctx.globalAlpha;
-        if (forGhost == true) {
+        if (forGhost) {
             this.ctx.globalAlpha = 0.3;
         } else {
+            // Draw normal shadow
             const shadowInScreen = sub(character.getShadowIsoPosition(), this.view_origin_iso);
             const shadow_ul = sub(shadowInScreen, character.origin);
 
@@ -123,14 +116,48 @@ export class Renderer {
         }
 
         const character_base = this.imageLibrary.get('player_base');
-        if (character_base) {
-            this.ctx.drawImage(character_base,
-                character.size.w * character.imageCoord.col,
-                character.size.h * character.imageCoord.row,
-                character.size.w, character.size.h,
-                character_ul.x, character_ul.y,
-                character.size.w, character.size.h);
+        if (!character_base) {
+            this.ctx.globalAlpha = oldAlpha;
+            return;
         }
+
+        const sx = character.size.w * character.imageCoord.col;
+        const sy = character.size.h * character.imageCoord.row;
+        const sw = character.size.w;
+        const sh = character.size.h;
+
+        if (!this.offscreen) {
+            this.offscreen = document.createElement('canvas');
+            this.offCtx = this.offscreen.getContext('2d');
+        }
+
+        if (isHovered && !forGhost) {
+            const x_thickness = 8;
+            const y_thickness = 4;
+            this.offscreen.width = sw + (x_thickness * 2);
+            this.offscreen.height = sh + (y_thickness * 2);
+
+            // 1. Draw the sprite to the TINY offscreen canvas
+            this.offCtx.clearRect(0, 0, this.offscreen.width, this.offscreen.height);
+            this.offCtx.drawImage(character_base, sx, sy, sw, sh, 0, 0, this.offscreen.width, this.offscreen.height);
+
+            // 2. Color it orange (only affects the tiny canvas)
+            const oldComposite = this.ctx.globalCompositeOperation;
+            this.offCtx.globalCompositeOperation = 'source-in';
+            this.offCtx.fillStyle = "#ffaa00";
+            this.offCtx.fillRect(0, 0, this.offscreen.width, this.offscreen.height);
+            this.offCtx.globalCompositeOperation = oldComposite;
+
+            // 3. Draw that colored "silhouette" back to the main game
+            this.ctx.drawImage(this.offscreen, 
+                character_ul.x - x_thickness, 
+                character_ul.y - y_thickness - 1);
+        }
+
+        this.ctx.drawImage(character_base,
+            sx, sy, sw, sh,
+            character_ul.x, character_ul.y,
+            sw, sh);
 
         this.ctx.globalAlpha = oldAlpha;
     }

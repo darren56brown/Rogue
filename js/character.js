@@ -253,6 +253,11 @@ export class Character {
         const xy_pos = vec2D(x, y);
         const cliff_edge_point = intersect(last_waypoint, xy_pos,
             tile_to_tile_midpoint, add(tile_to_tile_midpoint, along_edge));
+
+        if (!cliff_edge_point) {
+            waypoints.push({x: x, y: y, z: z});
+            return;
+        }
         
         if (step_down > .1) {
             const step_xy_dist = dist(cliff_edge_point, xy_pos);

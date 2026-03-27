@@ -6,7 +6,7 @@ import { Npc } from "./npc.js";
 import { GameMap } from "./game_map.js";
 import { FPSTracker } from "./fps_tracker.js";
 import { cartesianToIso, isoToCartesian } from './util.js';
-import {vec2D} from './vec2D.js';
+import {vec2D, sub} from './vec2D.js';
 
 export class App {
     constructor() {
@@ -31,7 +31,8 @@ export class App {
         this.hoveredTile = null;
         this.debugTileHighlight = false;
 
-        this.healthPoints = 11;
+        this.hoveredCharacter = null;
+        this.healthPoints = 7;
     }
 
     init() {
@@ -151,6 +152,8 @@ export class App {
             hud.style.width  = w + 'px';
             hud.style.height = h + 'px';
             hud.style.margin = '0';
+
+            document.documentElement.style.setProperty('--game-vh', `${h / 100}px`);
         }
     }
 
@@ -170,7 +173,7 @@ export class App {
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         } else {
             this.renderer.render(this.game_map, this.view_origin, this.characters,
-                this.hoveredTile, this.fps_tracker);
+                this.hoveredTile, this.fps_tracker, this.hoveredCharacter);
         }
     }
 
@@ -231,7 +234,10 @@ export class App {
 
         this.canvas.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            if (this.player) this.player.clearPath();
+            if (this.player) {
+                this.player.clearPath();
+                this.player.stopFollowing();
+            }
         });
     }
 
@@ -249,11 +255,22 @@ export class App {
     }
 
     onMouseMove(e) {
-        if (!this.debugTileHighlight || this.state !== "running" || !this.game_map) {
+        if (this.state !== "running" || !this.game_map || !this.player) {
             this.hoveredTile = null;
+            this.hoveredCharacter = null;
             return;
         }
-        this.hoveredTile = this.getHoveredTile(this.getPositionFromEvent(e));
+
+        const screenPos = this.getPositionFromEvent(e);
+
+        // tile highlight (only when debug is on)
+        if (this.debugTileHighlight) {
+            this.hoveredTile = this.getHoveredTile(screenPos);
+        } else {
+            this.hoveredTile = null;
+        }
+
+        this.hoveredCharacter = this.getHoveredCharacter(screenPos);
     }
 
     getHoveredTile(screenPos) {
@@ -275,14 +292,62 @@ export class App {
         return null;
     }
 
+    getHoveredCharacter(screenPos) {
+        if (!this.characters || this.characters.length === 0 || !this.renderer) return null;
+
+        const viewIso = cartesianToIso(this.view_origin.x, this.view_origin.y, 0);
+
+        let bestChar = null;
+        let bestDist = Infinity;
+
+        for (const char of this.characters) {
+            if (char === this.player) continue;   // don't highlight the player
+
+            const charIso = char.getIsoPosition();
+            const charScreen = sub(charIso, viewIso);
+            const ul = sub(charScreen, char.origin);
+
+            const br = {
+                x: ul.x + char.size.w,
+                y: ul.y + char.size.h
+            };
+
+            // mouse is inside the character's sprite bounding box?
+            if (screenPos.x >= ul.x && screenPos.x <= br.x &&
+                screenPos.y >= ul.y && screenPos.y <= br.y) {
+
+                const centerX = ul.x + char.size.w / 2;
+                const centerY = ul.y + char.size.h / 2;
+                const dist = Math.hypot(screenPos.x - centerX, screenPos.y - centerY);
+
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    bestChar = char;
+                }
+            }
+        }
+        return bestChar;
+    }
+
     onMouseClick(e) {
         if (this.state !== "running" || !this.player || !this.game_map) return;
 
         const clickPos = this.getPositionFromEvent(e);
+
+        const hoveredChar = this.getHoveredCharacter(clickPos);
+        if (hoveredChar && hoveredChar !== this.player) {
+            this.player.startFollowing(hoveredChar);
+            return;
+        }
+
         const clickedTile = this.getHoveredTile(clickPos);
         if (!clickedTile) {
             this.player.clearPath();
             return;
+        }
+
+        if (this.player.followTarget) {
+            this.player.stopFollowing();   // ← clicking ground while following cancels follow
         }
 
         const goalZ = clickedTile.layerZ;
@@ -290,7 +355,6 @@ export class App {
         this.player.buildPathToPosition(this.game_map, world_pos_xy, goalZ);
     }
 
-    // ====================== HUD ======================
     createHUD() {
         this.updateHotbarUI();
         this.updateHealthUI();
