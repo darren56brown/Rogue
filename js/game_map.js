@@ -1,15 +1,16 @@
 import {ISO, MAX_DROP, MAX_HOP} from "./constants.js";
-import { vec2D, add } from './vec2D.js';
-import { getTileCoordFromPosition } from './util.js';
+import { getTileCoordFromPosition, isoCompare} from './util.js';
+import { vec2D } from "./vec2D.js";
 
 export class GameMap {
     constructor(name) {
         this.name = name;
         this.size = { w: 0, h: 0 };
-        this.tileSize = { w: 64, h: 64 };     // will be overwritten by map
-        this.tilesets = [];                   // array of tileset metadata
-        this.layers = [];                     // ← NEW: will hold visible tile layer objects
+        this.tileSize = { w: 0, h: 0 };
+        this.tilesets = [];
+        this.layers = [];
         this.isLoaded = false;
+        this.drawList = [];
     }
 
     static async load(levelName) {
@@ -32,7 +33,6 @@ export class GameMap {
             level.tileSize.w = mapData.tilewidth;
             level.tileSize.h = mapData.tileheight;
 
-            // Load all tilesets (your original logic – unchanged)
             for (const ts of mapData.tilesets) {
                 let source = ts.source;
 
@@ -99,6 +99,22 @@ export class GameMap {
 
             level.isLoaded = true;
             //console.log(`Level "${levelName}" loaded — ${level.tilesets.length} tilesets, ${level.layers.length} visible layers`);
+
+            level.drawList = [];
+            for (const layer of level.layers) {
+                for (let x = 0; x < level.size.w; x++) {
+                    for (let y = 0; y < level.size.h; y++) {
+                        const info = level.getTileInfoForLayer(x, y, layer);
+                        if (!info) continue;
+                        level.drawList.push({x: x, y: y, layer: layer});
+                    }
+                }
+            }
+            level.drawList.sort((a, b) => isoCompare(
+                vec2D(a.x + 0.5, a.y + 0.5), a.layer.zHeight - 0.5,
+                vec2D(b.x + 0.5, b.y + 0.5), b.layer.zHeight - 0.5
+            ));
+
             return level;
 
         } catch (err) {

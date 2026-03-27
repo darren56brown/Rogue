@@ -1,5 +1,5 @@
 import { APP_SIZE, ISO } from "./constants.js";
-import { sub } from './vec2D.js';
+import { sub, vec2D } from './vec2D.js';
 import { cartesianToIso } from './util.js';
 
 export class Renderer {
@@ -33,65 +33,59 @@ export class Renderer {
         characters.sort((a, b) => { return a.compareToOther(b); });
 
         let nextCharacterIdx = 0;
-        for (const layer of this.current_map.getVisibleTileLayers()) {
-            const max_depth = this.current_map.size.w + this.current_map.size.h - 2;
-            //Traverse tiles in perfect draw order
-            for (let depth = 0; depth <= max_depth; depth++) {
-                 for (let x = 0; x <= depth; x++) {
-                    const y = depth - x;
-                    const info = this.current_map.getTileInfoForLayer(x, y, layer);
-                    if (!info) continue;
 
-                    //Upper left of tile in iso is not upper left of tile in Cartesian
-                    const screen_pos_ul = sub(cartesianToIso(x - 0.5, y + 0.5,
-                        layer.zHeight), this.view_origin_iso);
-
-                    if (screen_pos_ul.x <= -ISO.TILE_W ||
-                        screen_pos_ul.x >= this.canvas.width + ISO.TILE_W ||
-                        screen_pos_ul.y <= -ISO.IMG_H  ||
-                        screen_pos_ul.y >= this.canvas.height + ISO.IMG_H) {
-                        continue;
-                    }
-
-                    const img = this.imageLibrary.get(info.imageName);
-                    if (!img) continue;
-
-                    //Test y at center of block but down one level
-                    const y_sort_point = cartesianToIso(x + 0.5, y + 0.5,
-                        layer.zHeight - 1);
-                    //Test z down half to center of block
-                    const z_sort = layer.zHeight - 0.5;
-
-                    //Draw any characters left to draw which must be drawn before this tile
-                    while (nextCharacterIdx < characters.length) {
-                        const nextCharacter = characters[nextCharacterIdx];
-                        if (nextCharacter.compareToSortInfo(y_sort_point.y, z_sort) > 0) break;
-                        this.renderCharacter(nextCharacter);
-                        nextCharacterIdx++;
-                    }
-
-                    const opacity = layer.opacity || 1;
-
-                    if (opacity !== 1) this.ctx.globalAlpha = opacity;      
-                    this.ctx.drawImage(img,
-                        info.sx, info.sy,
-                        info.sw, info.sh,
-                        Math.floor(screen_pos_ul.x),
-                        Math.floor(screen_pos_ul.y),
-                        info.sw, info.sh);
-                    if (opacity !== 1) this.ctx.globalAlpha = 1;
-
-                    // Debug highlight - glowing outline on the hovered tile
-                    if (this.hoveredTile &&
-                        x === this.hoveredTile.tileCoord.x &&
-                        y === this.hoveredTile.tileCoord.y &&
-                        Math.abs(layer.zHeight - this.hoveredTile.layerZ) < 0.1) {
-                        //Is a distance check for z appropriate?
-                        this.drawIsoTileOutline(screen_pos_ul);
-                    }
-                }
+        for (const drawItem of this.current_map.drawList) {
+            //Upper left of tile in iso is not upper left of tile in Cartesian
+            const screen_pos_ul = sub(cartesianToIso(drawItem.x - 0.5, drawItem.y + 0.5,
+                drawItem.layer.zHeight), this.view_origin_iso);
+            
+            if (screen_pos_ul.x <= -ISO.TILE_W ||
+                screen_pos_ul.x >= this.canvas.width + ISO.TILE_W ||
+                screen_pos_ul.y <= -ISO.IMG_H  ||
+                screen_pos_ul.y >= this.canvas.height + ISO.IMG_H) {
+                continue;
             }
-        }
+
+            const info = this.current_map.getTileInfoForLayer(drawItem.x,
+                drawItem.y, drawItem.layer);
+            if (!info) continue;
+
+            const img = this.imageLibrary.get(info.imageName);
+            if (!img) continue;
+
+            //This has to match sorting in game_map
+            const xy_sort = vec2D(drawItem.x + 0.5, drawItem.y + 0.5);
+            const z_sort = drawItem.layer.zHeight - 0.5;
+
+            //Draw any characters left to draw which must be drawn before this tile
+            while (nextCharacterIdx < characters.length) {
+                const nextCharacter = characters[nextCharacterIdx];
+                if (nextCharacter.compareToSortInfo(xy_sort, z_sort) > 0) break;
+                const sortVal = nextCharacter.compareToSortInfo(xy_sort, z_sort);
+                this.renderCharacter(nextCharacter);
+                nextCharacterIdx++;
+            }
+
+            const opacity = drawItem.layer.opacity || 1;
+
+            if (opacity !== 1) this.ctx.globalAlpha = opacity;      
+            this.ctx.drawImage(img,
+                info.sx, info.sy,
+                info.sw, info.sh,
+                Math.floor(screen_pos_ul.x),
+                Math.floor(screen_pos_ul.y),
+                info.sw, info.sh);
+            if (opacity !== 1) this.ctx.globalAlpha = 1;
+
+            // Debug highlight - glowing outline on the hovered tile
+            if (this.hoveredTile &&
+                x === this.hoveredTile.tileCoord.x &&
+                y === this.hoveredTile.tileCoord.y &&
+                Math.abs(layer.zHeight - this.hoveredTile.layerZ) < 0.1) {
+                //Is a distance check for z appropriate?
+                this.drawIsoTileOutline(screen_pos_ul);
+            }
+        }        
 
         //Draw any left over characters
         while (nextCharacterIdx < characters.length) {

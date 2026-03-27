@@ -22,3 +22,8 @@ export function getTileCoordFromXY(worldX, worldY) {
 export function getTileCoordFromPosition(pos) {
     return vec2D(Math.floor(pos.x), Math.floor(pos.y));
 }
+
+export function isoCompare(xy_sort_1, z_sort_1, xy_sort_2, z_sort_2) {
+        return xy_sort_1.x + xy_sort_1.y + z_sort_1 - 
+            (xy_sort_2.x + xy_sort_2.y + z_sort_2);
+};
