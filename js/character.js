@@ -2,7 +2,7 @@
 import {PLAYER_ANIM_FRAME_SIZE, PLAYER_TILE_ORIGIN} from "./constants.js";
 import {PLAYER_ANIM_FPS, MOVE_TARGET_TOL} from "./constants.js";
 import {vec2D, add, sub, mult, setAdd, norm, div, intersect, dist} from './vec2D.js';
-import {cartesianToIso, getTileCoordFromXY} from './util.js';
+import {cartesianToIso, getTileCoordFromXY, isoCompare} from './util.js';
 
 const AnimWalkSequence = Object.freeze({
     neutral_1: 0,
@@ -40,8 +40,6 @@ const AnimWalkSequenceOffset = new Map([
 export class Character {
     #pos_xy = {x: 0, y: 0};
     #z = 0;
-    #y_sort = 0;
-    #z_sort = 0;
 
     constructor(posXY, z) {
         this.size = {
@@ -80,52 +78,35 @@ export class Character {
     setPositionXY(pos) {
         this.#pos_xy.x = pos.x;
         this.#pos_xy.y = pos.y;
-        this.#computeSortInfo();
     }
     setZ(z) {
         this.#z = z;
-        this.#computeSortInfo();
     }
     
     moveX(dx) {
         this.#pos_xy.x += dx;
-        this.#computeSortInfo();
     }
     moveY(dy) {
         this.#pos_xy.y += dy;
-        this.#computeSortInfo();
     }
     moveZ(dz) {
         this.#z += dz;
-        this.#computeSortInfo();
     }
     moveXYZ(dx, dy, dz) {
         this.#pos_xy.x += dx;
         this.#pos_xy.y += dy;
         this.#z += dz;
-        this.#computeSortInfo();
     }
     movePosition(delta) {
         setAdd(this.#pos_xy, delta);
-        this.#computeSortInfo();
-    }
-
-    #computeSortInfo() {
-        const y_sort_point = this.getIsoPosition();
-        this.#y_sort = y_sort_point.y;
-        this.#z_sort = this.#z + 0.5; //character center is up in z
     }
 
     compareToOther(other) {
-        return this.compareToSortInfo(other.#y_sort, other.#z_sort);
+        return this.compareToSortInfo(other.#pos_xy, other.#z + 0.5);
     };
 
-    compareToSortInfo(y_sort, z_sort) {
-        //If we are close to one layer apart, sort by z
-        if (Math.abs(this.#z_sort - z_sort) > 0.99) {
-            return this.#z_sort - z_sort;
-        }
-        return this.#y_sort - y_sort;
+    compareToSortInfo(xy_sort, z_sort) {
+        return isoCompare(this.#pos_xy, this.#z + 0.5, xy_sort, z_sort);
     };
 
     getIsoPosition() {
