@@ -4,7 +4,7 @@ import {vec2D} from './vec2D.js';
 export function cartesianToIso(x, y, z) {
     return {
         x: (x - y) * ISO.HALF_W,
-        y: (x + y) * ISO.HALF_H - (z * ISO.TILE_H)
+        y: (x + y) * ISO.HALF_H - (z * ISO.TILE_Z)
     };
 }
 

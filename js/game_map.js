@@ -82,7 +82,7 @@ export class GameMap {
                     const offsetX = raw.offsetx !== undefined ? raw.offsetx : 0;
                     console.assert(offsetX === 0, "Error: offsetX should be zero, but found:", offsetX);
                     const offsetY = raw.offsety !== undefined ? raw.offsety : 0;
-                    const zHeight = Math.round(-offsetY / ISO.TILE_H);
+                    const zHeight = Math.round(-offsetY / ISO.TILE_Z);
 
                     return {
                         name: raw.name,

@@ -1,4 +1,4 @@
-import { APP_SIZE, APP_MARGIN, CAMERA_MARGIN, ISO } from "./constants.js";
+import { APP_SIZE, APP_MARGIN, ISO } from "./constants.js";
 import { Renderer } from "./renderer.js";
 import { ImageLibrary } from "./image_library.js";
 import { Player } from "./player.js";
@@ -26,7 +26,7 @@ export class App {
 
         this.keys = {};   
         this.last_time = 0;
-        this.view_origin = {x: -10.125, y: -.125};
+        this.view_origin = {x: -10.25, y: -.25};
 
         this.hoveredTile = null;
         this.debugTileHighlight = false;
@@ -189,6 +189,7 @@ export class App {
         const lerpFactor = 1.0; 
         this.view_origin.x += (targetWorld.x - this.view_origin.x) * lerpFactor * dt;
         this.view_origin.y += (targetWorld.y - this.view_origin.y) * lerpFactor * dt;
+        //console.log(this.view_origin);
     }
 
     initUserInput() {
@@ -237,7 +238,7 @@ export class App {
     screenToWorld(screenPos, z = 0) {
         const viewIso = cartesianToIso(this.view_origin.x, this.view_origin.y, 0);
         const isoX = screenPos.x + viewIso.x;
-        const isoY = screenPos.y + viewIso.y + z * ISO.TILE_H;
+        const isoY = screenPos.y + viewIso.y + z * ISO.TILE_Z;
         return isoToCartesian(isoX, isoY);
     }
 

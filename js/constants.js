@@ -10,9 +10,9 @@ export const MAX_DROP = 1.1;
 export const MAX_HOP = 1.1;
 
 export const ISO = {
-    TILE_W: 128,           // full tile width on screen
-    TILE_H: 64,            // vertical step ("overlap height")
+    TILE_W: 128,
+    TILE_H: 64,
     HALF_W: 64,            // TILE_W / 2
     HALF_H: 32,            // TILE_H / 2
-    IMG_H: 128             // actual image height
+    TILE_Z: 72
 };

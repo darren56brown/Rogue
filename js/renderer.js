@@ -1,4 +1,4 @@
-import { APP_SIZE, ISO } from "./constants.js";
+import { APP_SIZE } from "./constants.js";
 import { sub, vec2D } from './vec2D.js';
 import { cartesianToIso } from './util.js';
 
@@ -38,17 +38,17 @@ export class Renderer {
             //Upper left of tile in iso is not upper left of tile in Cartesian
             const screen_pos_ul = sub(cartesianToIso(drawItem.x - 0.5, drawItem.y + 0.5,
                 drawItem.layer.zHeight), this.view_origin_iso);
-            
-            if (screen_pos_ul.x <= -ISO.TILE_W ||
-                screen_pos_ul.x >= this.canvas.width + ISO.TILE_W ||
-                screen_pos_ul.y <= -ISO.IMG_H  ||
-                screen_pos_ul.y >= this.canvas.height + ISO.IMG_H) {
-                continue;
-            }
 
             const info = this.current_map.getTileInfoForLayer(drawItem.x,
                 drawItem.y, drawItem.layer);
             if (!info) continue;
+
+            if (screen_pos_ul.x <= -info.sw ||
+                screen_pos_ul.x >= this.canvas.width + info.sw ||
+                screen_pos_ul.y <= -info.sh  ||
+                screen_pos_ul.y >= this.canvas.height + info.sh) {
+                continue;
+            }
 
             const img = this.imageLibrary.get(info.imageName);
             if (!img) continue;
@@ -79,9 +79,9 @@ export class Renderer {
 
             // Debug highlight - glowing outline on the hovered tile
             if (this.hoveredTile &&
-                x === this.hoveredTile.tileCoord.x &&
-                y === this.hoveredTile.tileCoord.y &&
-                Math.abs(layer.zHeight - this.hoveredTile.layerZ) < 0.1) {
+                drawItem.x === this.hoveredTile.tileCoord.x &&
+                drawItem.y === this.hoveredTile.tileCoord.y &&
+                Math.abs(drawItem.layer.zHeight - this.hoveredTile.layerZ) < 0.1) {
                 //Is a distance check for z appropriate?
                 this.drawIsoTileOutline(screen_pos_ul);
             }
