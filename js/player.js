@@ -1,6 +1,6 @@
 import { Character } from "./character.js";
 import { GameItem } from "./game_item.js";
-import { PlayerFacing } from "./character.js";   // ← NEW: needed for offsets
+import { PlayerFacing } from "./character.js";
 
 export class Player extends Character {
     constructor(posXY, z) {
@@ -147,11 +147,18 @@ export class Player extends Character {
 
         // Offsets = exactly 3/4 tile directly in front of the NPC
         // (based on the same coordinate system the pathfinding and movement use)
+        const CARDINAL_OFFSET = 0.75;
+        const DIAG_OFFSET = CARDINAL_OFFSET / Math.SQRT2;   // ≈ 0.530
+
         const offsets = {
-            [PlayerFacing.face_up]: { x:  0.00, y: -0.75 },
-            [PlayerFacing.face_lt]: { x: -0.75, y:  0.00 },
-            [PlayerFacing.face_dn]: { x:  0.00, y: +0.75 },
-            [PlayerFacing.face_rt]: { x: +0.75, y:  0.00 }
+            [PlayerFacing.face_nw]: { x: -DIAG_OFFSET, y: -DIAG_OFFSET },
+            [PlayerFacing.face_n ]: { x:  0.00,        y: -CARDINAL_OFFSET },
+            [PlayerFacing.face_ne]: { x:  DIAG_OFFSET, y: -DIAG_OFFSET },
+            [PlayerFacing.face_e ]: { x:  CARDINAL_OFFSET, y:  0.00 },
+            [PlayerFacing.face_se]: { x:  DIAG_OFFSET, y:  DIAG_OFFSET },
+            [PlayerFacing.face_s ]: { x:  0.00,        y:  CARDINAL_OFFSET },
+            [PlayerFacing.face_sw]: { x: -DIAG_OFFSET, y:  DIAG_OFFSET },
+            [PlayerFacing.face_w ]: { x: -CARDINAL_OFFSET, y:  0.00 }
         };
 
         const offset = offsets[facing] || { x: 0, y: 0 };
@@ -177,7 +184,7 @@ export class Player extends Character {
             this.clearPath();
 
             // Face directly toward the NPC (opposite of their facing)
-            const oppositeFacing = (facing + 2) % 4;
+            const oppositeFacing = (facing + 4) % 8;
             this.curFacing = oppositeFacing;
 
             return;   // we are perfectly positioned — no more movement this frame

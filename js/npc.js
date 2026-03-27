@@ -17,11 +17,9 @@ export class Npc extends Character {
         this.timeInState = 0;
         this.targetTimeInState = 0;
 
-        // Start in a nice idle state
         this._transitionTo(NPC_STATES.STANDING);
     }
 
-    // Called automatically every frame from App.updatePhysics()
     updatePhysics(dt, game_map) {
         super.updatePhysics(dt, game_map);   // movement + animation still works exactly as before
         this._updateAI(dt, game_map);
@@ -139,7 +137,7 @@ export class Npc extends Character {
     }
 
     _randomFacing() {
-        return Math.floor(Math.random() * 4); // 0=up, 1=left, 2=down, 3=right (matches PlayerFacing)
+        return Math.floor(Math.random() * 8);
     }
 
     // Optional helper you can call from App if you ever want to make an NPC "talk"
