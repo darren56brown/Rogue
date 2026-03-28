@@ -11,35 +11,44 @@ export class SpriteViewer {
         this.onOpen = onOpen;
         this.onClose = onClose;
 
-        // ====================== SIMPLIFIED ANIMATION DATA ======================
-        // New structure:
-        // action, direction, hasIdle, numColumns, row
-        // - hasIdle: true  → Idle is always column 0, animation starts at column 1
-        // - hasIdle: false → No idle, animation starts at column 0
-        // - numColumns = total sprites in this row for the action
         this.animations = [
-            // Example – update with your actual sprite sheet
-            { action: "Idle",   direction: "Down",  hasIdle: true,  numColumns: 4, row: 0 },
+            { action: "Cast",   direction: "Up",    hasIdle: true,  numColumns: 7, row: 0 },
+            { action: "Cast",   direction: "Left",  hasIdle: true,  numColumns: 7, row: 1 },
+            { action: "Cast",   direction: "Down",  hasIdle: true,  numColumns: 7, row: 2 },
+            { action: "Cast",   direction: "Right", hasIdle: true,  numColumns: 7, row: 3 },
 
-            // Walk rows – most have idle at col 0
-            { action: "Walk",   direction: "Right", hasIdle: true,  numColumns: 9, row: 11 }, // 1 idle + 8 walk
-            { action: "Walk",   direction: "Left",  hasIdle: true,  numColumns: 9, row: 9 },
+            { action: "Thrust",   direction: "Up",    hasIdle: true,  numColumns: 8, row: 4 },
+            { action: "Thrust",   direction: "Left",  hasIdle: true,  numColumns: 8, row: 5 },
+            { action: "Thrust",   direction: "Down",  hasIdle: true,  numColumns: 8, row: 6 },
+            { action: "Thrust",   direction: "Right", hasIdle: true,  numColumns: 8, row: 7 },
+
             { action: "Walk",   direction: "Up",    hasIdle: true,  numColumns: 9, row: 8 },
+            { action: "Walk",   direction: "Left",  hasIdle: true,  numColumns: 9, row: 9 },
             { action: "Walk",   direction: "Down",  hasIdle: true,  numColumns: 9, row: 10 },
+            { action: "Walk",   direction: "Right", hasIdle: true,  numColumns: 9, row: 11 },
 
-            // Attack – no idle frame
-            { action: "Attack", direction: "Right", hasIdle: false, numColumns: 4, row: 5 },
-            { action: "Attack", direction: "Left",  hasIdle: false, numColumns: 4, row: 6 },
-            { action: "Attack", direction: "Up",    hasIdle: false, numColumns: 4, row: 7 },
-            { action: "Attack", direction: "Down",  hasIdle: false, numColumns: 4, row: 8 },
+            { action: "Slash",   direction: "Up",    hasIdle: true,  numColumns: 6, row: 12 },
+            { action: "Slash",   direction: "Left",  hasIdle: true,  numColumns: 6, row: 13 },
+            { action: "Slash",   direction: "Down",  hasIdle: true,  numColumns: 6, row: 14 },
+            { action: "Slash",   direction: "Right", hasIdle: true,  numColumns: 6, row: 15 },
 
-            // Other actions without direction or idle
-            { action: "Death",  direction: null,    hasIdle: false, numColumns: 5, row: 9 },
-            { action: "Hurt",   direction: null,    hasIdle: false, numColumns: 2, row: 10 },
-            { action: "Spell",  direction: null,    hasIdle: false, numColumns: 7, row: 11 },
-            { action: "Pick Up",direction: null,    hasIdle: false, numColumns: 3, row: 12 },
-            { action: "Jump",   direction: null,    hasIdle: false, numColumns: 5, row: 13 },
-            { action: "Emote",  direction: null,    hasIdle: false, numColumns: 4, row: 14 },
+            { action: "Shoot",   direction: "Up",    hasIdle: true,  numColumns: 13, row: 16 },
+            { action: "Shoot",   direction: "Left",  hasIdle: true,  numColumns: 13, row: 17 },
+            { action: "Shoot",   direction: "Down",  hasIdle: true,  numColumns: 13, row: 18 },
+            { action: "Shoot",   direction: "Right", hasIdle: true,  numColumns: 13, row: 19 },
+
+            { action: "Die",   direction: "Down", hasIdle: false,  numColumns: 6, row: 20 },
+            { action: "Climb",   direction: "Up", hasIdle: false,  numColumns: 6, row: 21 },
+
+            { action: "Stand",   direction: "Up",    hasIdle: false,  numColumns: 2, row: 22 },
+            { action: "Stand",   direction: "Left",  hasIdle: false,  numColumns: 2, row: 23 },
+            { action: "Stand",   direction: "Down",  hasIdle: false,  numColumns: 2, row: 24 },
+            { action: "Stand",   direction: "Right", hasIdle: false,  numColumns: 2, row: 25 },
+
+            { action: "Jump",   direction: "Up",    hasIdle: false,  numColumns: 5, row: 26 },
+            { action: "Jump",   direction: "Left",  hasIdle: false,  numColumns: 5, row: 27 },
+            { action: "Jump",   direction: "Down",  hasIdle: false,  numColumns: 5, row: 28 },
+            { action: "Jump",   direction: "Right", hasIdle: false,  numColumns: 5, row: 29 }
         ];
 
         // Build unique actions
