@@ -7,42 +7,42 @@ export class SpriteViewer {
         this.ctx = this.canvas.getContext('2d');
         this.ctx.imageSmoothingEnabled = false;
 
-        // Use the image passed from the ImageLibrary
         this.spriteSheet = image;
         this.onOpen = onOpen;
         this.onClose = onClose;
 
-        // ====================== ANIMATION DATA ======================
+        // ====================== SIMPLIFIED ANIMATION DATA ======================
+        // New structure:
+        // action, direction, hasIdle, numColumns, row
+        // - hasIdle: true  → Idle is always column 0, animation starts at column 1
+        // - hasIdle: false → No idle, animation starts at column 0
+        // - numColumns = total sprites in this row for the action
         this.animations = [
-            // Example – replace / expand with your full sprite sheet
-            { action: "Idle",   direction: "Down",  isIdle: true,  frames: 4, row: 0,  startCol: 0 },
+            // Example – update with your actual sprite sheet
+            { action: "Idle",   direction: "Down",  hasIdle: true,  numColumns: 4, row: 0 },
 
-            // Walk (idle at col 0, animation at col 1+ on same row)
-            { action: "Walk",   direction: "Right", isIdle: true,  frames: 1, row: 11, startCol: 0 },
-            { action: "Walk",   direction: "Right", isIdle: false, frames: 8, row: 11, startCol: 1 },
-            { action: "Walk",   direction: "Left",  isIdle: true,  frames: 1, row: 9,  startCol: 0 },
-            { action: "Walk",   direction: "Left",  isIdle: false, frames: 8, row: 9,  startCol: 1 },
-            { action: "Walk",   direction: "Up",    isIdle: true,  frames: 1, row: 8,  startCol: 0 },
-            { action: "Walk",   direction: "Up",    isIdle: false, frames: 8, row: 8,  startCol: 1 },
-            { action: "Walk",   direction: "Down",  isIdle: true,  frames: 1, row: 10, startCol: 0 },
-            { action: "Walk",   direction: "Down",  isIdle: false, frames: 8, row: 10, startCol: 1 },
+            // Walk rows – most have idle at col 0
+            { action: "Walk",   direction: "Right", hasIdle: true,  numColumns: 9, row: 11 }, // 1 idle + 8 walk
+            { action: "Walk",   direction: "Left",  hasIdle: true,  numColumns: 9, row: 9 },
+            { action: "Walk",   direction: "Up",    hasIdle: true,  numColumns: 9, row: 8 },
+            { action: "Walk",   direction: "Down",  hasIdle: true,  numColumns: 9, row: 10 },
 
-            // Attack (no idle variant in your original sheet)
-            { action: "Attack", direction: "Right", isIdle: false, frames: 4, row: 5,  startCol: 0 },
-            { action: "Attack", direction: "Left",  isIdle: false, frames: 4, row: 6,  startCol: 0 },
-            { action: "Attack", direction: "Up",    isIdle: false, frames: 4, row: 7,  startCol: 0 },
-            { action: "Attack", direction: "Down",  isIdle: false, frames: 4, row: 8,  startCol: 0 },
+            // Attack – no idle frame
+            { action: "Attack", direction: "Right", hasIdle: false, numColumns: 4, row: 5 },
+            { action: "Attack", direction: "Left",  hasIdle: false, numColumns: 4, row: 6 },
+            { action: "Attack", direction: "Up",    hasIdle: false, numColumns: 4, row: 7 },
+            { action: "Attack", direction: "Down",  hasIdle: false, numColumns: 4, row: 8 },
 
-            // Death / Hurt / Spell etc. – add idle variants only if your sheet has them
-            { action: "Death",  direction: null,    isIdle: false, frames: 5, row: 9,  startCol: 0 },
-            { action: "Hurt",   direction: null,    isIdle: false, frames: 2, row: 10, startCol: 0 },
-            { action: "Spell",  direction: null,    isIdle: false, frames: 7, row: 11, startCol: 0 },
-            { action: "Pick Up",direction: null,    isIdle: false, frames: 3, row: 12, startCol: 0 },
-            { action: "Jump",   direction: null,    isIdle: false, frames: 5, row: 13, startCol: 0 },
-            { action: "Emote",  direction: null,    isIdle: false, frames: 4, row: 14, startCol: 0 },
+            // Other actions without direction or idle
+            { action: "Death",  direction: null,    hasIdle: false, numColumns: 5, row: 9 },
+            { action: "Hurt",   direction: null,    hasIdle: false, numColumns: 2, row: 10 },
+            { action: "Spell",  direction: null,    hasIdle: false, numColumns: 7, row: 11 },
+            { action: "Pick Up",direction: null,    hasIdle: false, numColumns: 3, row: 12 },
+            { action: "Jump",   direction: null,    hasIdle: false, numColumns: 5, row: 13 },
+            { action: "Emote",  direction: null,    hasIdle: false, numColumns: 4, row: 14 },
         ];
 
-        // Build list of unique actions (in order of first appearance)
+        // Build unique actions
         const actionSet = new Set();
         this.uniqueActions = [];
         for (const anim of this.animations) {
@@ -52,17 +52,14 @@ export class SpriteViewer {
             }
         }
 
-        // Current selection state
-        this.currentActionIndex = this.uniqueActions.indexOf("Walk");
-        if (this.currentActionIndex === -1) this.currentActionIndex = 0;
-
+        this.currentActionIndex = this.uniqueActions.indexOf("Walk") ?? 0;
         this.currentDirection = "Right";
         this.isIdle = false;
         this.currentFrame = 0;
 
         this.spriteSize = vec2D(64, 64);
         this.lastUpdate = 0;
-        this.frameInterval = 100; // ms per frame
+        this.frameInterval = 100;
         this.isActive = false;
 
         this.initUIEvents();
@@ -71,11 +68,9 @@ export class SpriteViewer {
     initUIEvents() {
         document.getElementById('closeViewer').onclick = () => this.close();
 
-        // Action cycling
         document.getElementById('prevAnim').onclick = () => this.changeAction(-1);
         document.getElementById('nextAnim').onclick = () => this.changeAction(1);
 
-        // Direction pad (sticky – only one arrow active)
         this.dirButtons = {
             Up:    document.getElementById('dirUp'),
             Down:  document.getElementById('dirDown'),
@@ -89,7 +84,6 @@ export class SpriteViewer {
         this.dirButtons.Left.onclick  = () => this.setDirection("Left");
         this.dirButtons.Right.onclick = () => this.setDirection("Right");
 
-        // Idle toggle
         this.idleBtn.onclick = () => this.toggleIdle();
     }
 
@@ -102,9 +96,7 @@ export class SpriteViewer {
         this.container.classList.add('is-active');
         if (this.onOpen) this.onOpen();
 
-        this.updateDirectionUI();
-        this.updateIdleUI();
-        this.updateUI();
+        this.updateAllUI();
         this.animate();
     }
 
@@ -115,21 +107,50 @@ export class SpriteViewer {
         if (this.onClose) this.onClose();
     }
 
-    // ====================== DIRECTION & IDLE ======================
     setDirection(dir) {
         this.currentDirection = dir;
         this.currentFrame = 0;
-        this.updateDirectionUI();
-        this.updateUI();
+        this.updateAllUI();
         this.draw();
     }
 
     toggleIdle() {
+        const current = this.getCurrentAnimation();
+        if (!current.hasIdle) return; // prevent toggling when no idle exists
+
         this.isIdle = !this.isIdle;
         this.currentFrame = 0;
-        this.updateIdleUI();
-        this.updateUI();
+        this.updateAllUI();
         this.draw();
+    }
+
+    changeAction(dir) {
+        this.currentActionIndex = (this.currentActionIndex + dir + this.uniqueActions.length) % this.uniqueActions.length;
+        this.currentFrame = 0;
+        // Reset idle to false when changing action (safer default)
+        this.isIdle = false;
+        this.updateAllUI();
+        this.draw();
+    }
+
+    // ====================== GET CURRENT ANIMATION ======================
+    getCurrentAnimation() {
+        const action = this.uniqueActions[this.currentActionIndex];
+
+        // Find best match
+        let match = this.animations.find(a =>
+            a.action === action &&
+            (a.direction === this.currentDirection || a.direction === null)
+        );
+
+        return match || this.animations[0];
+    }
+
+    // ====================== UI UPDATES ======================
+    updateAllUI() {
+        this.updateDirectionUI();
+        this.updateIdleUI();
+        this.updateActionUI();
     }
 
     updateDirectionUI() {
@@ -139,62 +160,43 @@ export class SpriteViewer {
     }
 
     updateIdleUI() {
-        this.isIdle ? this.idleBtn.classList.add('active') : this.idleBtn.classList.remove('active');
-    }
+        const current = this.getCurrentAnimation();
+        const canIdle = current.hasIdle;
 
-    // ====================== ACTION CYCLING ======================
-    changeAction(dir) {
-        this.currentActionIndex = (this.currentActionIndex + dir + this.uniqueActions.length) % this.uniqueActions.length;
-        this.currentFrame = 0;
-        this.updateUI();
-        this.updateDirectionUI();
-        this.updateIdleUI();
-        this.draw();
-    }
-
-    // ====================== FIND CORRECT ANIMATION ======================
-    getCurrentAnimation() {
-        const action = this.uniqueActions[this.currentActionIndex];
-
-        // Exact match (action + direction + idle state)
-        let match = this.animations.find(a =>
-            a.action === action &&
-            (a.direction === this.currentDirection || a.direction === null) &&
-            a.isIdle === this.isIdle
-        );
-
-        // Fallback: any entry for this action
-        if (!match) {
-            match = this.animations.find(a => a.action === action && a.isIdle === this.isIdle) ||
-                    this.animations.find(a => a.action === action);
+        if (canIdle) {
+            this.idleBtn.classList.toggle('active', this.isIdle);
+            this.idleBtn.disabled = false;
+            this.idleBtn.style.opacity = "1";
+        } else {
+            this.idleBtn.classList.remove('active');
+            this.idleBtn.disabled = true;
+            this.idleBtn.style.opacity = "0.4";
         }
-
-        return match || this.animations[0];
     }
 
-    updateUI() {
+    updateActionUI() {
         const anim = this.getCurrentAnimation();
         const actionName = this.uniqueActions[this.currentActionIndex];
 
         let displayName = actionName;
-
-        // Only append direction if this animation actually uses direction
-        if (anim.direction !== null && this.currentDirection) {
+        if (anim.direction !== null) {
             displayName += ` ${this.currentDirection}`;
-        }
-        if (this.isIdle) {
-            displayName += ` (idle)`;
         }
 
         document.getElementById('animNameText').innerText = displayName;
-        document.getElementById('animDetailsText').innerText = `Row ${anim.row} | ${anim.frames} Frames`;
+        document.getElementById('animDetailsText').innerText = 
+            `Row ${anim.row} | ${anim.numColumns} columns`;
     }
 
+    // ====================== ANIMATION ======================
     animate(timestamp = 0) {
         if (!this.isActive) return;
 
         if (timestamp - this.lastUpdate > this.frameInterval) {
-            this.currentFrame = (this.currentFrame + 1) % this.getCurrentAnimation().frames;
+            const anim = this.getCurrentAnimation();
+            const numFrames = this.isIdle && anim.hasIdle ? 1 : anim.numColumns - (anim.hasIdle ? 1 : 0);
+            
+            this.currentFrame = (this.currentFrame + 1) % Math.max(1, numFrames);
             this.lastUpdate = timestamp;
             this.draw();
         }
@@ -205,7 +207,14 @@ export class SpriteViewer {
         const anim = this.getCurrentAnimation();
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        const sx = (anim.startCol + this.currentFrame) * this.spriteSize.x;
+        let col;
+        if (this.isIdle && anim.hasIdle) {
+            col = 0;                    // idle is always first frame
+        } else {
+            col = anim.hasIdle ? 1 + this.currentFrame : this.currentFrame;
+        }
+
+        const sx = col * this.spriteSize.x;
         const sy = anim.row * this.spriteSize.y;
 
         this.ctx.drawImage(
