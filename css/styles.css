@@ -247,29 +247,120 @@ button:hover {
 
 #viewerCanvas {
     image-rendering: pixelated;
-    width: 256px; /* Scaled up for visibility */
+    width: 256px;
     height: 256px;
 }
 
+/* ====================== VIEWER CONTROLS ====================== */
 .viewer-controls {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;           /* tightened spacing */
+    width: 100%;
+}
+
+.action-row {
+    display: flex;
     align-items: center;
     gap: 10px;
+    width: 100%;
+    justify-content: center;
 }
 
 #animLabel {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
+    text-align: center;
+    flex: 1;
+    min-width: 0;
 }
 
 #animNameText {
     font-weight: bold;
     color: #4a9eff;
+    font-size: 15px;
+    display: block;
 }
 
 #animDetailsText {
     font-size: 10px;
     color: #888;
+}
+
+/* Small buttons for PREV/NEXT */
+.small-btn {
+    background: #3a7ed8;
+    color: white;
+    border: 2px solid #4a9eff;
+    padding: 8px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: 'Courier New', Courier, monospace;
+    border-radius: 6px;
+    transition: all 0.3s;
+    box-shadow: 0 0 15px rgba(74, 157, 255, 0.2);
+    white-space: nowrap;
+}
+
+.small-btn:hover {
+    background: #4a9eff;
+    box-shadow: 0 0 25px rgba(74, 157, 255, 0.5);
+    transform: translateY(-1px);
+}
+
+/* ====================== DIRECTION PAD ====================== */
+.direction-pad {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;            /* tightened */
+}
+
+.dir-middle {
+    display: flex;
+    align-items: center;
+    gap: 5px;            /* tightened */
+}
+
+.dir-btn,
+.idle-btn {
+    background: #3a7ed8;
+    color: white;
+    border: 2px solid #4a9eff;
+    font-family: 'Courier New', Courier, monospace;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 0 15px rgba(74, 157, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dir-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+    border-radius: 6px;
+}
+
+.idle-btn {
+    width: 58px;
+    height: 36px;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 6px;
+}
+
+.dir-btn:hover,
+.idle-btn:hover {
+    background: #4a9eff;
+    box-shadow: 0 0 25px rgba(74, 157, 255, 0.5);
+    transform: translateY(-1px);
+}
+
+.dir-btn.active,
+.idle-btn.active {
+    background: #4a9eff !important;
+    border-color: #ffffff;
+    box-shadow: 0 0 20px #4a9eff;
+    transform: scale(1.08);
 }
