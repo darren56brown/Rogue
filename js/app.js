@@ -7,6 +7,7 @@ import { GameMap } from "./game_map.js";
 import { FPSTracker } from "./fps_tracker.js";
 import { cartesianToIso, isoToCartesian } from './util.js';
 import {vec2D, sub} from './vec2D.js';
+import { SpriteViewer } from './sprite_viewer.js';
 
 export class App {
     constructor() {
@@ -33,6 +34,8 @@ export class App {
 
         this.hoveredCharacter = null;
         this.healthPoints = 7;
+
+        this.spriteViewer = null;
     }
 
     init() {
@@ -42,6 +45,8 @@ export class App {
         this.initUI();
 
         this.image_library.loadAll();
+
+        this.spriteViewer = new SpriteViewer('../images/player_sheet.png');
 
         const game_map_promise = GameMap.load('level_01')
             .then(loadedLevel => { this.game_map = loadedLevel; })
@@ -53,6 +58,18 @@ export class App {
 
         Promise.all([game_map_promise, images_promise])
             .then(() => {
+                const playerImg = this.image_library.get('player_base');
+                this.spriteViewer = new SpriteViewer(playerImg,
+                    () => { // ON OPEN
+                        this.setPauseState(true);
+                        this.hideHUD();
+                    },
+                    () => { // ON CLOSE
+                        this.setPauseState(false);
+                        this.showHUD();
+                    }
+                );
+
                 this.initPhysics();
                 requestAnimationFrame(t => this.loop(t));
             })
@@ -90,17 +107,26 @@ export class App {
 
     onEscapeToggle() {
         if (this.state === 'running') {
+            this.setPauseState(true);
+        } else if (this.state === 'paused') {
+            this.setPauseState(false);
+        }
+    }
+
+    setPauseState(state) {
+        if (state == true) {
+            if (this.state == "paused") return;
             this.state = "paused";
             document.getElementById("pauseMenu").classList.add("is-active");
-        } else if (this.state === 'paused') {
+        } else {
+            if (this.state == "running") return;
             this.state = "running";
             document.getElementById("pauseMenu").classList.remove("is-active");
         }
     }
 
     onResumeClick(){
-        if (this.state === 'running') return;
-        this.onEscapeToggle();
+        this.setPauseState(false);
     }
 
     onQuitClick(){
@@ -200,6 +226,9 @@ export class App {
             this.keys[e.key.toLowerCase()] = true;
             if (e.key === 'Escape') {
                 this.onEscapeToggle();
+            } else if (e.key.toLowerCase() === 'v') {
+                if (this.state === "start_screen") return;
+                if (this.spriteViewer) this.spriteViewer.toggle();
             } else if (e.key.toLowerCase() === 'h') {
                 this.debugTileHighlight = !this.debugTileHighlight;
             } else if (this.state === 'running') {

@@ -37,6 +37,25 @@
             <button id="resumeButton">Resume</button>
             <button id="quitButton">Quit</button>
         </div>
+
+        <div id="spriteViewer" class="ui-panel">
+            <div class="viewer-header">
+                <h2>Sprite Viewer</h2>
+                <button id="closeViewer" class="close-x">×</button>
+            </div>
+            <div class="viewer-body">
+                <canvas id="viewerCanvas" width="128" height="128"></canvas>
+            </div>
+            <div class="viewer-controls">
+                <button id="prevAnim">PREV</button>
+                <div id="animLabel">
+                    <span id="animNameText">Walk Right</span>
+                    <small id="animDetailsText">Row 1 | 6 Frames</small>
+                </div>
+                <button id="nextAnim">NEXT</button>
+            </div>
+        </div>
+
     </div>
     <script type="module" src="js/main.js"></script>
 </body>
