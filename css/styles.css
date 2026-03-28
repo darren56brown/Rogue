@@ -207,19 +207,38 @@ button:hover {
 }
 
 /* Sprite Viewer Specifics */
+/* ====================== MAIN CONTAINER ====================== */
 #spriteViewer {
-    width: 600px;        /* slightly wider to comfortably fit canvas + direction pad */
+    /* Responsive Fixes: Stops hanging off the edge */
+    width: 95%;           /* Take up most of the screen on small windows */
+    max-width: 460px;     /* Stop growing at 460px on large windows */
+    box-sizing: border-box; 
+    overflow: hidden;     /* Safeguard: Cuts off anything that still pokes out */
+    
+    /* Your Original Styles */
     background: rgba(10, 15, 25, 0.95);
+    padding: 20px;
+    border-radius: 8px;   /* Optional: adds a nice rounded edge to the panel */
 }
 
+/* ====================== HEADER & CLOSE BUTTON ====================== */
 .viewer-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    
+    /* Alignment Fix: Moves X-button to the top corner */
+    align-items: flex-start; 
     margin-bottom: 15px;
 }
 
+.viewer-header h2 {
+    margin: 0;           /* Removes default header spacing to tighten the top */
+    color: white;
+    font-family: sans-serif;
+}
+
 .close-x {
+    /* Your Original Styles */
     background: transparent;
     border: none;
     font-size: 24px;
@@ -227,6 +246,8 @@ button:hover {
     margin: 0;
     color: #4a9eff;
     box-shadow: none;
+    cursor: pointer;
+    line-height: 1;      /* Ensures the X doesn't have extra "tallness" */
 }
 
 .close-x:hover {
@@ -235,34 +256,44 @@ button:hover {
     transform: none;
 }
 
-/* ====================== MAIN VIEWER AREA (canvas + direction pad) ====================== */
+/* ====================== MAIN VIEWER AREA (Canvas + D-Pad) ====================== */
 .viewer-main {
     display: flex;
-    align-items: flex-start;
     gap: 20px;
     margin-bottom: 15px;
+    
+    /* Responsive Fix: Wrap D-Pad below canvas if the window is too small */
+    flex-wrap: wrap;     
+    justify-content: center; 
+    align-items: flex-start;
 }
 
 .viewer-body {
     background: #1a1a1a;
     border: 2px solid #333;
     padding: 20px;
-    flex-shrink: 0;
+    
+    /* Responsive Fix: Allow the canvas container to shrink */
+    flex-shrink: 1;      
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 #viewerCanvas {
     image-rendering: pixelated;
-    width: 256px;
-    height: 256px;
+    /* Responsive Fix: Canvas scales down on tiny screens */
+    max-width: 100%;     
+    height: auto;
+    display: block;
 }
 
-/* Direction pad – now to the right of the canvas */
+/* ====================== DIRECTION PAD ====================== */
 .direction-pad {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 5px;
-    padding-top: 30px;   /* moves it "up" visually relative to the canvas */
+    /* padding-top: 30px; */ /* Removed so it aligns better when wrapping */
 }
 
 .dir-middle {
@@ -271,8 +302,7 @@ button:hover {
     gap: 5px;
 }
 
-.dir-btn,
-.idle-btn {
+.dir-btn, .idle-btn {
     background: #3a7ed8;
     color: white;
     border: 2px solid #4a9eff;
@@ -283,45 +313,26 @@ button:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.dir-btn {
-    width: 36px;
-    height: 36px;
-    font-size: 20px;
     border-radius: 6px;
 }
 
-.idle-btn {
-    width: 58px;
-    height: 36px;
-    font-size: 12px;
-    font-weight: bold;
-    border-radius: 6px;
-}
+.dir-btn { width: 36px; height: 36px; font-size: 20px; }
+.idle-btn { width: 58px; height: 36px; font-size: 12px; font-weight: bold; }
 
-.dir-btn:hover,
-.idle-btn:hover {
+.dir-btn:hover, .idle-btn:hover {
     background: #4a9eff;
     box-shadow: 0 0 25px rgba(74, 157, 255, 0.5);
     transform: translateY(-1px);
 }
 
-.dir-btn.active,
-.idle-btn.active {
+.dir-btn.active, .idle-btn.active {
     background: #4a9eff !important;
     border-color: #ffffff;
     box-shadow: 0 0 20px #4a9eff;
     transform: scale(1.08);
 }
 
-.dir-btn:disabled,
-.idle-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-/* ====================== CONTROLS BELOW ====================== */
+/* ====================== CONTROLS (Prev/Next) ====================== */
 .viewer-controls {
     width: 100%;
 }
@@ -362,10 +373,4 @@ button:hover {
     transition: all 0.3s;
     box-shadow: 0 0 15px rgba(74, 157, 255, 0.2);
     white-space: nowrap;
-}
-
-.small-btn:hover {
-    background: #4a9eff;
-    box-shadow: 0 0 25px rgba(74, 157, 255, 0.5);
-    transform: translateY(-1px);
 }
