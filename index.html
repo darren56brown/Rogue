@@ -43,21 +43,14 @@
                 <h2>Player</h2>
                 <button id="closeViewer" class="close-x">×</button>
             </div>
-            <div class="viewer-body">
-                <canvas id="viewerCanvas" width="128" height="128"></canvas>
-            </div>
-            <div class="viewer-controls">
-                <!-- Action selector row: PREV + Action Name + NEXT -->
-                <div class="action-row">
-                    <button id="prevAnim" class="small-btn">PREV</button>
-                    <div id="animLabel">
-                        <span id="animNameText">Walk Right</span>
-                        <small id="animDetailsText">Row 11 | 8 Frames</small>
-                    </div>
-                    <button id="nextAnim" class="small-btn">NEXT</button>
+            
+            <div class="viewer-main">
+                <!-- Canvas on the left -->
+                <div class="viewer-body">
+                    <canvas id="viewerCanvas" width="128" height="128"></canvas>
                 </div>
-
-                <!-- Direction pad below -->
+                
+                <!-- Direction pad up and to the right of the canvas -->
                 <div class="direction-pad">
                     <button id="dirUp" class="dir-btn">↑</button>
                     <div class="dir-middle">
@@ -66,6 +59,18 @@
                         <button id="dirRight" class="dir-btn">→</button>
                     </div>
                     <button id="dirDown" class="dir-btn">↓</button>
+                </div>
+            </div>
+
+            <!-- PREV + Label + NEXT below everything -->
+            <div class="viewer-controls">
+                <div class="action-row">
+                    <button id="prevAnim" class="small-btn">PREV</button>
+                    <div id="animLabel">
+                        <span id="animNameText">Walk Right</span>
+                        <small id="animDetailsText">Row 11 | 9 columns</small>
+                    </div>
+                    <button id="nextAnim" class="small-btn">NEXT</button>
                 </div>
             </div>
         </div>
