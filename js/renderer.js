@@ -115,7 +115,7 @@ export class Renderer {
             }
         }
 
-        const character_base = this.imageLibrary.get('player_base');
+        const character_base = this.imageLibrary.get(character.sprite_image_name);
         if (!character_base) {
             this.ctx.globalAlpha = oldAlpha;
             return;

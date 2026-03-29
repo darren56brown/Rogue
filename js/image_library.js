@@ -40,6 +40,7 @@ export class ImageLibrary {
 
     loadAll(){
         this.load('player_base', '../images/player_base.png');
+        this.load('orc_base', '../images/orc_base.png');
         this.load('player_shadow', '../images/player_shadow.png');
         this.load('iso_tiles', '../tilesets/iso_tiles.png');
     }
