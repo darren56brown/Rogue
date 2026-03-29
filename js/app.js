@@ -8,6 +8,7 @@ import { FPSTracker } from "./fps_tracker.js";
 import { cartesianToIso, isoToCartesian } from './util.js';
 import {vec2D, sub, magSq, mult, setAdd} from './vec2D.js';
 import { SpriteViewer } from './sprite_viewer.js';
+import { ConversationUI } from "./conversation_ui.js";
 
 export class App {
     constructor() {
@@ -37,6 +38,7 @@ export class App {
         this.healthPoints = 7;
 
         this.spriteViewer = null;
+        this.conversationUI = null;
     }
 
     init() {
@@ -61,6 +63,11 @@ export class App {
             .then(() => {
                 this.spriteViewer = new SpriteViewer(this.image_library,
                     () => { this.setPauseState(true); this.hideHUD(); },
+                    () => { this.setPauseState(false); this.showHUD(); }
+                );
+                this.conversationUI = new ConversationUI(
+                    this.image_library,
+                    () => { this.setPauseState(true); this.hideHUD(); },   // same callbacks as sprite viewer
                     () => { this.setPauseState(false); this.showHUD(); }
                 );
                 this.initPhysics();
@@ -218,14 +225,12 @@ export class App {
             char.updatePhysics(dt, this.game_map);
         }
 
-        //This should not really be the sprite viewer. Using
-        //this as a surrogate for a conversation or trade
-        //dialog!
         if (this.player.linedUpOnFollowTarget && this.player.followTarget) {
-            console.log("got here");
             const npc = this.player.followTarget;
-            this.player.stopFollowing();
-            this.spriteViewer.activate(npc);
+            if (npc.conversation) {
+                this.player.stopFollowing();
+                this.conversationUI.startConversation(npc);
+            }
         }
 
         const playerIso = this.player.getIsoPosition();

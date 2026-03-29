@@ -22,6 +22,7 @@ export class Npc extends Character {
         if (conversation_path.length) {
             this.conversation = new Conversation("../conversations/"
                 + conversation_path + ".json");
+            this.conversationKey = conversation_path;
             this.conversation.load();
         } else {
             this.conversation = null;

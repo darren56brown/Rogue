@@ -10,11 +10,7 @@ export class SpriteViewer {
         this.ctx.imageSmoothingEnabled = false;
 
         this.spriteSheet = null;  
-        //const sprite_image = this.image_library.get(character.sprite_image_name);
-        //this.spriteSheet = new SpriteSheet(sprite_image);
-        //this.spriteSheet.setIdle(false);
-        //this.spriteSheet.setDirection("Down");
-
+        
         this.onOpen = onOpen;
         this.onClose = onClose;
 
