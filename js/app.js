@@ -6,7 +6,7 @@ import { Npc } from "./npc.js";
 import { GameMap } from "./game_map.js";
 import { FPSTracker } from "./fps_tracker.js";
 import { cartesianToIso, isoToCartesian } from './util.js';
-import {vec2D, sub} from './vec2D.js';
+import {vec2D, sub, magSq, mult, setAdd} from './vec2D.js';
 import { SpriteViewer } from './sprite_viewer.js';
 
 export class App {
@@ -27,12 +27,13 @@ export class App {
 
         this.keys = {};   
         this.last_time = 0;
-        this.view_origin = {x: -20.875, y: -.875};
+        this.view_origin = vec2D(-20.875, -.875);
 
-        this.hoveredTile = null;
-        this.debugTileHighlight = false;
+        this.last_screen_pos = vec2D(0, 0);
+        this.highlighted_tile = null;
+        this.highlighted_character = null;
+        this.selected_character = null;
 
-        this.hoveredCharacter = null;
         this.healthPoints = 7;
 
         this.spriteViewer = null;
@@ -195,7 +196,10 @@ export class App {
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         } else {
             this.renderer.render(this.game_map, this.view_origin, this.characters,
-                this.hoveredTile, this.fps_tracker, this.hoveredCharacter);
+                this.highlighted_tile, this.highlighted_character,
+                this.selected_character);
+
+            if (this.fps_tracker) this.fps_tracker.render(this.ctx, 20, 20);
         }
 
         if (this.spriteViewer) {
@@ -219,10 +223,13 @@ export class App {
         const targetIsoY = playerIso.y - (APP_SIZE.h / 2);
 
         const targetWorld = isoToCartesian(targetIsoX, targetIsoY);
-        const lerpFactor = 0.2; 
-        this.view_origin.x += (targetWorld.x - this.view_origin.x) * lerpFactor * dt;
-        this.view_origin.y += (targetWorld.y - this.view_origin.y) * lerpFactor * dt;
-        //console.log(this.view_origin);
+        const lerpFactor = 0.2;
+
+        const view_origin_error = sub(targetWorld, this.view_origin);
+        if (magSq(view_origin_error) > 1e-3)
+            setAdd(this.view_origin, mult(view_origin_error, lerpFactor * dt));
+
+        this.updateHighlights();
     }
 
     initUserInput() {
@@ -234,16 +241,16 @@ export class App {
                 if (this.state === "start_screen") return;
                 if (this.spriteViewer.isActive) {
                     this.spriteViewer.deactivate();
+                } else if (this.selected_character) {
+                    this.spriteViewer.activate(this.selected_character);
                 } else {
                     this.spriteViewer.activate(this.player);
                 }
-            } else if (e.key.toLowerCase() === 'h') {
-                this.debugTileHighlight = !this.debugTileHighlight;
             } else if (this.state === 'running') {
                 const num = parseInt(e.key);
                 if (num >= 1 && num <= 9) {
-                    this.selectSlot(num - 1);
                     e.preventDefault();
+                    this.selectSlot(num - 1);
                 }
             }
         });
@@ -260,7 +267,8 @@ export class App {
             this.keys = {};
         });
 
-        this.canvas.addEventListener('click', (e) => this.onMouseClick(e));
+        this.canvas.addEventListener('click', (e) => this.onLeftMouseClick(e));
+        this.canvas.addEventListener('contextmenu', (e) => this.onRightMouseClick(e));
         this.canvas.style.cursor = 'crosshair';
 
         this.canvas.addEventListener('mousedown', (e) => {
@@ -268,14 +276,6 @@ export class App {
         });
 
         this.canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
-
-        this.canvas.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            if (this.player) {
-                this.player.clearPath();
-                this.player.stopFollowing();
-            }
-        });
     }
 
     screenToWorld(screenPos, z = 0) {
@@ -292,25 +292,25 @@ export class App {
     }
 
     onMouseMove(e) {
-        if (this.state !== "running" || !this.game_map || !this.player) {
-            this.hoveredTile = null;
-            this.hoveredCharacter = null;
-            return;
-        }
-
-        const screenPos = this.getPositionFromEvent(e);
-
-        // tile highlight (only when debug is on)
-        if (this.debugTileHighlight) {
-            this.hoveredTile = this.getHoveredTile(screenPos);
-        } else {
-            this.hoveredTile = null;
-        }
-
-        this.hoveredCharacter = this.getHoveredCharacter(screenPos);
+        this.last_screen_pos = this.getPositionFromEvent(e);
+        this.updateHighlights();
     }
 
-    getHoveredTile(screenPos) {
+    updateHighlights() {
+        if (this.state !== "running") {
+            this.highlighted_tile = null;
+            this.highlighted_character = null;
+            return;
+        }
+        this.highlighted_character = this.getMouseOverCharacter(this.last_screen_pos);
+        if (this.highlighted_character) {
+            this.highlighted_tile = null;
+        } else {
+            this.highlighted_tile = this.getMouseOverTile(this.last_screen_pos);
+        }
+    }
+
+    getMouseOverTile(screenPos) {
         if (!this.game_map?.isLoaded) return null;
 
         for (let i = this.game_map.layers.length - 1; i >= 0; i--) {
@@ -329,7 +329,7 @@ export class App {
         return null;
     }
 
-    getHoveredCharacter(screenPos) {
+    getMouseOverCharacter(screenPos) {
         if (!this.characters || this.characters.length === 0 || !this.renderer) return null;
 
         const viewIso = cartesianToIso(this.view_origin.x, this.view_origin.y, 0);
@@ -366,30 +366,39 @@ export class App {
         return bestChar;
     }
 
-    onMouseClick(e) {
-        if (this.state !== "running" || !this.player || !this.game_map) return;
+    onLeftMouseClick(e) {
+        if (this.state !== "running") return;
 
-        const clickPos = this.getPositionFromEvent(e);
+        this.player.clearPath();
+        this.player.stopFollowing();
 
-        const hoveredChar = this.getHoveredCharacter(clickPos);
-        if (hoveredChar && hoveredChar !== this.player) {
-            this.player.startFollowing(hoveredChar);
+        if (this.highlighted_character && this.highlighted_character !== this.player) {
+            this.selected_character = this.highlighted_character;
+            return;
+        }
+        this.selected_character = null;
+    }
+
+    onRightMouseClick(e) {
+        e.preventDefault();
+        if (this.state !== "running") return;
+
+        if (this.highlighted_character && this.highlighted_character !== this.player) {
+            this.selected_character = this.highlighted_character;
+            this.player.startFollowing(this.highlighted_character);
             return;
         }
 
-        const clickedTile = this.getHoveredTile(clickPos);
-        if (!clickedTile) {
-            this.player.clearPath();
+        if (this.highlighted_tile) {
+            const tile_z = this.highlighted_tile.layerZ;
+            const screen_pos = this.getPositionFromEvent(e);
+            const world_pos_xy = this.screenToWorld(screen_pos, tile_z);
+            this.player.moveTo(this.game_map, {x: world_pos_xy.x, y: world_pos_xy.y, z: tile_z});
             return;
         }
 
-        if (this.player.followTarget) {
-            this.player.stopFollowing();   // ← clicking ground while following cancels follow
-        }
-
-        const goalZ = clickedTile.layerZ;
-        const world_pos_xy = this.screenToWorld(clickPos, goalZ);
-        this.player.buildPathToPosition(this.game_map, world_pos_xy, goalZ);
+        this.player.clearPath();
+        this.player.stopFollowing();
     }
 
     createHUD() {

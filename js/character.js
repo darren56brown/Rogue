@@ -201,8 +201,8 @@ export class Character {
     }
 
     setWaypoints(waypoints) {
-        this.waypoints = waypoints || [];
-        this.currentWaypointIndex = 1;
+        this.currentWaypointIndex = waypoints.length ? 1 : 0;
+        this.waypoints = waypoints;
     }
 
     clearPath() {

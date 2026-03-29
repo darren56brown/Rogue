@@ -9,13 +9,18 @@ export class Renderer {
         this.ctx.imageSmoothingEnabled = false;
         this.imageLibrary = imageLibrary;
 
-        this.hoveredCharacter = null;   // ← NEW
+     
+        this.highlighted_character = null;
+        this.selected_character = null;
+        this.highlighted_tile = null;
     }
 
-    render(current_map, view_origin, characters, hoveredTile, fpsTracker, hoveredCharacter = null) {
+    render(current_map, view_origin, characters, highlighted_tile,
+        highlighted_character, selected_character) {
         this.current_map = current_map;
-        this.hoveredTile = hoveredTile;
-        this.hoveredCharacter = hoveredCharacter;   // ← NEW
+        this.highlighted_tile = highlighted_tile;
+        this.highlighted_character = highlighted_character;
+        this.selected_character = selected_character;
 
         this.ctx.fillStyle = "#829e71";
         this.ctx.fillRect(0, 0, APP_SIZE.w, APP_SIZE.h);
@@ -23,10 +28,6 @@ export class Renderer {
         this.view_origin_iso = cartesianToIso(view_origin.x, view_origin.y, 0);
         
         this.renderGameMap(characters);
-
-        if (fpsTracker) {
-            fpsTracker.render(this.ctx, 20, 20);
-        }
     }
 
     renderGameMap(characters) {
@@ -59,9 +60,7 @@ export class Renderer {
             while (nextCharacterIdx < characters.length) {
                 const nextCharacter = characters[nextCharacterIdx];
                 if (nextCharacter.compareToSortInfo(xy_sort, z_sort) > 0) break;
-
-                const isHovered = (nextCharacter === this.hoveredCharacter);
-                this.renderCharacter(nextCharacter, false, isHovered);   // ← updated
+                this.renderCharacter(nextCharacter, false);
                 nextCharacterIdx++;
             }
 
@@ -73,28 +72,29 @@ export class Renderer {
                 info.sw, info.sh);
             if (opacity !== 1) this.ctx.globalAlpha = 1;
 
-            if (this.hoveredTile &&
-                drawItem.x === this.hoveredTile.tileCoord.x &&
-                drawItem.y === this.hoveredTile.tileCoord.y &&
-                Math.abs(drawItem.layer.zHeight - this.hoveredTile.layerZ) < 0.1) {
+            if (this.highlighted_tile &&
+                drawItem.x === this.highlighted_tile.tileCoord.x &&
+                drawItem.y === this.highlighted_tile.tileCoord.y &&
+                Math.abs(drawItem.layer.zHeight - this.highlighted_tile.layerZ) < 0.1) {
                 this.drawIsoTileOutline(screen_pos_ul);
             }
         }
 
         while (nextCharacterIdx < characters.length) {
             const nextCharacter = characters[nextCharacterIdx];
-            const isHovered = (nextCharacter === this.hoveredCharacter);
-            this.renderCharacter(nextCharacter, false, isHovered);   // ← updated
+            this.renderCharacter(nextCharacter, false);   // ← updated
             nextCharacterIdx++;
         }
 
         // Ghost pass (behind walls) – never glow
         for (const character of characters) {
-            this.renderCharacter(character, true, false);
+            this.renderCharacter(character, true);
         }
     }
 
-    renderCharacter(character, forGhost = false, isHovered = false) {
+    renderCharacter(character, forGhost) {
+        const highlighted = character == this.highlighted_character ||
+            character == this.selected_character;
         const characterInScreen = sub(character.getIsoPosition(), this.view_origin_iso);
         const character_ul = sub(characterInScreen, character.origin);
         const oldAlpha = this.ctx.globalAlpha;
@@ -131,9 +131,12 @@ export class Renderer {
             this.offCtx = this.offscreen.getContext('2d');
         }
 
-        if (isHovered && !forGhost) {
-            const x_thickness = 8;
-            const y_thickness = 4;
+        if (highlighted && !forGhost) {
+            const double_highlighted = character == this.highlighted_character &&
+                character == this.selected_character;
+
+            const x_thickness = double_highlighted ? 4.5 : 3;
+            const y_thickness = double_highlighted ? 4.5 : 3;
             this.offscreen.width = sw + (x_thickness * 2);
             this.offscreen.height = sh + (y_thickness * 2);
 
@@ -175,14 +178,16 @@ export class Renderer {
     }
 
     drawIsoTileOutline(screen_pos_ul) {
+        return;
+
         const x = Math.floor(screen_pos_ul.x);
         const y = Math.floor(screen_pos_ul.y);
 
         this.ctx.save();
-        this.ctx.strokeStyle = "#ffaa0065";
+        this.ctx.strokeStyle = "#ffaa00";
         this.ctx.lineWidth = 2;
-        this.ctx.shadowColor = "#ff5500";
-        this.ctx.shadowBlur = 4;
+        //this.ctx.shadowColor = "#ff5500";
+        //this.ctx.shadowBlur = 4;
         this.ctx.lineJoin = "round";
 
         this.ctx.beginPath();

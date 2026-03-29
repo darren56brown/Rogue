@@ -1,6 +1,7 @@
 import { Character } from "./character.js";
 import { GameItem } from "./game_item.js";
 import { PlayerFacing } from "./character.js";
+import {vec2D} from './vec2D.js';
 
 export class Player extends Character {
     constructor(world_pos, image_library, sprite_image_name) {
@@ -118,15 +119,21 @@ export class Player extends Character {
 
     // ====================== IMPROVED FOLLOW MODE ======================
     startFollowing(target) {
-        if (!target || target === this) return;
-        this.followTarget = target;
-        this.followLastDesiredPos = null;   // force immediate rebuild
+        if (!target || target == this || target == this.followTarget) return;
         this.clearPath();
+        this.followTarget = target;
+        this.followLastDesiredPos = null;
     }
 
     stopFollowing() {
+        this.clearPath();
         this.followTarget = null;
         this.followLastDesiredPos = null;
+    }
+
+    moveTo(game_map, world_pos) {
+        this.stopFollowing();
+        this.buildPathToPosition(game_map, vec2D(world_pos.x, world_pos.y), world_pos.z);
     }
 
     // Override so we can inject follow logic before the normal movement code
