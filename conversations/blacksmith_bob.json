@@ -1,0 +1,80 @@
+{
+  "id": "blacksmith_bob",
+  "roots": ["start"],
+  "nodes": {
+    "start": {
+      "npcText": "Well, if it isn't the new adventurer in town! What can I do for ya?",
+      "choices": [
+        {
+          "playerText": "Who are you?",
+          "next": "who_are_you"
+        },
+        {
+          "playerText": "What's the latest news around here?",
+          "next": "town_news"
+        },
+        {
+          "playerText": "Got any work for me?",
+          "next": "quest"
+        }
+      ]
+    },
+    "who_are_you": {
+      "npcText": "Name's Bob. Been the town blacksmith for 20 years now.",
+      "choices": [
+        {
+          "playerText": "Cool, tell me more about blacksmithing.",
+          "next": "blacksmith_story"
+        },
+        {
+          "playerText": "Thanks, that's all.",
+          "next": "end"
+        }
+      ]
+    },
+    "blacksmith_story": {
+      "npcText": "It's a tough job, but I love the heat of the forge. Back in the day I forged the king's own sword, y'know...",
+      "choices": [
+        {
+          "playerText": "Fascinating! Tell me more.",
+          "next": "end"
+        }
+      ]
+    },
+    "town_news": {
+      "npcText": "Heard there's trouble at the old mill. Monsters or somethin'. Folks are stayin' away.",
+      "choices": [
+        {
+          "playerText": "Thanks for the tip!",
+          "next": "end"
+        }
+      ]
+    },
+    "quest": {
+      "npcText": "Actually, yes. My favorite hammer went missing last week. Think you could find it for me?",
+      "choices": [
+        {
+          "playerText": "Sure, I'll look for it.",
+          "next": "quest_accepted"
+        },
+        {
+          "playerText": "Sorry, not right now.",
+          "next": "end"
+        }
+      ]
+    },
+    "quest_accepted": {
+      "npcText": "Great! Bring it back and I'll reward ya handsomely. Good luck!",
+      "choices": [
+        {
+          "playerText": "Will do.",
+          "next": "end"
+        }
+      ]
+    },
+    "end": {
+      "npcText": "Take care out there, adventurer!",
+      "choices": []
+    }
+  }
+}

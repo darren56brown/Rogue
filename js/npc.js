@@ -1,5 +1,5 @@
 import { Character } from "./character.js";
-import { PlayerFacing } from "./character.js";
+import {Conversation} from "./conversation.js"
 
 const NPC_STATES = Object.freeze({
     ENGAGED:  'engaged',
@@ -10,7 +10,7 @@ const NPC_STATES = Object.freeze({
 });
 
 export class Npc extends Character {
-    constructor(world_pos, image_library, sprite_image_name) {
+    constructor(world_pos, image_library, sprite_image_name, conversation_path) {
         super(world_pos, image_library, sprite_image_name);
 
         this.currentState = NPC_STATES.STANDING;
@@ -18,6 +18,14 @@ export class Npc extends Character {
         this.targetTimeInState = 0;
 
         this._transitionTo(NPC_STATES.STANDING);
+
+        if (conversation_path.length) {
+            this.conversation = new Conversation("../conversations/"
+                + conversation_path + ".json");
+            this.conversation.load();
+        } else {
+            this.conversation = null;
+        }
     }
 
     updatePhysics(dt, game_map) {

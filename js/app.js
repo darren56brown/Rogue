@@ -79,11 +79,11 @@ export class App {
         this.characters.push(this.player);
 
         this.characters.push(new Npc({x: 4.5, y: 2.5, z: 1},
-            this.image_library, "orc_base"));
+            this.image_library, "orc_base", "blacksmith_bob"));
         this.characters.push(new Npc({x: 6.5, y: 5.5, z: 1},
-            this.image_library, "orc_base"));
+            this.image_library, "orc_base", ""));
         this.characters.push(new Npc({x: 1.5, y: 2.5, z: 1},
-            this.image_library, "orc_base"));
+            this.image_library, "orc_base", ""));
 
         this.createHUD();
 
