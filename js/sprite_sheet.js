@@ -97,13 +97,6 @@ export class SpriteSheet {
         this.currentFrame = 0;
     }
 
-    setIdle(isIdle) {
-        const current = this.getCurrentAnimation();
-        if (current.hasIdle) {
-            this.isIdle = isIdle;
-        }
-    }
-
     setCharacterFacing(facing) {
         this.currentDirection = facingToDir[facing];
     }
@@ -114,10 +107,11 @@ export class SpriteSheet {
         this.isIdle = false;
     }
 
-    toggleIdle() {
+    setIsIdle(state) {
         const current = this.getCurrentAnimation();
         if (!current.hasIdle) return;
-        this.isIdle = !this.isIdle;
+        if (this.isIdle == state) return;
+        this.isIdle = state;
         this.currentFrame = 0;
     }
 

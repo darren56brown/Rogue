@@ -1,2 +1,3 @@
 
 https://liberatedpixelcup.github.io/Universal-LPC-Spritesheet-Character-Generator/#sex=male&head=Human_Male_light&expression=Neutral_light&legs=Shorts_white&shoes=Sandals_leather&body=Body_Color_light&hair=Buzzcut_light%20brown&clothes=Original_Sleeveless_white
+https://liberatedpixelcup.github.io/Universal-LPC-Spritesheet-Character-Generator/#sex=male&body=Body_Color_pale_green&head=Orc_male_pale_green&expression=Neutral_pale_green&hair=Shorthawk_raven&legs=Pants_leather&clothes=Original_Sleeveless_leather

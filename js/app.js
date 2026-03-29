@@ -59,11 +59,9 @@ export class App {
         Promise.all([game_map_promise, images_promise])
             .then(() => {
                 this.spriteViewer = new SpriteViewer(this.image_library,
-                    "player_base",
                     () => { this.setPauseState(true); this.hideHUD(); },
                     () => { this.setPauseState(false); this.showHUD(); }
                 );
-
                 this.initPhysics();
                 requestAnimationFrame(t => this.loop(t));
             })
@@ -234,7 +232,11 @@ export class App {
                 this.onEscapeToggle();
             } else if (e.key.toLowerCase() === 'v') {
                 if (this.state === "start_screen") return;
-                if (this.spriteViewer) this.spriteViewer.toggle();
+                if (this.spriteViewer.isActive) {
+                    this.spriteViewer.deactivate();
+                } else {
+                    this.spriteViewer.activate(this.player);
+                }
             } else if (e.key.toLowerCase() === 'h') {
                 this.debugTileHighlight = !this.debugTileHighlight;
             } else if (this.state === 'running') {

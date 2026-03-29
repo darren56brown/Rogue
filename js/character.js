@@ -33,6 +33,8 @@ export class Character {
     #z = 0;
 
     constructor(world_pos, image_library, sprite_image_name) {
+        this.sprite_image_name = sprite_image_name;
+
         this.size = {
             w: PLAYER_ANIM_FRAME_SIZE.w,
             h: PLAYER_ANIM_FRAME_SIZE.h
@@ -50,7 +52,7 @@ export class Character {
 
         this.imageCoord = {row: 0, col: 0};
 
-        const sprite_image = image_library.get(sprite_image_name);
+        const sprite_image = image_library.get(this.sprite_image_name);
         if (sprite_image) {
             this.spriteSheet = new SpriteSheet(sprite_image);
         }
@@ -184,10 +186,10 @@ export class Character {
             this.moveXYZ(delta_vec.x, delta_vec.y, delta_vec.z);
 
             this.spriteSheet.setAction("Walk");
-            this.spriteSheet.setIdle(false);
+            this.spriteSheet.setIsIdle(false);
         } else {
             this.spriteSheet.setAction("Walk");
-            this.spriteSheet.setIdle(true);
+            this.spriteSheet.setIsIdle(true);
         }
 
         this.spriteSheet.setCharacterFacing(this.curFacing);

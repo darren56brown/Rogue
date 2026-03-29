@@ -1,7 +1,7 @@
 import { SpriteSheet } from './sprite_sheet.js';
 
 export class SpriteViewer {
-    constructor(image_library, sprite_image_name, onOpen, onClose) {
+    constructor(image_library, onOpen, onClose) {
         this.image_library = image_library;
 
         this.container = document.getElementById('spriteViewer');
@@ -9,10 +9,11 @@ export class SpriteViewer {
         this.ctx = this.canvas.getContext('2d');
         this.ctx.imageSmoothingEnabled = false;
 
-        const sprite_image = this.image_library.get(sprite_image_name);
-        this.spriteSheet = new SpriteSheet(sprite_image);
-        this.spriteSheet.setIdle(false);
-        this.spriteSheet.setDirection("Down");
+        this.spriteSheet = null;  
+        //const sprite_image = this.image_library.get(character.sprite_image_name);
+        //this.spriteSheet = new SpriteSheet(sprite_image);
+        //this.spriteSheet.setIdle(false);
+        //this.spriteSheet.setDirection("Down");
 
         this.onOpen = onOpen;
         this.onClose = onClose;
@@ -23,7 +24,7 @@ export class SpriteViewer {
     }
 
     initUIEvents() {
-        document.getElementById('closeViewer').onclick = () => this.close();
+        document.getElementById('closeViewer').onclick = () => this.deactivate();
 
         document.getElementById('prevAnim').onclick = () => this.changeAction(-1);
         document.getElementById('nextAnim').onclick = () => this.changeAction(1);
@@ -44,20 +45,24 @@ export class SpriteViewer {
         this.idleBtn.onclick = () => this.toggleIdle();
     }
 
-    toggle() { this.isActive ? this.close() : this.open(); }
+    activate(character) {
+        this.deactivate();
 
-    open() {
-        if (this.isActive) return;
+        const sprite_image = this.image_library.get(character.sprite_image_name);
+        this.spriteSheet = new SpriteSheet(sprite_image);
+        this.spriteSheet.setIsIdle(false);
+        this.spriteSheet.setDirection("Down");
 
         this.isActive = true;
         this.container.classList.add('is-active');
         this.onOpen();
-
         this.updateAllUI();
     }
 
-    close() {
+    deactivate() {
         if (!this.isActive) return;
+
+        this.spriteSheet = null;
 
         this.isActive = false;
         this.container.classList.remove('is-active');
@@ -71,7 +76,7 @@ export class SpriteViewer {
     }
 
     toggleIdle() {
-        this.spriteSheet.toggleIdle();
+        this.spriteSheet.setIsIdle(!this.spriteSheet.isIdle);
         this.updateAllUI();
     }
 
