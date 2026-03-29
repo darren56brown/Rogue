@@ -3,8 +3,8 @@ import { GameItem } from "./game_item.js";
 import { PlayerFacing } from "./character.js";
 
 export class Player extends Character {
-    constructor(posXY, z) {
-        super(posXY, z);
+    constructor(world_pos, image_library, sprite_image_name) {
+        super(world_pos, image_library, sprite_image_name);
 
         // Player-specific inventory system
         this.inventory = [];        // Full inventory: array of {item: GameItem, count: number}

@@ -46,7 +46,7 @@ export class App {
 
         this.image_library.loadAll();
 
-        this.spriteViewer = new SpriteViewer('../images/player_sheet.png');
+        this.spriteViewer = null;
 
         const game_map_promise = GameMap.load('level_01')
             .then(loadedLevel => { this.game_map = loadedLevel; })
@@ -58,16 +58,10 @@ export class App {
 
         Promise.all([game_map_promise, images_promise])
             .then(() => {
-                const playerImg = this.image_library.get('player_base');
-                this.spriteViewer = new SpriteViewer(playerImg,
-                    () => { // ON OPEN
-                        this.setPauseState(true);
-                        this.hideHUD();
-                    },
-                    () => { // ON CLOSE
-                        this.setPauseState(false);
-                        this.showHUD();
-                    }
+                this.spriteViewer = new SpriteViewer(this.image_library,
+                    "player_base",
+                    () => { this.setPauseState(true); this.hideHUD(); },
+                    () => { this.setPauseState(false); this.showHUD(); }
                 );
 
                 this.initPhysics();
@@ -79,14 +73,18 @@ export class App {
     initPhysics() {
         this.characters = [];
 
-        this.player = new Player({x: 1.5, y: 1.5}, 1);
-        this.player.initializeDefaultItems();   // All item setup now lives on Player
+        this.player = new Player({x: 1.5, y: 1.5, z: 1},
+            this.image_library, "player_base");
+        this.player.initializeDefaultItems();
 
         this.characters.push(this.player);
 
-        this.characters.push(new Npc({x: 4.5, y: 2.5}, 1));
-        this.characters.push(new Npc({x: 6.5, y: 5.5}, 1));
-        this.characters.push(new Npc({x: 1.5, y: 2.5}, 1));
+        this.characters.push(new Npc({x: 4.5, y: 2.5, z: 1},
+            this.image_library, "player_base"));
+        this.characters.push(new Npc({x: 6.5, y: 5.5, z: 1},
+            this.image_library, "player_base"));
+        this.characters.push(new Npc({x: 1.5, y: 2.5, z: 1},
+            this.image_library, "player_base"));
 
         this.createHUD();
 
@@ -201,9 +199,17 @@ export class App {
             this.renderer.render(this.game_map, this.view_origin, this.characters,
                 this.hoveredTile, this.fps_tracker, this.hoveredCharacter);
         }
+
+        if (this.spriteViewer) {
+            this.spriteViewer.draw();
+        }
     }
 
     updatePhysics(dt) {
+        if (this.spriteViewer) {
+            this.spriteViewer.updatePhysics(dt);
+        }
+
         if (this.state !== "running") return;
 
         for (const char of this.characters) {

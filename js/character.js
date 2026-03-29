@@ -1,23 +1,10 @@
-import {PLAYER_ANIM_FRAME_SIZE, PLAYER_TILE_ORIGIN} from "./constants.js";
-import {PLAYER_ANIM_FPS, MOVE_TARGET_TOL} from "./constants.js";
+import {PLAYER_ANIM_FRAME_SIZE, PLAYER_TILE_ORIGIN, MOVE_TARGET_TOL} from "./constants.js";
 import {vec2D, add, sub, mult, setAdd, norm, div, intersect, dist} from './vec2D.js';
 import {cartesianToIso, getTileCoordFromXY, isoCompare} from './util.js';
-
-const AnimWalkSequence = Object.freeze({
-    neutral_1: 0,
-    left_half_1: 1,
-    left_forward: 2,
-    left_half_2: 3,
-    neutral_2: 4,
-    right_half_1: 5,
-    right_forward : 6,
-    right_half_2: 7,
-    num_frames: 8
-});
+import {SpriteSheet} from './sprite_sheet.js';
 
 // ==================== 8-DIRECTION WORLD FACING SYSTEM ====================
 // North = -y, West = -x (world coordinates)
-// Screen: NW = up, NE = right, SE = down, SW = left
 export const PlayerFacing = Object.freeze({
     face_nw: 0,   // North-West
     face_n:  1,   // North
@@ -28,34 +15,6 @@ export const PlayerFacing = Object.freeze({
     face_sw: 6,   // South-West
     face_w:  7    // West
 });
-
-// Animation row mapping based on your sprite sheet and requested rules:
-// W, S, SW → left animation
-// N, NE, E → right animation
-// NW → up animation
-// SE → down animation
-const PlayerImageRow = new Map([
-    [PlayerFacing.face_nw, 8],   // NW uses up row
-    [PlayerFacing.face_n,  11],  // N, NE, E use right row
-    [PlayerFacing.face_ne, 11],
-    [PlayerFacing.face_e,  11],
-    [PlayerFacing.face_se, 10],  // SE uses down row
-    [PlayerFacing.face_s,  9],   // S, SW, W use left row
-    [PlayerFacing.face_sw, 9],
-    [PlayerFacing.face_w,  9]
-]);
-
-// Walk cycle column offset for each facing's animation row
-const AnimWalkSequenceOffset = new Map([
-    [PlayerFacing.face_nw, 0],   // up
-    [PlayerFacing.face_n,  6],   // right
-    [PlayerFacing.face_ne, 6],
-    [PlayerFacing.face_e,  6],
-    [PlayerFacing.face_se, 0],   // down
-    [PlayerFacing.face_s,  2],   // left
-    [PlayerFacing.face_sw, 2],
-    [PlayerFacing.face_w,  2]
-]);
 
 // World direction vectors for determining facing from movement
 const FACING_DIRECTIONS = Object.freeze([
@@ -73,7 +32,7 @@ export class Character {
     #pos_xy = {x: 0, y: 0};
     #z = 0;
 
-    constructor(posXY, z) {
+    constructor(world_pos, image_library, sprite_image_name) {
         this.size = {
             w: PLAYER_ANIM_FRAME_SIZE.w,
             h: PLAYER_ANIM_FRAME_SIZE.h
@@ -87,14 +46,17 @@ export class Character {
         this.speed = .7;
         this.fall_speed = 1.5;
 
-        this.curFacing = PlayerFacing.face_s;   // default facing = South
-        this.curWalkFrame = AnimWalkSequence.num_frames;
-        this.animTimer = 0;
+        this.curFacing = PlayerFacing.face_se;
 
         this.imageCoord = {row: 0, col: 0};
 
-        this.setPositionXY(posXY);
-        this.setZ(z);
+        const sprite_image = image_library.get(sprite_image_name);
+        if (sprite_image) {
+            this.spriteSheet = new SpriteSheet(sprite_image);
+        }
+
+        this.setPositionXY(vec2D(world_pos.x, world_pos.y));
+        this.setZ(world_pos.z);
 
         this.waypoints = [];
         this.currentWaypointIndex = 0;
@@ -141,11 +103,11 @@ export class Character {
 
     compareToOther(other) {
         return this.compareToSortInfo(other.#pos_xy, other.#z + 0.5);
-    };
+    }
 
     compareToSortInfo(xy_sort, z_sort) {
         return isoCompare(this.#pos_xy, this.#z + 0.5, xy_sort, z_sort);
-    };
+    }
 
     getIsoPosition() {
         return cartesianToIso(this.#pos_xy.x, this.#pos_xy.y, this.#z);
@@ -190,7 +152,7 @@ export class Character {
                 z: world_move_vec.z / world_move_mag
             };
 
-            // Determine facing from horizontal movement (8 world directions)
+            // Determine facing
             const move_horiz_mag = Math.hypot(unit_move_vec.x, unit_move_vec.y);
             if (move_horiz_mag > 1e-6) {
                 let bestDot = -Infinity;
@@ -208,7 +170,6 @@ export class Character {
                 }
                 this.curFacing = bestFacing;
             }
-            // (falling or pure vertical movement keeps current facing)
 
             let speed = this.speed;
             if (Math.abs(unit_move_vec.z) > 0.2) speed = this.fall_speed;
@@ -222,34 +183,19 @@ export class Character {
 
             this.moveXYZ(delta_vec.x, delta_vec.y, delta_vec.z);
 
-            // Start walking animation if we were standing
-            if (this.curWalkFrame === AnimWalkSequence.num_frames) {
-                this.curWalkFrame = AnimWalkSequence.neutral_1;
-                this.animTimer = 0;
-            }
+            this.spriteSheet.setAction("Walk");
+            this.spriteSheet.setIdle(false);
         } else {
-            // Stop walking animation when idle on a neutral frame
-            if (this.curWalkFrame === AnimWalkSequence.neutral_1 ||
-                this.curWalkFrame === AnimWalkSequence.neutral_2) {
-                this.curWalkFrame = AnimWalkSequence.num_frames;
-                this.animTimer = 0;
-            }
+            this.spriteSheet.setAction("Walk");
+            this.spriteSheet.setIdle(true);
         }
 
-        this.imageCoord.row = PlayerImageRow.get(this.curFacing);
+        this.spriteSheet.setCharacterFacing(this.curFacing);
+        this.spriteSheet.update(dt);
 
-        if (this.curWalkFrame !== AnimWalkSequence.num_frames) {
-            this.animTimer += dt;
-            if (this.animTimer > 1 / PLAYER_ANIM_FPS) {
-                this.animTimer = 0;
-                this.curWalkFrame = (this.curWalkFrame + 1) % AnimWalkSequence.num_frames;
-            }
-            const colOffset = AnimWalkSequenceOffset.get(this.curFacing);
-            this.imageCoord.col = 1 + (this.curWalkFrame + colOffset) % 8;
-        } else {
-            // Standing still
-            this.imageCoord.col = 0;
-        }
+        const coord = this.spriteSheet.getCurrentImageCoord();
+        this.imageCoord.row = coord.row;
+        this.imageCoord.col = coord.col;
     }
 
     setWaypoints(waypoints) {
@@ -266,8 +212,7 @@ export class Character {
         const start_pos_xy = this.getPositionXY();
         const startZ = this.getZ();
 
-        const tilePath = game_map.findPath(start_pos_xy, startZ,
-            goal_pos_xy, goal_z);
+        const tilePath = game_map.findPath(start_pos_xy, startZ, goal_pos_xy, goal_z);
 
         if (!tilePath.length) {
             this.clearPath();
@@ -278,8 +223,7 @@ export class Character {
         this._pushWaypoint(waypoints, start_pos_xy.x, start_pos_xy.y, startZ);
         for (let i = 1; i < tilePath.length - 1; ++i) {
             const pathPoint = tilePath[i];
-            this._pushWaypoint(waypoints, pathPoint.x + 0.5,
-                pathPoint.y + 0.5, pathPoint.z);
+            this._pushWaypoint(waypoints, pathPoint.x + 0.5, pathPoint.y + 0.5, pathPoint.z);
         }
         this._pushWaypoint(waypoints, goal_pos_xy.x, goal_pos_xy.y, goal_z);
         this.setWaypoints(waypoints);
@@ -299,8 +243,7 @@ export class Character {
             return;
         }
 
-        const from_tile_center = add(getTileCoordFromXY(last_waypoint.x, last_waypoint.y),
-            vec2D(0.5, 0.5));
+        const from_tile_center = add(getTileCoordFromXY(last_waypoint.x, last_waypoint.y), vec2D(0.5, 0.5));
         const to_tile_center = add(getTileCoordFromXY(x, y), vec2D(0.5, 0.5));
         const unit_tile_to_tile_dir = norm(sub(to_tile_center, from_tile_center));
         const along_edge = vec2D(-unit_tile_to_tile_dir.y, unit_tile_to_tile_dir.x);
@@ -351,3 +294,4 @@ export class Character {
         waypoints.push({x: x, y: y, z: z}); 
     }
 }
+

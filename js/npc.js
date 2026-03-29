@@ -10,8 +10,8 @@ const NPC_STATES = Object.freeze({
 });
 
 export class Npc extends Character {
-    constructor(posXY, z) {
-        super(posXY, z);
+    constructor(world_pos, image_library, sprite_image_name) {
+        super(world_pos, image_library, sprite_image_name);
 
         this.currentState = NPC_STATES.STANDING;
         this.timeInState = 0;
