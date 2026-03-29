@@ -28,6 +28,14 @@ export class Npc extends Character {
         }
     }
 
+    startConversation() {
+        if (!this.conversation) return;
+
+        this.engage();
+
+        //TODO, add conversation stuff here
+    }
+
     updatePhysics(dt, game_map) {
         super.updatePhysics(dt, game_map);   // movement + animation still works exactly as before
         this._updateAI(dt, game_map);

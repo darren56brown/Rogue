@@ -15,6 +15,7 @@ export class Player extends Character {
         // === FOLLOW MODE (improved) ===
         this.followTarget = null;          // Npc reference or null
         this.followLastDesiredPos = null;  // {x, y, z} of the exact spot we last built a path to
+        this.linedUpOnFollowTarget = false;
     }
 
     // Initialize starting items (unchanged)
@@ -129,6 +130,7 @@ export class Player extends Character {
         this.clearPath();
         this.followTarget = null;
         this.followLastDesiredPos = null;
+        this.linedUpOnFollowTarget = false;
     }
 
     moveTo(game_map, world_pos) {
@@ -145,6 +147,7 @@ export class Player extends Character {
     }
 
     _updateFollow(dt, game_map) {
+        this.linedUpOnFollowTarget = false;
         if (!this.followTarget || !game_map) return;
 
         const npc = this.followTarget;
@@ -194,6 +197,7 @@ export class Player extends Character {
             const oppositeFacing = (facing + 4) % 8;
             this.curFacing = oppositeFacing;
 
+            this.linedUpOnFollowTarget = true;
             return;   // we are perfectly positioned — no more movement this frame
         }
 

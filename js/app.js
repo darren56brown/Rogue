@@ -218,6 +218,16 @@ export class App {
             char.updatePhysics(dt, this.game_map);
         }
 
+        //This should not really be the sprite viewer. Using
+        //this as a surrogate for a conversation or trade
+        //dialog!
+        if (this.player.linedUpOnFollowTarget && this.player.followTarget) {
+            console.log("got here");
+            const npc = this.player.followTarget;
+            this.player.stopFollowing();
+            this.spriteViewer.activate(npc);
+        }
+
         const playerIso = this.player.getIsoPosition();
         const targetIsoX = playerIso.x - (APP_SIZE.w / 2);
         const targetIsoY = playerIso.y - (APP_SIZE.h / 2);
