@@ -91,6 +91,7 @@ export class ConversationUI {
 
         if (available.length > 0) {
             this.endFooter.style.display = 'none';
+            this.choicesContainer.style.display = 'flex';
             available.forEach((choice, index) => {
                 const btn = document.createElement('button');
                 btn.className = 'choice-btn';
@@ -101,6 +102,7 @@ export class ConversationUI {
         } else {
             // Conversation ended
             this.endFooter.style.display = 'block';
+            this.choicesContainer.style.display = 'none';
         }
     }
 
