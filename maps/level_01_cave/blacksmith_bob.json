@@ -1,0 +1,24 @@
+{
+  "varname": "blacksmith_bob",
+  "displayName": "Blacksmith Bob",
+  "spriteImageName": "orc_base",
+  "inventory": [
+    {
+      "id": "favorite_hammer",
+      "name": "Favorite Hammer",
+      "type": "tool",
+      "icon": "🔨",
+      "damage": 8,
+      "durability": 120,
+      "description": "Bob's prized forging hammer."
+    },
+    {
+      "id": "iron_ingot",
+      "name": "Iron Ingot",
+      "type": "resource",
+      "icon": "🧱",
+      "maxStack": 99,
+      "description": "High-quality iron."
+    }
+  ]
+}

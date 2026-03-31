@@ -1,10 +1,7 @@
+
 export class Conversation {
-    constructor(char_varname) {
-        let char_file_base = "default";
-        if (char_varname.length) {
-            char_file_base = char_varname;
-        }
-        this.jsonPath = `../maps/${char_file_base}_conv.json`;
+    constructor(map_name, npc_base_name) {
+        this.jsonPath = `maps/${map_name}/${npc_base_name}_conv.json`;
 
         this.nodes = {};
         this.roots = [];
@@ -13,18 +10,22 @@ export class Conversation {
         this.loaded = false;
     }
 
+    async ensureLoaded() {
+        if (this.loaded) return;
+        await this.load();
+    }
+
     async load() {
         try {
             const response = await fetch(this.jsonPath);
             if (!response.ok) {
-                throw new Error(`Failed to load ${this.jsonPath}`);
+                throw new Error(`Failed to load conversation: ${this.jsonPath}`);
             }
             const data = await response.json();
 
             this.roots = data.roots || [Object.keys(data.nodes)[0]];
             this.nodes = data.nodes || {};
             this.loaded = true;
-            //console.log(`✅ Loaded conversation: ${data.id || this.jsonPath}`);
         } catch (error) {
             console.error("❌ Conversation load failed:", error);
             throw error;

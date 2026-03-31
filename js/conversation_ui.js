@@ -31,26 +31,27 @@ export class ConversationUI {
         this.goodbyeBtn.onclick = () => this.endConversation();
     }
 
-    startConversation(npc) {
-        if (!npc || !npc.conversation || !npc.conversation.loaded) {
-            console.warn("No conversation available for this NPC");
-            return;
-        }
+        async startConversation(npc) {
+        if (!npc) return;
 
-        this.deactivate(); // safety
+        this.deactivate();
 
         this.currentNpc = npc;
         this.conversation = npc.conversation;
 
-        // Restore any previously completed branches from localStorage
-        //const saveKey = `conv_state_${npc.conversationKey || 'unknown'}`;
-        //const savedStr = localStorage.getItem(saveKey);
-        //const savedState = savedStr ? JSON.parse(savedStr) : null;
-        const savedState = null;
+        // Lazy load conversation only when first talking
+        if (!this.conversation.loaded) {
+            try {
+                await this.conversation.ensureLoaded();
+            } catch (err) {
+                console.error("Failed to load conversation", err);
+                return;
+            }
+        }
 
-        this.conversation.start(null, savedState);   // starts at root, restores visited
+        this.conversation.start();
 
-        // Set up static portrait (idle facing down, like Stardew)
+        // Portrait setup
         const spriteImg = this.imageLibrary.get(npc.sprite_image_name);
         if (spriteImg) {
             this.portraitSpriteSheet = new SpriteSheet(spriteImg);
@@ -60,9 +61,7 @@ export class ConversationUI {
             this.renderPortrait();
         }
 
-        this.npcNameEl.textContent = npc.sprite_image_name === "orc_base" 
-            ? "Blacksmith Bob"   // you can make this dynamic later via NPC property
-            : "Villager";
+        this.npcNameEl.textContent = npc.displayName || "Villager";
 
         this.isActive = true;
         this.container.classList.add('is-active');

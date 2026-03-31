@@ -1,5 +1,7 @@
+// npc.js
 import { Character } from "./character.js";
-import {Conversation} from "./conversation.js"
+import { Conversation } from "./conversation.js";
+import { GameItem } from "./game_item.js";
 
 const NPC_STATES = Object.freeze({
     ENGAGED:  'engaged',
@@ -10,8 +12,15 @@ const NPC_STATES = Object.freeze({
 });
 
 export class Npc extends Character {
-    constructor(world_pos, image_library, sprite_image_name, char_varname) {
-        super(world_pos, image_library, sprite_image_name);
+    constructor(world_pos, image_library, map_name, base_name) {
+        super(world_pos);
+
+        this.image_library = image_library;
+        this.map_name = map_name;      // e.g. "level_01"
+        this.base_name = base_name;    // e.g. "blacksmith_bob"
+
+        this.display_name = "Unknown";
+        this.conversation = new Conversation(map_name, base_name);
 
         this.currentState = NPC_STATES.STANDING;
         this.timeInState = 0;
@@ -19,9 +28,46 @@ export class Npc extends Character {
 
         this._transitionTo(NPC_STATES.STANDING);
 
-        this.conversation = new Conversation(char_varname);
-        //this.conversationKey = conversation_path;
-        this.conversation.load();
+        this.loaded = false;
+    }
+
+    async load() {
+        if (this.loaded) return;
+
+        const infoPath = `maps/${this.map_name}/${this.base_name}.json`;
+
+        try {
+            const response = await fetch(infoPath);
+            if (!response.ok) {
+                throw new Error(`Failed to load NPC info: ${infoPath}`);
+            }
+
+            const npcInfo = await response.json();
+
+            this.display_name = npcInfo.displayName || "Villager";
+
+            const spriteName = npcInfo.spriteImageName;
+            if (!spriteName) {
+                throw new Error(`NPC JSON missing "spriteImageName" field`);
+            }
+
+            // Initialize sprite only when we have real data
+            this.initializeSprite(this.image_library, spriteName);
+
+            // Load inventory
+            if (npcInfo.inventory && Array.isArray(npcInfo.inventory)) {
+                for (const itemData of npcInfo.inventory) {
+                    this.addToInventory(new GameItem(itemData), itemData.count || 1);
+                }
+            }
+
+            this.loaded = true;
+            //console.log(`✅ NPC loaded: ${this.display_name} (${this.base_name})`);
+
+        } catch (error) {
+            console.error(`❌ Failed to load NPC ${this.base_name}:`, error);
+            throw error;
+        }
     }
 
     startConversation() {
@@ -30,7 +76,7 @@ export class Npc extends Character {
     }
 
     updatePhysics(dt, game_map) {
-        super.updatePhysics(dt, game_map);   // movement + animation still works exactly as before
+        super.updatePhysics(dt, game_map);
         this._updateAI(dt, game_map);
     }
 
@@ -39,7 +85,6 @@ export class Npc extends Character {
 
         switch (this.currentState) {
             case NPC_STATES.ENGAGED:
-                // locked until you externally call npc._transitionTo(NPC_STATES.ENGAGED) again
                 return;
 
             case NPC_STATES.STANDING:
@@ -56,8 +101,7 @@ export class Npc extends Character {
                 break;
 
             case NPC_STATES.WALKING:
-                // super.updatePhysics already handles waypoint following and clearPath()
-                if (this.waypoints.length === 0) {   // path finished
+                if (this.waypoints.length === 0) {
                     this._transitionTo(NPC_STATES.STANDING);
                 }
                 break;
@@ -76,16 +120,16 @@ export class Npc extends Character {
 
         switch (newState) {
             case NPC_STATES.STANDING:
-                this.targetTimeInState = 2 + Math.random() * 6;   // 2–8 seconds idle
+                this.targetTimeInState = 2 + Math.random() * 6;
                 break;
             case NPC_STATES.TURNING:
-                this.targetTimeInState = 0.2 + Math.random() * 0.6; // quick "thinking" turn
+                this.targetTimeInState = 0.2 + Math.random() * 0.6;
                 break;
             case NPC_STATES.WALKING:
-                this.targetTimeInState = 999; // timer ignored — we check waypoints instead
+                this.targetTimeInState = 999;
                 break;
             case NPC_STATES.READY:
-                this.targetTimeInState = 0.05; // almost instant decision
+                this.targetTimeInState = 0.05;
                 break;
             case NPC_STATES.ENGAGED:
                 this.targetTimeInState = 999;
@@ -97,13 +141,10 @@ export class Npc extends Character {
         const roll = Math.random();
 
         if (roll < 0.35) {
-            // just keep standing a bit longer
             this._transitionTo(NPC_STATES.STANDING);
         } else if (roll < 0.65) {
-            // look around
             this._transitionTo(NPC_STATES.TURNING);
         } else {
-            // go for a little wander
             this._attemptWander(game_map);
         }
     }
@@ -125,23 +166,19 @@ export class Npc extends Character {
 
             const goalPos = { x: tx + 0.5, y: ty + 0.5 };
 
-            // Start way above the highest possible layer → getDropDistance returns distance to the TOPMOST tile
             const dropFromSky = game_map.getDropDistance(goalPos, 1000);
             if (dropFromSky === Infinity || dropFromSky < 0) continue;
 
             const goalZ = 1000 - dropFromSky;
 
-            // ← This is the magic: let Character do ALL the heavy lifting (A*, cliff edges, ramps, everything)
             this.buildPathToPosition(game_map, goalPos, goalZ);
 
             if (this.waypoints.length >= 2) {
                 this._transitionTo(NPC_STATES.WALKING);
                 return;
             }
-            // (if pathfinding failed or goal was unreachable, just try the next random spot)
         }
 
-        // couldn’t find a good spot — just stand
         this._transitionTo(NPC_STATES.STANDING);
     }
 
@@ -149,7 +186,6 @@ export class Npc extends Character {
         return Math.floor(Math.random() * 8);
     }
 
-    // Optional helper you can call from App if you ever want to make an NPC "talk"
     engage() {
         this._transitionTo(NPC_STATES.ENGAGED);
     }

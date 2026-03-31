@@ -2,7 +2,6 @@
     "displayName": "The Forgotten Woods",
     "playerStart": { "x": 1.5, "y": 1.5, "z": 1 },
     "npcs": [
-        { "name": "blacksmith_bob", "x": 4.5, "y": 2.5, "z": 1 },
         { "name": "guard_01", "x": 6.5, "y": 5.5, "z": 1 },
         { "name": "guard_02", "x": 1.5, "y": 2.5, "z": 1 }
     ],

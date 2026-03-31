@@ -42,11 +42,23 @@ export class GameMap {
             this.playerStart = metadata.playerStart;
             this.portals = metadata.portals || [];
 
-            for (const npc of metadata.npcs) {
-                const fullVarname = `${this.name}/${npc.name}`
-                const startingPos = {x: npc.x, y: npc.y, z: npc.z};
-                this.npcs.push(new Npc(startingPos, image_library,
-                    "orc_base", fullVarname));
+            this.npcs = [];
+            for (const npc_data of metadata.npcs) {
+                const startingPos = { 
+                    x: npc_data.x, 
+                    y: npc_data.y, 
+                    z: npc_data.z 
+                };
+
+                const npc = new Npc(
+                    startingPos, 
+                    image_library, 
+                    this.name,
+                    npc_data.name
+                );
+
+                await npc.load();
+                this.npcs.push(npc);
             }
 
             this.size.w = mapData.width;

@@ -29,33 +29,18 @@ export class Character {
     #pos_xy = {x: 0, y: 0};
     #z = 0;
 
-    constructor(world_pos, image_library, sprite_image_name) {
-        this.sprite_image_name = sprite_image_name;
+    constructor(world_pos) {
+        this.sprite_image_name = null;     // ← Will be set later
+        this.spriteSheet = null;           // ← Created only when we have the real image
 
-        this.size = {
-            w: PLAYER_ANIM_FRAME_SIZE.w,
-            h: PLAYER_ANIM_FRAME_SIZE.h
-        };
-
-        this.origin = {
-            x: PLAYER_TILE_ORIGIN.x,
-            y: PLAYER_TILE_ORIGIN.y
-        };
+        this.size = { w: PLAYER_ANIM_FRAME_SIZE.w, h: PLAYER_ANIM_FRAME_SIZE.h };
+        this.origin = { x: PLAYER_TILE_ORIGIN.x, y: PLAYER_TILE_ORIGIN.y };
 
         this.speed = .7;
         this.fall_speed = 1.5;
-
-        this.curFacing = PlayerFacing.face_se;
+        this.curFacing = 4; // face_se
 
         this.imageCoord = {row: 0, col: 0};
-
-        const sprite_image = image_library.get(this.sprite_image_name);
-        if (sprite_image) {
-            this.spriteSheet = new SpriteSheet(sprite_image);
-        }
-
-        this.setPositionXY(vec2D(world_pos.x, world_pos.y));
-        this.setZ(world_pos.z);
 
         this.waypoints = [];
         this.currentWaypointIndex = 0;
@@ -64,6 +49,25 @@ export class Character {
         this.followTarget = null;
         this.followLastDesiredPos = null;
         this.linedUpOnFollowTarget = false;
+
+        this.setPositionXY(vec2D(world_pos.x, world_pos.y));
+        this.setZ(world_pos.z);
+    }
+
+    initializeSprite(image_library, sprite_image_name) {
+        if (!sprite_image_name) {
+            throw new Error("Cannot initialize sprite without sprite_image_name");
+        }
+
+        this.sprite_image_name = sprite_image_name;
+
+        const sprite_image = image_library.get(sprite_image_name);
+        if (!sprite_image) {
+            throw new Error(`Sprite image "${sprite_image_name}" not found in ImageLibrary`);
+        }
+
+        this.spriteSheet = new SpriteSheet(sprite_image);
+        //console.log(`✅ SpriteSheet initialized for ${sprite_image_name}`);
     }
 
     getZ() {
@@ -123,6 +127,11 @@ export class Character {
     }
 
     updatePhysics(dt, game_map) {
+        if (!this.spriteSheet) {
+            console.log("no sprite sheet");
+            return;
+        }
+
         if (this.followTarget) this._updateFollow(dt, game_map);
 
         let world_move_vec = {x: 0, y: 0, z: 0};

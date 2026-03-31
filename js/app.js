@@ -51,21 +51,31 @@ export class App {
         return map;
     }
 
-    async switchMap(targetMapName, targetPos) {
+        async switchMap(targetMapName, targetPos) {
         if (this.switching_maps) return;
         this.switching_maps = true;
 
-        const wasLoaded = this.gameMaps.has(targetMapName);
         const loadingEl = document.getElementById("loadingPanel");
+        const hudEl = document.getElementById("hud");
 
-        // Close any open UI panels first
+        // Close open UIs
         this.hideAllPanels();
         if (this.spriteViewer?.isActive) this.spriteViewer.deactivate();
-        if (this.conversationUI) this.conversationUI.closeConversation?.(); // safety
+        if (this.conversationUI) this.conversationUI.closeConversation?.();
 
-        if (!wasLoaded && loadingEl) {
-            loadingEl.classList.add("is-active");
-        }
+        // Instant black flash
+        this.ctx.fillStyle = "#000000";
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Show loading screen
+        if (hudEl) hudEl.classList.remove("is-active");
+        if (loadingEl) loadingEl.classList.add("is-active");
+
+        // Force browser to paint black + loading screen
+        await new Promise(r => setTimeout(r, 16));
+        await new Promise(r => requestAnimationFrame(r));
+
+        const startTime = performance.now();
 
         try {
             const newMap = await this.smartGetMap(targetMapName);
@@ -78,24 +88,29 @@ export class App {
             this.player.clearPath();
             this.player.stopFollowing();
 
-            // Rebuild characters list (new NPCs for the new map)
             this.characters = [...this.game_map.npcs];
             this.characters.push(this.player);
 
-            // Snap camera instantly
+            // Snap camera
             const playerIso = this.player.getIsoPosition();
             const targetIsoX = playerIso.x - (APP_SIZE.w / 2);
             const targetIsoY = playerIso.y - (APP_SIZE.h / 2);
             const targetWorld = isoToCartesian(targetIsoX, targetIsoY);
             this.view_origin = targetWorld;
 
-            console.log(`✅ Switched to map "${targetMapName}"`);
         } catch (err) {
             console.error("Map switch failed:", err);
         } finally {
-            if (!wasLoaded && loadingEl) {
-                loadingEl.classList.remove("is-active");
+            const elapsed = performance.now() - startTime;
+            const remaining = Math.max(0, 1000 - elapsed);
+            if (remaining > 0) {
+                await new Promise(resolve => setTimeout(resolve, remaining));
             }
+
+            // Hide loading and restore HUD
+            if (loadingEl) loadingEl.classList.remove("is-active");
+            if (hudEl) hudEl.classList.add("is-active");
+
             this.switching_maps = false;
         }
     }
@@ -239,6 +254,13 @@ export class App {
     }
 
     render() {
+        // Stay black while switching maps
+        if (this.switching_maps) {
+            this.ctx.fillStyle = "#000000";
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            return;
+        }
+
         if (this.state === "start_screen") {
             this.ctx.fillStyle = "#0f3460";
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);

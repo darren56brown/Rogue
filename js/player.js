@@ -7,6 +7,8 @@ export class Player extends Character {
 
         this.hotbar = [];
         this.selectedSlot = 0;
+
+        this.initializeSprite(image_library, sprite_image_name);
     }
 
     initializeDefaultItems() {
