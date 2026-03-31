@@ -41,16 +41,16 @@ export class App {
         this.conversationUI = null;
     }
 
-    async init() {
+    async loadAll() {
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
         this.initUserInput();
         this.initUI();
 
         this.spriteViewer = null;
+        this.game_map = new GameMap('level_01');
 
-        const game_map_promise =
-            GameMap.load('level_01').then(map => this.game_map = map);
+        const game_map_promise = this.game_map.loadAll();
         const image_lib_promise = this.image_library.loadAll();
 
         try {
@@ -65,6 +65,7 @@ export class App {
                 () => { this.setPauseState(true); this.hideHUD(); },
                 () => { this.setPauseState(false); this.showHUD(); }
             );
+
             this.initPhysics();
             requestAnimationFrame(t => this.loop(t));
         } catch (err) {
@@ -75,18 +76,18 @@ export class App {
     initPhysics() {
         this.characters = [];
 
-        this.player = new Player({x: 1.5, y: 1.5, z: 1},
+        this.player = new Player(this.game_map.playerStart,
             this.image_library, "player_base");
         this.player.initializeDefaultItems();
 
         this.characters.push(this.player);
 
-        this.characters.push(new Npc({x: 4.5, y: 2.5, z: 1},
-            this.image_library, "orc_base", "level_01/blacksmith_bob"));
-        this.characters.push(new Npc({x: 6.5, y: 5.5, z: 1},
-            this.image_library, "orc_base", ""));
-        this.characters.push(new Npc({x: 1.5, y: 2.5, z: 1},
-            this.image_library, "orc_base", ""));
+        for (const npc of this.game_map.npcs) {
+            const fullVarname = `${this.game_map.name}/${npc.name}`
+            const startingPos = {x: npc.x, y: npc.y, z: npc.z};
+            this.characters.push(new Npc(startingPos, this.image_library,
+                "orc_base", fullVarname));
+        }
 
         this.createHUD();
 

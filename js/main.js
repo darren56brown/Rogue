@@ -2,12 +2,12 @@
 import { App } from './app.js';
 
 function createApp() {
-    const app = new App();
-    app.init();
+    window.app = new App();
+    window.app.loadAll();
 }
 
 if (document.readyState === 'loading') {
-    window.addEventListener('load', startApp);
+    window.addEventListener('load', createApp);
 } else {
     createApp();
 }

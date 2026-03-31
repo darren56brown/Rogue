@@ -6,11 +6,9 @@ export class ImageLibrary {
     }
 
     loadImage(name, path) {
-        this.pending++; // Synchronous increment
+        this.pending++;
         const img = new Image();
-        img.src = path;
-
-        this.images[name] = { img, loaded: false };
+        this.images[name] = { img: img, loaded: false };
 
         img.onload = () => {
             this.images[name].loaded = true;
@@ -23,6 +21,8 @@ export class ImageLibrary {
             this.pending--;
             this._checkAllLoaded();
         };
+
+        img.src = path;
     }
 
     _checkAllLoaded() {

@@ -11,38 +11,45 @@ export class GameMap {
         this.layers = [];
         this.isLoaded = false;
         this.drawList = [];
+
+        this.displayName = name;
+        this.playerStart = {x: 0, y: 0, z: 0};
+        this.npcs = [];
     }
 
-    static async load(levelName) {
-        const level = new GameMap(levelName);
-
+    async loadAll() {
         try {
-            const mapPath = `maps/${levelName}/map.tmj`;
+            const tmjPath  = `maps/${this.name}/map.tmj`;
+            const metadataPath = `maps/${this.name}/map.json`;
 
-            const mapResponse = await fetch(mapPath);
-            if (!mapResponse.ok) {
-                throw new Error(`Map fetch failed: `
-                    `${mapPath} → ${mapResponse.status} ${mapResponse.statusText}`);
+             const [tmjResponse, metaResponse] = await Promise.all([
+                fetch(tmjPath),
+                fetch(metadataPath)
+            ]);
+
+            if (!tmjResponse.ok || !metaResponse.ok) {
+                throw new Error(`Failed to load map files for ${this.name}`);
             }
-            const mapData = await mapResponse.json();
 
-            // Basic map properties
-            level.size.w = mapData.width;
-            level.size.h = mapData.height;
-            level.tileSize.w = mapData.tilewidth;
-            level.tileSize.h = mapData.tileheight;
+            const [mapData, metadata] = await Promise.all([
+                tmjResponse.json(),
+                metaResponse.json()
+            ]);
+
+            this.displayName = metadata.displayName;
+            this.playerStart = metadata.playerStart;
+            this.npcs = metadata.npcs;
+
+            this.size.w = mapData.width;
+            this.size.h = mapData.height;
+            this.tileSize.w = mapData.tilewidth;
+            this.tileSize.h = mapData.tileheight;
 
             for (const ts of mapData.tilesets) {
-                let source = ts.source;
-
-                const filename = source.split('/').pop();
-                const baseName = filename.replace(/\.[^.]+$/, "");
-                const tsFilename = `${baseName}.tsj`;
-                const tsPath = `maps/tilesets/${tsFilename}`;
-
+                const tsPath = `maps/tilesets/${ts.source}`;
                 const tsResponse = await fetch(tsPath);
                 if (!tsResponse.ok) {
-                    throw new Error(`Failed to load tileset: `
+                    throw new Error(`Failed to load tileset: ` +
                         `${tsPath} (status ${tsResponse.status})`);
                 }
                 const tilesetJson = await tsResponse.json();
@@ -61,7 +68,7 @@ export class GameMap {
                     .pop()
                     .replace(/\.[^.]+$/, "");
 
-                level.tilesets.push({
+                this.tilesets.push({
                     firstgid:    ts.firstgid,
                     name:        tilesetJson.name,
                     imageName:   imageName,
@@ -74,9 +81,9 @@ export class GameMap {
                     solidTiles:  solidTiles
                 });
             }
-            level.tilesets.sort((a, b) => a.firstgid - b.firstgid);
+            this.tilesets.sort((a, b) => a.firstgid - b.firstgid);
 
-            level.layers = mapData.layers
+            this.layers = mapData.layers
                 .filter(l => l.type === "tilelayer" && l.visible !== false)
                 .map(raw => {
                     const offsetX = raw.offsetx !== undefined ? raw.offsetx : 0;
@@ -93,30 +100,28 @@ export class GameMap {
                 })
                 .sort((a, b) => a.zHeight - b.zHeight);   // lowest → highest (back to front)
 
-            if (level.layers.length === 0) {
+            if (this.layers.length === 0) {
                 throw new Error("No visible tile layers found in map");
             }
 
-            level.isLoaded = true;
-            //console.log(`Level "${levelName}" loaded — ${level.tilesets.length} tilesets, ${level.layers.length} visible layers`);
+            this.isLoaded = true;
+            //console.log(`Level "${levelName}" loaded — ${this.tilesets.length} ` +
+            //    `tilesets, ${this.layers.length} visible layers`);
 
-            level.drawList = [];
-            for (const layer of level.layers) {
-                for (let x = 0; x < level.size.w; x++) {
-                    for (let y = 0; y < level.size.h; y++) {
-                        const info = level.getTileInfoForLayer(x, y, layer);
+            this.drawList = [];
+            for (const layer of this.layers) {
+                for (let x = 0; x < this.size.w; x++) {
+                    for (let y = 0; y < this.size.h; y++) {
+                        const info = this.getTileInfoForLayer(x, y, layer);
                         if (!info) continue;
-                        level.drawList.push({x: x, y: y, layer: layer});
+                        this.drawList.push({x: x, y: y, layer: layer});
                     }
                 }
             }
-            level.drawList.sort((a, b) => isoCompare(
+            this.drawList.sort((a, b) => isoCompare(
                 vec2D(a.x + 0.5, a.y + 0.5), a.layer.zHeight - 0.5,
                 vec2D(b.x + 0.5, b.y + 0.5), b.layer.zHeight - 0.5
             ));
-
-            return level;
-
         } catch (err) {
             console.error("Level load failed:", err);
             throw err;

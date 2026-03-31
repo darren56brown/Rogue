@@ -1,129 +1,103 @@
 export class Conversation {
-  constructor(char_varname) {
-    let char_file_base = "default";
-    if (char_varname.length) {
-      char_file_base = char_varname;
-    }
-    this.jsonPath = `../maps/${char_file_base}_conv.json`;
+    constructor(char_varname) {
+        let char_file_base = "default";
+        if (char_varname.length) {
+            char_file_base = char_varname;
+        }
+        this.jsonPath = `../maps/${char_file_base}_conv.json`;
 
-    this.nodes = {};
-    this.roots = [];
-    this.currentNodeId = null;
-    this.visited = new Set();
-    this.loaded = false;
-  }
-
-  async load() {
-    try {
-      const response = await fetch(this.jsonPath);
-      if (!response.ok) throw new Error(`Failed to load ${this.jsonPath}`);
-      const data = await response.json();
-
-      this.roots = data.roots || [Object.keys(data.nodes)[0]];
-      this.nodes = data.nodes || {};
-      this.loaded = true;
-      //console.log(`✅ Loaded conversation: ${data.id || this.jsonPath}`);
-    } catch (error) {
-      console.error("❌ Conversation load failed:", error);
-      throw error;
-    }
-  }
-
-  start(rootId = null, savedState = null) {
-    if (!this.loaded) throw new Error("Call load() first!");
-
-    // Restore persistent visited state (so choices retire permanently across multiple talks)
-    if (savedState && savedState.visited) {
-      this.visited = new Set(savedState.visited);
+        this.nodes = {};
+        this.roots = [];
+        this.currentNodeId = null;
+        this.visited = new Set();
+        this.loaded = false;
     }
 
-    const startId = rootId || this.roots[0];
-    if (!this.nodes[startId]) {
-      throw new Error(`Invalid root node: ${startId}`);
+    async load() {
+        try {
+            const response = await fetch(this.jsonPath);
+            if (!response.ok) {
+                throw new Error(`Failed to load ${this.jsonPath}`);
+            }
+            const data = await response.json();
+
+            this.roots = data.roots || [Object.keys(data.nodes)[0]];
+            this.nodes = data.nodes || {};
+            this.loaded = true;
+            //console.log(`✅ Loaded conversation: ${data.id || this.jsonPath}`);
+        } catch (error) {
+            console.error("❌ Conversation load failed:", error);
+            throw error;
+        }
     }
 
-    this.currentNodeId = startId;
-    this.visited.add(startId); // Mark the starting sub-conversation as completed (you just heard it)
-    //console.log(`💬 Started conversation at node: ${startId}`);
-  }
+    start(rootId = null, savedState = null) {
+        if (!this.loaded) throw new Error("Call load() first!");
 
-  getCurrentNpcText() {
-    if (!this.currentNodeId || !this.nodes[this.currentNodeId]) return null;
-    return this.nodes[this.currentNodeId].npcText;
-  }
+        // Restore persistent visited state (so choices retire permanently across multiple talks)
+        if (savedState && savedState.visited) {
+            this.visited = new Set(savedState.visited);
+        }
 
-  getAvailableChoices() {
-    if (!this.currentNodeId || !this.nodes[this.currentNodeId]) return [];
+        const startId = rootId || this.roots[0];
+        if (!this.nodes[startId]) {
+            throw new Error(`Invalid root node: ${startId}`);
+        }
 
-    const node = this.nodes[this.currentNodeId];
-    return node.choices.filter((choice) => {
-      const nextId = choice.next;
-      // Only show choices leading to unvisited sub-conversations
-      return !this.visited.has(nextId);
-    });
-  }
-
-  selectChoice(choiceIndex) {
-    const available = this.getAvailableChoices();
-    if (choiceIndex < 0 || choiceIndex >= available.length) {
-      console.warn("Invalid choice index");
-      return false;
+        this.currentNodeId = startId;
+        this.visited.add(startId); // Mark the starting sub-conversation as completed (you just heard it)
+        //console.log(`💬 Started conversation at node: ${startId}`);
     }
 
-    const chosen = available[choiceIndex];
-    const nextId = chosen.next;
+    getCurrentNpcText() {
+        if (!this.currentNodeId || !this.nodes[this.currentNodeId]) return null;
+        return this.nodes[this.currentNodeId].npcText;
+    }
 
-    // Move to the next sub-conversation
-    this.currentNodeId = nextId;
-    this.visited.add(nextId); // Mark it completed immediately (you just heard it)
+    getAvailableChoices() {
+        if (!this.currentNodeId || !this.nodes[this.currentNodeId]) return [];
 
-    //console.log(`➡️ Player chose: "${chosen.playerText}" → node: ${nextId}`);
-    return true;
-  }
+        const node = this.nodes[this.currentNodeId];
+        return node.choices.filter((choice) => {
+            const nextId = choice.next;
+            // Only show choices leading to unvisited sub-conversations
+            return !this.visited.has(nextId);
+        });
+    }
 
-  isEnded() {
-    if (!this.currentNodeId) return true;
-    return this.getAvailableChoices().length === 0;
-  }
+    selectChoice(choiceIndex) {
+        const available = this.getAvailableChoices();
+        if (choiceIndex < 0 || choiceIndex >= available.length) {
+            console.warn("Invalid choice index");
+            return false;
+        }
 
-  getState() {
-    return {
-      visited: Array.from(this.visited)
-    };
-  }
+        const chosen = available[choiceIndex];
+        const nextId = chosen.next;
 
-  reset() {
-    this.currentNodeId = null;
-    this.visited.clear();
-  }
+        // Move to the next sub-conversation
+        this.currentNodeId = nextId;
+        this.visited.add(nextId); // Mark it completed immediately (you just heard it)
+
+        //console.log(`➡️ Player chose: "${chosen.playerText}" → node: ${nextId}`);
+        return true;
+    }
+
+    isEnded() {
+        if (!this.currentNodeId) return true;
+        return this.getAvailableChoices().length === 0;
+    }
+
+    getState() {
+        return {
+            visited: Array.from(this.visited)
+        };
+    }
+
+    reset() {
+        this.currentNodeId = null;
+        this.visited.clear();
+    }
 }
 
-// ==================== EXAMPLE USAGE ====================
-// (Put this in your game when an NPC is interacted with)
-
-async function talkToBob() {
-  const bobChat = new Conversation("talk_to_bob.json");
-  await bobChat.load();
-
-  // Optional: restore previously saved state
-  const saved = localStorage.getItem("conversation_talk_to_bob");
-  if (saved) bobChat.start(null, JSON.parse(saved));
-  else bobChat.start();
-
-  // Game loop for this conversation (you'll wire this into your UI)
-  while (!bobChat.isEnded()) {
-    console.log("NPC:", bobChat.getCurrentNpcText());
-    const choices = bobChat.getAvailableChoices();
-    console.log("Choices:", choices.map((c, i) => `${i}: ${c.playerText}`));
-
-    // Simulate player picking choice 0 (replace with your UI click handler)
-    const playerPicked = 0; // <-- your game decides this
-    bobChat.selectChoice(playerPicked);
-  }
-
-  console.log("NPC:", bobChat.getCurrentNpcText()); // final line
-  console.log("Conversation ended.");
-
-  // Save state for next time the player talks to Bob
-  localStorage.setItem("conversation_talk_to_bob", JSON.stringify(bobChat.getState()));
-}
+ 
