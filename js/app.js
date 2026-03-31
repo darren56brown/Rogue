@@ -2,7 +2,6 @@ import { APP_SIZE, APP_MARGIN, ISO } from "./constants.js";
 import { Renderer } from "./renderer.js";
 import { ImageLibrary } from "./image_library.js";
 import { Player } from "./player.js";
-import { Npc } from "./npc.js";
 import { GameMap } from "./game_map.js";
 import { FPSTracker } from "./fps_tracker.js";
 import { cartesianToIso, isoToCartesian } from './util.js';
@@ -18,10 +17,11 @@ export class App {
         this.image_library = new ImageLibrary();
         this.renderer = new Renderer(this.canvas, this.image_library);
 
-        this.characters = [];
         this.player = null;
        
-        this.game_map = null;
+        this.game_maps = new Map();
+        this.current_game_map = null;
+        this.switching_maps = false;
         this.state = "start_screen";
 
         this.fps_tracker = new FPSTracker();
@@ -41,53 +41,97 @@ export class App {
         this.conversationUI = null;
     }
 
+    async smartGetMap(mapName) {
+        if (this.game_maps.has(mapName)) {
+            return this.game_maps.get(mapName);
+        }
+        const map = new GameMap(mapName);
+        await map.loadAll(this.image_library);
+        this.game_maps.set(mapName, map);
+        return map;
+    }
+
+    async switchMap(targetMapName, targetPos) {
+        if (this.switching_maps) return;
+        this.switching_maps = true;
+
+        const wasLoaded = this.gameMaps.has(targetMapName);
+        const loadingEl = document.getElementById("loadingPanel");
+
+        // Close any open UI panels first
+        this.hideAllPanels();
+        if (this.spriteViewer?.isActive) this.spriteViewer.deactivate();
+        if (this.conversationUI) this.conversationUI.closeConversation?.(); // safety
+
+        if (!wasLoaded && loadingEl) {
+            loadingEl.classList.add("is-active");
+        }
+
+        try {
+            const newMap = await this.smartGetMap(targetMapName);
+
+            this.game_map = newMap;
+
+            // Teleport player
+            this.player.setPositionXY({ x: targetPos.x, y: targetPos.y });
+            this.player.setZ(targetPos.z);
+            this.player.clearPath();
+            this.player.stopFollowing();
+
+            // Rebuild characters list (new NPCs for the new map)
+            this.characters = [...this.game_map.npcs];
+            this.characters.push(this.player);
+
+            // Snap camera instantly
+            const playerIso = this.player.getIsoPosition();
+            const targetIsoX = playerIso.x - (APP_SIZE.w / 2);
+            const targetIsoY = playerIso.y - (APP_SIZE.h / 2);
+            const targetWorld = isoToCartesian(targetIsoX, targetIsoY);
+            this.view_origin = targetWorld;
+
+            console.log(`✅ Switched to map "${targetMapName}"`);
+        } catch (err) {
+            console.error("Map switch failed:", err);
+        } finally {
+            if (!wasLoaded && loadingEl) {
+                loadingEl.classList.remove("is-active");
+            }
+            this.switching_maps = false;
+        }
+    }
+
     async loadAll() {
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
         this.initUserInput();
         this.initUI();
 
-        this.spriteViewer = null;
-        this.game_map = new GameMap('level_01');
+        await this.image_library.loadAll();
 
-        const game_map_promise = this.game_map.loadAll();
-        const image_lib_promise = this.image_library.loadAll();
+        this.gameMaps = new Map();
+        this.game_map = await this.smartGetMap("level_01");
 
-        try {
-            await Promise.all([game_map_promise, image_lib_promise]);
+        this.spriteViewer = new SpriteViewer(this.image_library,
+            () => { this.setPauseState(true); this.hideHUD(); },
+            () => { this.setPauseState(false); this.showHUD(); }
+        );
+        this.conversationUI = new ConversationUI(
+            this.image_library,
+            () => { this.setPauseState(true); this.hideHUD(); },
+            () => { this.setPauseState(false); this.showHUD(); }
+        );
 
-            this.spriteViewer = new SpriteViewer(this.image_library,
-                () => { this.setPauseState(true); this.hideHUD(); },
-                () => { this.setPauseState(false); this.showHUD(); }
-            );
-            this.conversationUI = new ConversationUI(
-                this.image_library,
-                () => { this.setPauseState(true); this.hideHUD(); },
-                () => { this.setPauseState(false); this.showHUD(); }
-            );
-
-            this.initPhysics();
-            requestAnimationFrame(t => this.loop(t));
-        } catch (err) {
-            console.error("Asset loading failed:", err);
-        }
+        this.initPhysics();
+        requestAnimationFrame(t => this.loop(t));
     }
 
     initPhysics() {
-        this.characters = [];
-
         this.player = new Player(this.game_map.playerStart,
             this.image_library, "player_base");
         this.player.initializeDefaultItems();
 
+        this.characters = [...this.game_map.npcs];
         this.characters.push(this.player);
-
-        for (const npc of this.game_map.npcs) {
-            const fullVarname = `${this.game_map.name}/${npc.name}`
-            const startingPos = {x: npc.x, y: npc.y, z: npc.z};
-            this.characters.push(new Npc(startingPos, this.image_library,
-                "orc_base", fullVarname));
-        }
 
         this.createHUD();
 
@@ -228,6 +272,12 @@ export class App {
                 this.player.stopFollowing();
                 this.conversationUI.startConversation(npc);
             }
+        }
+
+        const portal = this.game_map.getPortalAt(
+            this.player.getPositionXY(), this.player.getZ());
+        if (portal) {
+            this.switchMap(portal.targetMap, portal.targetPlayerStart);
         }
 
         const playerIso = this.player.getIsoPosition();

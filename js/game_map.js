@@ -1,6 +1,7 @@
 import {ISO, MAX_DROP, MAX_HOP} from "./constants.js";
 import { getTileCoordFromPosition, isoCompare} from './util.js';
 import { vec2D } from "./vec2D.js";
+import { Npc } from "./npc.js";
 
 export class GameMap {
     constructor(name) {
@@ -15,9 +16,10 @@ export class GameMap {
         this.displayName = name;
         this.playerStart = {x: 0, y: 0, z: 0};
         this.npcs = [];
+        this.portals = [];
     }
 
-    async loadAll() {
+    async loadAll(image_library) {
         try {
             const tmjPath  = `maps/${this.name}/map.tmj`;
             const metadataPath = `maps/${this.name}/map.json`;
@@ -38,7 +40,14 @@ export class GameMap {
 
             this.displayName = metadata.displayName;
             this.playerStart = metadata.playerStart;
-            this.npcs = metadata.npcs;
+            this.portals = metadata.portals || [];
+
+            for (const npc of metadata.npcs) {
+                const fullVarname = `${this.name}/${npc.name}`
+                const startingPos = {x: npc.x, y: npc.y, z: npc.z};
+                this.npcs.push(new Npc(startingPos, image_library,
+                    "orc_base", fullVarname));
+            }
 
             this.size.w = mapData.width;
             this.size.h = mapData.height;
@@ -128,14 +137,29 @@ export class GameMap {
         }
     }
 
+    getPortalAt(xy_pos, z) {
+        if (this.portals.length == 0) return null;
+
+        const tileX = Math.floor(xy_pos.x);
+        const tileY = Math.floor(xy_pos.y);
+        const tileZ = Math.floor(z);
+
+        for (const portal of this.portals) {
+            if (portal.tileX == tileX &&
+                portal.tileY === tileY &&
+                portal.tileZ === tileZ) {
+                return portal;
+            }
+        }
+        return null;
+    }
+
     getVisibleTileLayers() {
         if (!this.isLoaded) return [];
         return this.layers; // already sorted by zHeight
     }
 
     getTileInfoForLayer(x, y, layer) {
-        if (!this.isLoaded || !layer?.data) return null;
-
         if (x < 0 || x >= this.size.w ||
             y < 0 || y >= this.size.h) return null;
 
