@@ -1,16 +1,18 @@
 export class Conversation {
-  constructor(jsonPath) {
-    this.jsonPath = jsonPath;
-    this.nodes = {};          // all sub-conversation nodes
-    this.roots = [];          // possible starting node IDs
+  constructor(char_varname) {
+    let char_file_base = "default";
+    if (char_varname.length) {
+      char_file_base = char_varname;
+    }
+    this.jsonPath = `../maps/${char_file_base}_conv.json`;
+
+    this.nodes = {};
+    this.roots = [];
     this.currentNodeId = null;
-    this.visited = new Set(); // tracks completed sub-conversations (persistent across talks)
+    this.visited = new Set();
     this.loaded = false;
   }
 
-  /**
-   * Load the conversation tree from JSON (async because we use fetch in browser games).
-   */
   async load() {
     try {
       const response = await fetch(this.jsonPath);
@@ -20,18 +22,13 @@ export class Conversation {
       this.roots = data.roots || [Object.keys(data.nodes)[0]];
       this.nodes = data.nodes || {};
       this.loaded = true;
-      console.log(`✅ Loaded conversation: ${data.id || this.jsonPath}`);
+      //console.log(`✅ Loaded conversation: ${data.id || this.jsonPath}`);
     } catch (error) {
       console.error("❌ Conversation load failed:", error);
       throw error;
     }
   }
 
-  /**
-   * Start a new conversation session.
-   * You can pass a specific root ID (for multiple entry points) or omit it to use the first root.
-   * Pass a saved state object if you want to restore previously completed sub-conversations.
-   */
   start(rootId = null, savedState = null) {
     if (!this.loaded) throw new Error("Call load() first!");
 
@@ -47,21 +44,14 @@ export class Conversation {
 
     this.currentNodeId = startId;
     this.visited.add(startId); // Mark the starting sub-conversation as completed (you just heard it)
-    console.log(`💬 Started conversation at node: ${startId}`);
+    //console.log(`💬 Started conversation at node: ${startId}`);
   }
 
-  /**
-   * Get the NPC's current statement.
-   */
   getCurrentNpcText() {
     if (!this.currentNodeId || !this.nodes[this.currentNodeId]) return null;
     return this.nodes[this.currentNodeId].npcText;
   }
 
-  /**
-   * Get only the choices that haven't been taken yet (next node not visited).
-   * This automatically retires choices you've already asked and prevents looping.
-   */
   getAvailableChoices() {
     if (!this.currentNodeId || !this.nodes[this.currentNodeId]) return [];
 
@@ -73,10 +63,6 @@ export class Conversation {
     });
   }
 
-  /**
-   * Player selects a choice by index (0-based) from the available choices list.
-   * Returns true if successful, false otherwise.
-   */
   selectChoice(choiceIndex) {
     const available = this.getAvailableChoices();
     if (choiceIndex < 0 || choiceIndex >= available.length) {
@@ -91,31 +77,21 @@ export class Conversation {
     this.currentNodeId = nextId;
     this.visited.add(nextId); // Mark it completed immediately (you just heard it)
 
-    console.log(`➡️ Player chose: "${chosen.playerText}" → node: ${nextId}`);
+    //console.log(`➡️ Player chose: "${chosen.playerText}" → node: ${nextId}`);
     return true;
   }
 
-  /**
-   * Check if the conversation has ended (no more available choices).
-   */
   isEnded() {
     if (!this.currentNodeId) return true;
     return this.getAvailableChoices().length === 0;
   }
 
-  /**
-   * Get the current state so you can save it (e.g. to localStorage, game save file, etc.).
-   * Call this after the player finishes talking to persist which sub-conversations are completed.
-   */
   getState() {
     return {
       visited: Array.from(this.visited)
     };
   }
 
-  /**
-   * Optional: Reset everything (useful for testing or new-game-plus).
-   */
   reset() {
     this.currentNodeId = null;
     this.visited.clear();

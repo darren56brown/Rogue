@@ -10,7 +10,7 @@ const NPC_STATES = Object.freeze({
 });
 
 export class Npc extends Character {
-    constructor(world_pos, image_library, sprite_image_name, conversation_path) {
+    constructor(world_pos, image_library, sprite_image_name, char_varname) {
         super(world_pos, image_library, sprite_image_name);
 
         this.currentState = NPC_STATES.STANDING;
@@ -19,22 +19,14 @@ export class Npc extends Character {
 
         this._transitionTo(NPC_STATES.STANDING);
 
-        if (conversation_path.length) {
-            this.conversation = new Conversation("../conversations/"
-                + conversation_path + ".json");
-            this.conversationKey = conversation_path;
-            this.conversation.load();
-        } else {
-            this.conversation = null;
-        }
+        this.conversation = new Conversation(char_varname);
+        //this.conversationKey = conversation_path;
+        this.conversation.load();
     }
 
     startConversation() {
         if (!this.conversation) return;
-
         this.engage();
-
-        //TODO, add conversation stuff here
     }
 
     updatePhysics(dt, game_map) {

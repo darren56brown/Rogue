@@ -14,16 +14,15 @@ export class GameMap {
     }
 
     static async load(levelName) {
-        const basePath = 'tilemaps/';
         const level = new GameMap(levelName);
 
         try {
-            const mapFilename = `${levelName}.tmj`;
-            const mapPath = `${basePath}${mapFilename}`;
+            const mapPath = `maps/${levelName}/map.tmj`;
 
             const mapResponse = await fetch(mapPath);
             if (!mapResponse.ok) {
-                throw new Error(`Map fetch failed: ${mapPath} → ${mapResponse.status} ${mapResponse.statusText}`);
+                throw new Error(`Map fetch failed: `
+                    `${mapPath} → ${mapResponse.status} ${mapResponse.statusText}`);
             }
             const mapData = await mapResponse.json();
 
@@ -39,11 +38,12 @@ export class GameMap {
                 const filename = source.split('/').pop();
                 const baseName = filename.replace(/\.[^.]+$/, "");
                 const tsFilename = `${baseName}.tsj`;
-                const tsPath = `tilesets/${tsFilename}`;
+                const tsPath = `maps/tilesets/${tsFilename}`;
 
                 const tsResponse = await fetch(tsPath);
                 if (!tsResponse.ok) {
-                    throw new Error(`Failed to load tileset: ${tsPath} (status ${tsResponse.status})`);
+                    throw new Error(`Failed to load tileset: `
+                        `${tsPath} (status ${tsResponse.status})`);
                 }
                 const tilesetJson = await tsResponse.json();
 

@@ -1,0 +1,10 @@
+{
+  "id": "default",
+  "roots": ["start"],
+  "nodes": {
+    "start": {
+      "npcText": "I'm busy. Get lost!",
+      "choices": []
+    }
+  }
+}

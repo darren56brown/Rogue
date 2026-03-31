@@ -16,6 +16,7 @@ export class ConversationUI {
         this.choicesContainer = document.getElementById('choicesContainer');
         this.endFooter = document.getElementById('endConversationFooter');
         this.goodbyeBtn = document.getElementById('goodbyeButton');
+        this.closeBtn = document.getElementById('closeConversation');
 
         this.isActive = false;
         this.currentNpc = null;
@@ -26,14 +27,11 @@ export class ConversationUI {
     }
 
     initEvents() {
-        // Close button (early exit allowed, but we still save progress)
-        document.getElementById('closeConversation').onclick = () => this.endConversation();
-
-        // Goodbye button when conversation naturally ends
+        this.closeBtn.onclick = () => this.endConversation();
         this.goodbyeBtn.onclick = () => this.endConversation();
     }
 
-    async startConversation(npc) {
+    startConversation(npc) {
         if (!npc || !npc.conversation || !npc.conversation.loaded) {
             console.warn("No conversation available for this NPC");
             return;

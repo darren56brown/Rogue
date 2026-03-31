@@ -41,39 +41,35 @@ export class App {
         this.conversationUI = null;
     }
 
-    init() {
+    async init() {
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
         this.initUserInput();
         this.initUI();
 
-        this.image_library.loadAll();
-
         this.spriteViewer = null;
 
-        const game_map_promise = GameMap.load('level_01')
-            .then(loadedLevel => { this.game_map = loadedLevel; })
-            .catch(err => console.error("Level loading failed", err));
+        const game_map_promise =
+            GameMap.load('level_01').then(map => this.game_map = map);
+        const image_lib_promise = this.image_library.loadAll();
 
-        const images_promise = new Promise(resolve => {
-            this.image_library.onAllLoaded(resolve);
-        });
+        try {
+            await Promise.all([game_map_promise, image_lib_promise]);
 
-        Promise.all([game_map_promise, images_promise])
-            .then(() => {
-                this.spriteViewer = new SpriteViewer(this.image_library,
-                    () => { this.setPauseState(true); this.hideHUD(); },
-                    () => { this.setPauseState(false); this.showHUD(); }
-                );
-                this.conversationUI = new ConversationUI(
-                    this.image_library,
-                    () => { this.setPauseState(true); this.hideHUD(); },   // same callbacks as sprite viewer
-                    () => { this.setPauseState(false); this.showHUD(); }
-                );
-                this.initPhysics();
-                requestAnimationFrame(t => this.loop(t));
-            })
-            .catch(err => console.error("Asset loading failed:", err));
+            this.spriteViewer = new SpriteViewer(this.image_library,
+                () => { this.setPauseState(true); this.hideHUD(); },
+                () => { this.setPauseState(false); this.showHUD(); }
+            );
+            this.conversationUI = new ConversationUI(
+                this.image_library,
+                () => { this.setPauseState(true); this.hideHUD(); },
+                () => { this.setPauseState(false); this.showHUD(); }
+            );
+            this.initPhysics();
+            requestAnimationFrame(t => this.loop(t));
+        } catch (err) {
+            console.error("Asset loading failed:", err);
+        }
     }
 
     initPhysics() {
@@ -86,7 +82,7 @@ export class App {
         this.characters.push(this.player);
 
         this.characters.push(new Npc({x: 4.5, y: 2.5, z: 1},
-            this.image_library, "orc_base", "blacksmith_bob"));
+            this.image_library, "orc_base", "level_01/blacksmith_bob"));
         this.characters.push(new Npc({x: 6.5, y: 5.5, z: 1},
             this.image_library, "orc_base", ""));
         this.characters.push(new Npc({x: 1.5, y: 2.5, z: 1},

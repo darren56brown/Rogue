@@ -3,8 +3,6 @@ import {vec2D, add, sub, mult, setAdd, norm, div, intersect, dist} from './vec2D
 import {cartesianToIso, getTileCoordFromXY, isoCompare} from './util.js';
 import {SpriteSheet} from './sprite_sheet.js';
 
-// ==================== 8-DIRECTION WORLD FACING SYSTEM ====================
-// North = -y, West = -x (world coordinates)
 export const PlayerFacing = Object.freeze({
     face_nw: 0,   // North-West
     face_n:  1,   // North
@@ -16,7 +14,6 @@ export const PlayerFacing = Object.freeze({
     face_w:  7    // West
 });
 
-// World direction vectors for determining facing from movement
 const FACING_DIRECTIONS = Object.freeze([
     {facing: PlayerFacing.face_e,  vec: {x:  1, y:  0}},
     {facing: PlayerFacing.face_se, vec: {x:  1, y:  1}},
@@ -62,6 +59,11 @@ export class Character {
 
         this.waypoints = [];
         this.currentWaypointIndex = 0;
+
+        this.inventory = [];
+        this.followTarget = null;
+        this.followLastDesiredPos = null;
+        this.linedUpOnFollowTarget = false;
     }
 
     getZ() {
@@ -121,6 +123,8 @@ export class Character {
     }
 
     updatePhysics(dt, game_map) {
+        if (this.followTarget) this._updateFollow(dt, game_map);
+
         let world_move_vec = {x: 0, y: 0, z: 0};
         let world_move_mag = 0;
 
@@ -295,5 +299,116 @@ export class Character {
         waypoints.push({x: cliff_edge_point.x, y: cliff_edge_point.y, z: z});
         waypoints.push({x: x, y: y, z: z}); 
     }
+
+    addToInventory(gameItem, count = 1) {
+        if (!gameItem) return;
+
+        // Try to stack with existing item
+        for (let entry of this.inventory) {
+            if (entry.item.id === gameItem.id) {
+                entry.count += count;
+                return;
+            }
+        }
+
+        // Add as new entry
+        this.inventory.push({ item: gameItem.clone(), count });
+    }
+
+    startFollowing(target) {
+        if (!target || target == this || target == this.followTarget) return;
+        this.clearPath();
+        this.followTarget = target;
+        this.followLastDesiredPos = null;
+    }
+
+    stopFollowing() {
+        this.clearPath();
+        this.followTarget = null;
+        this.followLastDesiredPos = null;
+        this.linedUpOnFollowTarget = false;
+    }
+
+    moveTo(game_map, world_pos) {
+        this.stopFollowing();
+        this.buildPathToPosition(game_map, vec2D(world_pos.x, world_pos.y), world_pos.z);
+    }
+
+    _updateFollow(dt, game_map) {
+        this.linedUpOnFollowTarget = false;
+        if (!this.followTarget || !game_map) return;
+
+        const npc = this.followTarget;
+        const npcPos = npc.getPositionXY();
+        const npcZ   = npc.getZ();
+        const facing = npc.curFacing;
+
+        // Offsets = exactly 3/4 tile directly in front of the NPC
+        // (based on the same coordinate system the pathfinding and movement use)
+        const CARDINAL_OFFSET = 0.75;
+        const DIAG_OFFSET = CARDINAL_OFFSET / Math.SQRT2;   // ≈ 0.530
+
+        const offsets = {
+            [PlayerFacing.face_nw]: { x: -DIAG_OFFSET, y: -DIAG_OFFSET },
+            [PlayerFacing.face_n ]: { x:  0.00,        y: -CARDINAL_OFFSET },
+            [PlayerFacing.face_ne]: { x:  DIAG_OFFSET, y: -DIAG_OFFSET },
+            [PlayerFacing.face_e ]: { x:  CARDINAL_OFFSET, y:  0.00 },
+            [PlayerFacing.face_se]: { x:  DIAG_OFFSET, y:  DIAG_OFFSET },
+            [PlayerFacing.face_s ]: { x:  0.00,        y:  CARDINAL_OFFSET },
+            [PlayerFacing.face_sw]: { x: -DIAG_OFFSET, y:  DIAG_OFFSET },
+            [PlayerFacing.face_w ]: { x: -CARDINAL_OFFSET, y:  0.00 }
+        };
+
+        const offset = offsets[facing] || { x: 0, y: 0 };
+
+        const desiredPos = {
+            x: npcPos.x + offset.x,
+            y: npcPos.y + offset.y
+        };
+        const desiredZ = npcZ;
+
+        // How close are we to the perfect “in-front” spot?
+        const myPos = this.getPositionXY();
+        const myZ   = this.getZ();
+        const distToDesired = Math.hypot(
+            myPos.x - desiredPos.x,
+            myPos.y - desiredPos.y,
+            myZ   - desiredZ
+        );
+
+        const CLOSE_ENOUGH = 0.25;   // once inside this radius we stop moving and just face the NPC
+
+        if (distToDesired <= CLOSE_ENOUGH) {
+            this.clearPath();
+
+            // Face directly toward the NPC (opposite of their facing)
+            const oppositeFacing = (facing + 4) % 8;
+            this.curFacing = oppositeFacing;
+
+            this.linedUpOnFollowTarget = true;
+            return;   // we are perfectly positioned — no more movement this frame
+        }
+
+        // Not close enough → we need to walk toward the desired spot.
+        // Only rebuild the full A* path when the desired spot has moved significantly
+        // (this is the performance win you asked for)
+        const last = this.followLastDesiredPos;
+        let needsRebuild = !last;
+
+        if (last) {
+            const moved = Math.hypot(
+                desiredPos.x - last.x,
+                desiredPos.y - last.y,
+                desiredZ   - last.z
+            );
+            if (moved > 0.25) needsRebuild = true;
+        }
+
+        if (needsRebuild) {
+            this.buildPathToPosition(game_map, desiredPos, desiredZ);
+            this.followLastDesiredPos = { x: desiredPos.x, y: desiredPos.y, z: desiredZ };
+        }
+    }
+
 }
 

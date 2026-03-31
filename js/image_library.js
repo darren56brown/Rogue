@@ -1,12 +1,12 @@
 export class ImageLibrary {
-    constructor(){
+    constructor() {
         this.images = {};
         this.pending = 0;
-        this.allLoadedCallback = null;
+        this.resolve_func = null;
     }
 
-    load(name, path) {
-        this.pending++;
+    loadImage(name, path) {
+        this.pending++; // Synchronous increment
         const img = new Image();
         img.src = path;
 
@@ -14,42 +14,40 @@ export class ImageLibrary {
 
         img.onload = () => {
             this.images[name].loaded = true;
-            //console.log(`Image loaded: ${name}`);
             this.pending--;
             this._checkAllLoaded();
         };
 
         img.onerror = () => {
-            console.log(`Image failed: ${name} (will use fallback)`);
+            console.warn(`Image failed: ${name}`);
             this.pending--;
             this._checkAllLoaded();
         };
     }
 
     _checkAllLoaded() {
-        if (this.pending === 0 && this.allLoadedCallback) {
-            this.allLoadedCallback();
-            this.allLoadedCallback = null; // one-shot
+        if (this.pending == 0) {
+            const temp_resolve = this.resolve_func;
+            this.resolve_func = null; 
+            temp_resolve(); 
         }
     }
 
-    get(name){
+    get(name) {
         const entry = this.images[name];
         return entry?.loaded ? entry.img : null;
     }
 
-    loadAll(){
-        this.load('player_base', '../images/player_base.png');
-        this.load('orc_base', '../images/orc_base.png');
-        this.load('player_shadow', '../images/player_shadow.png');
-        this.load('iso_tiles', '../tilesets/iso_tiles.png');
-    }
+    loadAll() {
+        return new Promise((resolve_func) => {
+            this.resolve_func = resolve_func;
 
-    onAllLoaded(callback) {
-        if (this.pending === 0) {
-            callback();
-        } else {
-            this.allLoadedCallback = callback;
-        }
+            this.loadImage('player_base', '../images/player_base.png');
+            this.loadImage('orc_base', '../images/orc_base.png');
+            this.loadImage('player_shadow', '../images/player_shadow.png');
+            this.loadImage('iso_tiles', '../maps/tilesets/iso_tiles.png');
+
+            this._checkAllLoaded();
+        });
     }
 }
