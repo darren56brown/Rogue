@@ -288,12 +288,12 @@ export class App {
             char.updatePhysics(dt, this.game_map);
         }
 
-        if (this.player.linedUpOnFollowTarget && this.player.followTarget) {
-            const npc = this.player.followTarget;
-            if (npc.conversation) {
-                this.player.stopFollowing();
-                this.conversationUI.startConversation(npc);
-            }
+        if (this.player.follow_success &&
+            this.player.follow_target &&
+            this.player.follow_target.conversation) {
+            const follow_target = this.player.follow_target;
+            this.player.stopFollowing();
+            this.conversationUI.startConversation(follow_target);
         }
 
         const portal = this.game_map.getPortalAt(
