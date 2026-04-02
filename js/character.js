@@ -14,16 +14,16 @@ export const PlayerFacing = Object.freeze({
     face_w:  7    // West
 });
 
-const FACING_VECTORS = Object.freeze({
-    [PlayerFacing.face_e]: vec2D(1, 0),
-    [PlayerFacing.face_se]: vec2D(.7071, .7071),
-    [PlayerFacing.face_s]: vec2D(0, 1),
-    [PlayerFacing.face_sw]: vec2D(-.7071, .7071),
-    [PlayerFacing.face_w]: vec2D(-1, 0),
-    [PlayerFacing.face_nw]: vec2D(-.7071, -.7071),
-    [PlayerFacing.face_n]: vec2D(0, -1),
-    [PlayerFacing.face_ne]: vec2D(.7071, -.7071)
-});
+export const FACING_VECTORS = new Map([
+    [PlayerFacing.face_e,  vec2D(1,     0)],
+    [PlayerFacing.face_se, vec2D(0.7071, 0.7071)],
+    [PlayerFacing.face_s,  vec2D(0,     1)],
+    [PlayerFacing.face_sw, vec2D(-0.7071, 0.7071)],
+    [PlayerFacing.face_w,  vec2D(-1,    0)],
+    [PlayerFacing.face_nw, vec2D(-0.7071, -0.7071)],
+    [PlayerFacing.face_n,  vec2D(0,    -1)],
+    [PlayerFacing.face_ne, vec2D(0.7071, -0.7071)]
+]);
 
 export class Character {
     #pos_xy = {x: 0, y: 0};
@@ -327,6 +327,10 @@ export class Character {
     }
 
     _updateFollow(game_map) {
+        //TODO: The cache doesn't work right when the target stops
+        //and the would be follower successfully satisfied the 
+        //requirements and stops because stopping clears the cache.
+
         const target_xy = this.follow_target.getPositionXY();
         const target_z = this.follow_target.getZ();
         const target_facing = this.follow_target.curFacing;
@@ -355,10 +359,12 @@ export class Character {
 
         //If we still have a cache, test it and see if we are good.
         if (this.follow_cache) {
-            if (getMixedDist(this.getPositionXY(), this.getZ(),
-                this.follow_cache.desired_xy, target_z) <= 0.05) {
-                this.clearPath();
-                this.follow_success = !target_is_walking;
+            if (this.follow_cache.desired_xy) {
+                if (this._isCloseEnoughToTarget(this.follow_cache.desired_xy,
+                    this.follow_cache.target_z)) {
+                    this.clearPath();
+                    this.follow_success = !target_is_walking;
+                }
             }
             this._turnToFollowTarget();
             return;
@@ -374,45 +380,47 @@ export class Character {
             (target_facing + 5) % 8,
             (target_facing + 4) % 8    // opposite last
         ];
+        //console.log(test_dirs);
 
         for (const test_facing of test_dirs) {
-            if (this._updateFollowTry(game_map, test_facing)) break;
+            const facing_vector = target_is_walking ?
+                (test_facing + 4) % 8 : test_facing;
+            const offset = mult(FACING_VECTORS.get(facing_vector), 0.9);
+            const desired_xy = add(target_xy, offset);
+
+            if (this._isCloseEnoughToTarget(desired_xy, target_z)) {
+                this.clearPath();
+                this.follow_success = !target_is_walking;
+                this._turnToFollowTarget();
+                return;
+            }
+
+            this.buildPathToPosition(game_map, desired_xy, target_z);
+            if (this.waypoints.length > 0) {
+                this.follow_cache = {
+                    target_xy: target_xy,
+                    target_z: target_z,
+                    target_facing: target_facing,
+                    desired_xy: desired_xy
+                };
+                this._turnToFollowTarget();
+                return;
+            }
         }
 
-        this._turnToFollowTarget();
-    }
-
-    _updateFollowTry(game_map, test_facing) {
-        const target_xy = this.follow_target.getPositionXY();
-        const target_z = this.follow_target.getZ();
-        const target_is_walking = this.follow_target.isWalking();
-        
-        const facing_vector = target_is_walking ?
-            (test_facing + 4) % 8 : test_facing;
-        const offset = mult(FACING_VECTORS[facing_vector], 0.9);
-        const desired_xy = add(target_xy, offset);
-
-        if (getMixedDist(this.getPositionXY(), this.getZ(),
-            desired_xy, target_z) <= 0.05) {
-            this.clearPath();
-            this.follow_success = !target_is_walking;
-            return true;
-        }
-
-        this.buildPathToPosition(game_map, desired_xy, target_z);
         this.follow_cache = {
             target_xy: target_xy,
             target_z: target_z,
-            target_facing: test_facing,
-            desired_xy: desired_xy,
+            target_facing: target_facing,
+            desired_xy: null
         };
-        return this.isWalking();
+        this._turnToFollowTarget();
     }
 
     _getNearestFacing(move_vec) {
         let best_proj = -Infinity;
         let best_facing = this.curFacing;
-        for (const [facing, face_vec] of Object.entries(FACING_VECTORS)) {
+        for (const [facing, face_vec] of FACING_VECTORS) {
             const proj = dot(move_vec, face_vec);
             if (proj > best_proj) {
                 best_proj = proj;
@@ -420,6 +428,11 @@ export class Character {
             }
         }
         return best_facing;
+    }
+
+    _isCloseEnoughToTarget(target_xy, target_z) {
+        return getMixedDist(this.getPositionXY(), this.getZ(),
+                target_xy, target_z) <= 0.05;
     }
 
     _turnToFollowTarget() {

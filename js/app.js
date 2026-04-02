@@ -51,7 +51,7 @@ export class App {
         return map;
     }
 
-        async switchMap(targetMapName, targetPos) {
+    async switchMap(targetMapName, targetPos) {
         if (this.switching_maps) return;
         this.switching_maps = true;
 
@@ -80,7 +80,7 @@ export class App {
         try {
             const newMap = await this.smartGetMap(targetMapName);
 
-            this.game_map = newMap;
+            this.current_game_map = newMap;
 
             // Teleport player
             this.player.setPositionXY({ x: targetPos.x, y: targetPos.y });
@@ -88,7 +88,7 @@ export class App {
             this.player.clearPath();
             this.player.stopFollowing();
 
-            this.characters = [...this.game_map.npcs];
+            this.characters = [...this.current_game_map.npcs];
             this.characters.push(this.player);
 
             // Snap camera
@@ -123,8 +123,8 @@ export class App {
 
         await this.image_library.loadAll();
 
-        this.gameMaps = new Map();
-        this.game_map = await this.smartGetMap("level_01");
+        this.game_maps = new Map();
+        this.current_game_map = await this.smartGetMap("level_01");
 
         this.spriteViewer = new SpriteViewer(this.image_library,
             () => { this.setPauseState(true); this.hideHUD(); },
@@ -141,11 +141,11 @@ export class App {
     }
 
     initPhysics() {
-        this.player = new Player(this.game_map.playerStart,
+        this.player = new Player(this.current_game_map.playerStart,
             this.image_library, "player_base");
         this.player.initializeDefaultItems();
 
-        this.characters = [...this.game_map.npcs];
+        this.characters = [...this.current_game_map.npcs];
         this.characters.push(this.player);
 
         this.createHUD();
@@ -197,10 +197,14 @@ export class App {
         document.querySelectorAll(".ui-panel").forEach(p => p.classList.remove("is-active"));
     }
 
-    fullRestart(){
+    async fullRestart(){
         this.state = "start_screen";
         this.hideAllPanels();
         this.hideHUD();
+
+        this.game_maps = new Map();
+        this.current_game_map = await this.smartGetMap("level_01");
+
         document.getElementById("mainMenu").classList.add("is-active");
         this.initPhysics();
     }
@@ -265,7 +269,7 @@ export class App {
             this.ctx.fillStyle = "#0f3460";
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         } else {
-            this.renderer.render(this.game_map, this.view_origin, this.characters,
+            this.renderer.render(this.current_game_map, this.view_origin, this.characters,
                 this.highlighted_tile, this.highlighted_character,
                 this.selected_character);
 
@@ -285,7 +289,7 @@ export class App {
         if (this.state !== "running") return;
 
         for (const char of this.characters) {
-            char.updatePhysics(dt, this.game_map);
+            char.updatePhysics(dt, this.current_game_map);
         }
 
         if (this.player.follow_success &&
@@ -296,7 +300,7 @@ export class App {
             this.conversationUI.startConversation(follow_target);
         }
 
-        const portal = this.game_map.getPortalAt(
+        const portal = this.current_game_map.getPortalAt(
             this.player.getPositionXY(), this.player.getZ());
         if (portal) {
             this.switchMap(portal.targetMap, portal.targetPlayerStart);
@@ -395,15 +399,15 @@ export class App {
     }
 
     getMouseOverTile(screenPos) {
-        if (!this.game_map?.isLoaded) return null;
+        if (!this.current_game_map?.isLoaded) return null;
 
-        for (let i = this.game_map.layers.length - 1; i >= 0; i--) {
-            const layer = this.game_map.layers[i];
+        for (let i = this.current_game_map.layers.length - 1; i >= 0; i--) {
+            const layer = this.current_game_map.layers[i];
             const worldPos = this.screenToWorld(screenPos, layer.zHeight);
             
             const tx = Math.floor(worldPos.x);
             const ty = Math.floor(worldPos.y);
-            if (this.game_map.getTileInfoForLayer(tx, ty, layer)) {
+            if (this.current_game_map.getTileInfoForLayer(tx, ty, layer)) {
                 return {
                     tileCoord: vec2D(tx, ty),
                     layerZ: layer.zHeight
@@ -477,7 +481,7 @@ export class App {
             const tile_z = this.highlighted_tile.layerZ;
             const screen_pos = this.getPositionFromEvent(e);
             const world_pos_xy = this.screenToWorld(screen_pos, tile_z);
-            this.player.moveTo(this.game_map, {x: world_pos_xy.x, y: world_pos_xy.y, z: tile_z});
+            this.player.moveTo(this.current_game_map, {x: world_pos_xy.x, y: world_pos_xy.y, z: tile_z});
             return;
         }
 
