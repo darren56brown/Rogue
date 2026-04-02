@@ -204,7 +204,6 @@ export class Character {
     clearPath() {
         this.waypoints = [];
         this.currentWaypointIndex = 0;
-        this.follow_cache = null;
     }
 
     buildPathToPosition(game_map, goal_pos_xy, goal_z) {
@@ -313,12 +312,14 @@ export class Character {
         this.clearPath();
         this.follow_target = target;
         this.follow_success = false;
+        this.follow_cache = null;
     }
 
     stopFollowing() {
         this.clearPath();
         this.follow_target = null;
         this.follow_success = false;
+        this.follow_cache = null;
     }
 
     moveTo(game_map, world_pos) {
@@ -327,10 +328,6 @@ export class Character {
     }
 
     _updateFollow(game_map) {
-        //TODO: The cache doesn't work right when the target stops
-        //and the would be follower successfully satisfied the 
-        //requirements and stops because stopping clears the cache.
-
         const target_xy = this.follow_target.getPositionXY();
         const target_z = this.follow_target.getZ();
         const target_facing = this.follow_target.curFacing;
@@ -351,6 +348,7 @@ export class Character {
         //Throw away cache if the target has moved or turned.
         if (this.follow_cache) {
             if (target_facing != this.follow_cache.target_facing ||
+                target_is_walking != this.follow_cache.target_is_walking ||
                 getMixedDist(target_xy, target_z, this.follow_cache.target_xy,
                 this.follow_cache.target_z) > 0.1) {
                 this.follow_cache = null;
@@ -401,6 +399,7 @@ export class Character {
                     target_xy: target_xy,
                     target_z: target_z,
                     target_facing: target_facing,
+                    target_is_walking: target_is_walking,
                     desired_xy: desired_xy
                 };
                 this._turnToFollowTarget();
@@ -412,6 +411,7 @@ export class Character {
             target_xy: target_xy,
             target_z: target_z,
             target_facing: target_facing,
+            target_is_walking: target_is_walking,
             desired_xy: null
         };
         this._turnToFollowTarget();
