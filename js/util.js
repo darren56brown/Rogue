@@ -1,5 +1,5 @@
 import {ISO} from "./constants.js";
-import {vec2D} from './vec2D.js';
+import {vec2D, sub} from './vec2D.js';
 
 export function cartesianToIso(x, y, z) {
     return {
@@ -26,4 +26,10 @@ export function getTileCoordFromPosition(pos) {
 export function isoCompare(xy_sort_1, z_sort_1, xy_sort_2, z_sort_2) {
         return xy_sort_1.x + xy_sort_1.y + z_sort_1 - 
             (xy_sort_2.x + xy_sort_2.y + z_sort_2);
+};
+
+export function getMixedDist(xy_1, z_1, xy_2, z_2) {
+    const xy_error = sub(xy_1, xy_2);
+    const z_error = z_1 - z_2;
+    return Math.hypot(xy_error.x, xy_error.y, z_error);
 };
