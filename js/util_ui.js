@@ -1,7 +1,8 @@
 
 const templates = {
     'sprite_viewer':  'templates/sprite_viewer.html',
-    'conversation':   'templates/conversation.html'
+    'conversation':   'templates/conversation.html',
+    'inventory':   'templates/inventory.html'
 };
 
 export async function loadAllUITemplates() {

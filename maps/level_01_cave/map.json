@@ -2,7 +2,7 @@
     "displayName": "The Cave",
     "playerStart": { "x": 1.5, "y": 1.5, "z": 0 },
     "npcs": [
-        { "name": "blacksmith_bob", "x": 4.5, "y": 2.5, "z": 1 }
+        { "name": "blacksmith_bob", "x": 4.5, "y": 2.5, "z": 0 }
     ],
     "portals": [
         {
