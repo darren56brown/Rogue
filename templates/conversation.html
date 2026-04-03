@@ -1,0 +1,34 @@
+<head>
+    <link rel="stylesheet" href="css/conversation.css">
+</head>
+<body>
+    <div id="conversationPanel" class="ui-panel">
+        <div class="viewer-header">
+            <h2 id="convNpcName">NPC Name</h2>
+            <button id="closeConversation" class="close-x">×</button>
+        </div>
+        
+        <div class="conversation-body">
+            <!-- Portrait (left side) -->
+            <div class="portrait-container">
+                <canvas id="convPortraitCanvas" width="128" height="128"></canvas>
+            </div>
+            
+            <!-- Dialogue area -->
+            <div class="dialogue-container">
+                <!-- NPC text -->
+                <div id="npcDialogueBox" class="npc-text-box">
+                    <div id="npcText" class="npc-text"></div>
+                </div>
+                
+                <!-- Player choices -->
+                <div id="choicesContainer" class="choices-container"></div>
+                
+                <!-- When conversation ends -->
+                <div id="endConversationFooter" class="end-footer" style="display: none;">
+                    <button id="goodbyeButton" class="goodbye-btn">Goodbye</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>

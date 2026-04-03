@@ -5,7 +5,8 @@ import { Player } from "./player.js";
 import { GameMap } from "./game_map.js";
 import { FPSTracker } from "./fps_tracker.js";
 import { cartesianToIso, isoToCartesian } from './util.js';
-import {vec2D, sub, magSq, mult, setAdd} from './vec2D.js';
+import { loadAllUITemplates } from "./util_ui.js";
+import { vec2D, sub, magSq, mult, setAdd } from './vec2D.js';
 import { SpriteViewer } from './sprite_viewer.js';
 import { ConversationUI } from "./conversation_ui.js";
 
@@ -119,9 +120,10 @@ export class App {
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
         this.initUserInput();
-        this.initUI();
 
+        await loadAllUITemplates();
         await this.image_library.loadAll();
+        this.initUI();
 
         this.game_maps = new Map();
         this.current_game_map = await this.smartGetMap("level_01");
@@ -297,6 +299,7 @@ export class App {
             this.player.follow_target.conversation) {
             const follow_target = this.player.follow_target;
             this.player.stopFollowing();
+            this.selected_character = null;
             this.conversationUI.startConversation(follow_target);
         }
 

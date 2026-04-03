@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Some Game!</title>
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/sprite-viewer.css">
-    <link rel="stylesheet" href="css/conversation.css">
 </head>
 <body>
     <div id="mainContainer">
@@ -40,80 +38,12 @@
             <button id="quitButton">Quit</button>
         </div>
 
-        <div id="spriteViewer" class="ui-panel">
-            <div class="viewer-header">
-                <h2>Player</h2>
-                <button id="closeViewer" class="close-x">×</button>
-            </div>
-            
-            <div class="viewer-main">
-                <!-- Canvas on the left -->
-                <div class="viewer-body">
-                    <canvas id="viewerCanvas" width="128" height="128"></canvas>
-                </div>
-                
-                <!-- Direction pad up and to the right of the canvas -->
-                <div class="direction-pad">
-                    <button id="dirUp" class="dir-btn">↑</button>
-                    <div class="dir-middle">
-                        <button id="dirLeft" class="dir-btn">←</button>
-                        <button id="idleBtn" class="idle-btn">IDLE</button>
-                        <button id="dirRight" class="dir-btn">→</button>
-                    </div>
-                    <button id="dirDown" class="dir-btn">↓</button>
-                </div>
-            </div>
-
-            <!-- PREV + Label + NEXT below everything -->
-            <div class="viewer-controls">
-                <div class="action-row">
-                    <button id="prevAnim" class="small-btn">PREV</button>
-                    <div id="animLabel">
-                        <span id="animNameText">Walk Right</span>
-                        <small id="animDetailsText">Row 11 | 9 columns</small>
-                    </div>
-                    <button id="nextAnim" class="small-btn">NEXT</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="conversationPanel" class="ui-panel">
-            <div class="viewer-header">
-                <h2 id="convNpcName">NPC Name</h2>
-                <button id="closeConversation" class="close-x">×</button>
-            </div>
-            
-            <div class="conversation-body">
-                <!-- Portrait (left side) -->
-                <div class="portrait-container">
-                    <canvas id="convPortraitCanvas" width="128" height="128"></canvas>
-                </div>
-                
-                <!-- Dialogue area -->
-                <div class="dialogue-container">
-                    <!-- NPC text -->
-                    <div id="npcDialogueBox" class="npc-text-box">
-                        <div id="npcText" class="npc-text"></div>
-                    </div>
-                    
-                    <!-- Player choices -->
-                    <div id="choicesContainer" class="choices-container"></div>
-                    
-                    <!-- When conversation ends -->
-                    <div id="endConversationFooter" class="end-footer" style="display: none;">
-                        <button id="goodbyeButton" class="goodbye-btn">Goodbye</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div id="loadingPanel" class="ui-panel">
-            <h2>LOADING NEXT AREA...</h2>
-            <p style="margin: 30px 0 20px; color: #aaa; font-size: 18px;">Preparing the world</p>
-            <!-- Simple animated bar -->
+            <h2>LOADING...</h2>
+            <!--<p style="margin: 30px 0 20px; color: #aaa; font-size: 18px;">Preparing the world</p>
             <div style="width: 280px; height: 24px; background: #112233; border: 3px solid #4a9eff; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 0 20px rgba(74,158,255,0.3);">
                 <div style="height: 100%; width: 100%; background: linear-gradient(90deg, #4a9eff, #a0d0ff); animation: loadingBar 1.2s linear infinite;"></div>
-            </div>
+            </div>-->
         </div>
 
     </div>
