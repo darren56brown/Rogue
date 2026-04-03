@@ -45,10 +45,11 @@ export class Character {
         this.waypoints = [];
         this.currentWaypointIndex = 0;
 
-        this.inventory = [];
         this.follow_target = null;
         this.follow_success = false;
         this.follow_cache = null;
+
+        this.inventorySlots = Array.from({ length: 40 }, () => ({ item: null, count: 0 }));
 
         this.setPositionXY(vec2D(world_pos.x, world_pos.y));
         this.setZ(world_pos.z);
@@ -443,5 +444,33 @@ export class Character {
             this.getPositionXY());
         this.curFacing = this._getNearestFacing(to_target);
     }
+
+    addToInventory(gameItem, count = 1) {
+        if (!gameItem) return;
+        for (let slot of this.inventorySlots) {
+            if (slot.item && slot.item.id === gameItem.id && slot.count < slot.item.maxStack) {
+                const canAdd = Math.min(count, slot.item.maxStack - slot.count);
+                slot.count += canAdd;
+                count -= canAdd;
+                if (count <= 0) return;
+            }
+        }
+        for (let slot of this.inventorySlots) {
+            if (!slot.item) {
+                slot.item = gameItem.clone();
+                slot.count = count;
+                return;
+            }
+        }
+        console.warn("Inventory full for", this.constructor.name);
+    }
+
+    swapInventorySlots(index1, index2) {
+        if (index1 < 0 || index1 >= 40 || index2 < 0 || index2 >= 40) return;
+        const temp = this.inventorySlots[index1];
+        this.inventorySlots[index1] = this.inventorySlots[index2];
+        this.inventorySlots[index2] = temp;
+    }
+
 }
 

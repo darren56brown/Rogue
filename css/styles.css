@@ -131,13 +131,12 @@ button:hover {
     left: 50%;
     transform: translateX(-50%);
     padding: calc(0.75 * var(--game-vh)) calc(1.15 * var(--game-vh));
-    background: linear-gradient(#3d3d3d, #2a2a2a);
-    border: calc(.75 * var(--game-vh)) solid #5c5c5c;
+    background: linear-gradient(#757575, #5c5c5c);
+    border: calc(.5 * var(--game-vh)) solid #383838;
     border-top-color: #a8a8a8;
     border-left-color: #a8a8a8;
-    box-shadow: 0 5px 0 -3px #111,
-                0 3px 14px rgba(0, 0, 0, 0.6);
-    border-radius: 4px;
+    box-shadow: 3px 5px 5px 0px #111;
+    border-radius: 6px;
 }
 
 .hotbar {
@@ -157,11 +156,11 @@ button:hover {
     width: calc(5.95 * var(--game-vh));
     height: calc(5.95 * var(--game-vh));
     background: #4f4f4f;
-    border: calc(0.37 * var(--game-vh)) solid #b8b8b8;
-    border-bottom-color: #383838;
-    border-right-color: #383838;
-    box-shadow: inset calc(0.27 * var(--game-vh)) calc(0.27 * var(--game-vh)) 0 #1f1f1f,
-                inset calc(-0.27 * var(--game-vh)) calc(-0.27 * var(--game-vh)) 0 #1f1f1f;
+    border: calc(0.37 * var(--game-vh)) solid #383838;
+    border-bottom-color: #b8b8b8;
+    border-right-color: #b8b8b8;
+    /*box-shadow: inset calc(0.27 * var(--game-vh)) calc(0.27 * var(--game-vh)) 0 #1f1f1f,
+                inset calc(-0.27 * var(--game-vh)) calc(-0.27 * var(--game-vh)) 0 #1f1f1f;*/
     position: relative;
     display: flex;
     align-items: center;
@@ -178,11 +177,11 @@ button:hover {
 }
 
 .slot.selected {
-    border-color: #ffffff;
-    border-bottom-color: #e0e0e0;
-    border-right-color: #e0e0e0;
-    box-shadow: inset calc(0.27 * var(--game-vh)) calc(0.27 * var(--game-vh)) 0 #ffffff,
-                inset calc(-0.27 * var(--game-vh)) calc(-0.27 * var(--game-vh)) 0 #777;
+    border-color: #f3d664;
+    border-bottom-color: #947d16;
+    border-right-color: #947d16;
+    /*box-shadow: inset calc(0.27 * var(--game-vh)) calc(0.27 * var(--game-vh)) 0 #5f0a0a,
+                inset calc(-0.27 * var(--game-vh)) calc(-0.27 * var(--game-vh)) 0 #777;*/
 }
 
 .slot .item-icon {

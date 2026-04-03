@@ -9,6 +9,7 @@ import { loadAllUITemplates } from "./util_ui.js";
 import { vec2D, sub, magSq, mult, setAdd } from './vec2D.js';
 import { SpriteViewer } from './sprite_viewer.js';
 import { ConversationUI } from "./conversation_ui.js";
+import { InventoryUI } from "./inventory_ui.js";
 
 export class App {
     constructor() {
@@ -40,6 +41,7 @@ export class App {
 
         this.spriteViewer = null;
         this.conversationUI = null;
+        this.inventoryUI = null;
     }
 
     async smartGetMap(mapName) {
@@ -136,6 +138,15 @@ export class App {
             this.image_library,
             () => { this.setPauseState(true); this.hideHUD(); },
             () => { this.setPauseState(false); this.showHUD(); }
+        );
+        this.inventoryUI = new InventoryUI(
+            this.image_library,
+            () => { this.setPauseState(true); this.hideHUD(); },
+            () => { 
+                this.setPauseState(false); 
+                this.showHUD(); 
+                this.updateHotbarUI();
+            }
         );
 
         this.initPhysics();
@@ -337,11 +348,21 @@ export class App {
                 } else {
                     this.spriteViewer.activate(this.player);
                 }
+            } else if (e.key.toLowerCase() === 'i') {
+                if (this.state !== "running") return;
+                if (this.inventoryUI.isActive) {
+                    this.inventoryUI.deactivate();
+                } else {
+                    this.inventoryUI.activate(this.player);
+                }
             } else if (this.state === 'running') {
                 const num = parseInt(e.key);
                 if (num >= 1 && num <= 9) {
                     e.preventDefault();
                     this.selectSlot(num - 1);
+                } else if (e.key === '0') {
+                    e.preventDefault();
+                    this.selectSlot(9);
                 }
             }
         });
@@ -513,14 +534,19 @@ export class App {
         
         slotsContainer.innerHTML = "";
 
-        this.player.hotbar.forEach((slotData, index) => {
+        const NUM_HOTBAR_SLOTS = 10;
+        for (let index = 0; index < NUM_HOTBAR_SLOTS; ++index)
+        {
             const slot = document.createElement("div");
-            slot.className = `slot ${index === this.player.selectedSlot ? "selected" : ""}`;
+            slot.className = `slot ${index == this.player.selectedSlot ? "selected" : ""}`;
             slot.dataset.index = index;
             slot.draggable = true;
 
             const iconDiv = document.createElement("div");
             iconDiv.className = "item-icon";
+
+            const slotData = this.player.inventorySlots[index];
+
             iconDiv.textContent = slotData?.item?.icon || "";
             slot.appendChild(iconDiv);
 
@@ -531,7 +557,6 @@ export class App {
                 slot.appendChild(countSpan);
             }
 
-            // Drag & Drop support
             slot.addEventListener("dragstart", (e) => {
                 e.dataTransfer.setData("text/plain", index.toString());
             });
@@ -551,25 +576,19 @@ export class App {
                 }
             });
 
-            // Click to select
             slot.addEventListener("click", () => {
                 this.player.selectedSlot = index;
                 this.updateHotbarUI();
             });
 
             slotsContainer.appendChild(slot);
-        });
+        };
     }
 
     selectSlot(index) {
-        if (index < 0 || index > 8) return;
+        if (index < 0 || index > 9) return;
         this.player.selectedSlot = index;
         this.updateHotbarUI();
-
-        const selected = this.player.hotbar[index];
-        if (selected && selected.item) {
-            console.log(`🎮 Selected: ${selected.item.name} (x${selected.count})`);
-        }
     }
 
     updateHealthUI() {

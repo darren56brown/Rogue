@@ -1,7 +1,7 @@
 #inventoryPanel {
     width: 95%;
-    max-width: 820px;
-    background: rgba(10, 15, 25, 0.96);
+    max-width: 550px;
+    background: rgba(25, 38, 63, 0.96);
     padding: 20px;
     border-radius: 12px;
 }
@@ -9,7 +9,7 @@
 .inventory-body {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap:16px;
 }
 
 .inventory-grid-container {
@@ -21,22 +21,22 @@
 
 .inventory-grid {
     display: grid;
-    grid-template-columns: repeat(9, 64px);
-    gap: 8px;
+    grid-template-columns: repeat(10, 42px);
+    gap: 6px;
     justify-content: center;
 }
 
 .inventory-slot {
-    width: 64px;
-    height: 64px;
+    width: 42px;
+    height: 42px;
     background: #3a3a3a;
-    border: 3px solid #777;
-    border-bottom-color: #222;
-    border-right-color: #222;
+    border: 3px solid #222;
+    border-bottom-color: #777;
+    border-right-color: #777;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 42px;
+    font-size: 28px;
     position: relative;
     cursor: pointer;
     transition: all 0.1s;
@@ -55,9 +55,9 @@
 .item-icon { pointer-events: none; }
 .item-count {
     position: absolute;
-    bottom: 4px;
-    right: 8px;
-    font-size: 18px;
+    bottom: 2px;
+    right: 4px;
+    font-size: 14px;
     color: white;
     text-shadow: 2px 2px 0 #000;
     font-weight: bold;
@@ -65,7 +65,7 @@
 
 .inventory-footer {
     display: flex;
-    gap: 20px;
+    gap: 16px;
 }
 
 .paper-doll, .info-panel {
