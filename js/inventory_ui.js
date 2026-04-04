@@ -31,9 +31,9 @@ export class InventoryUI {
         
         this.equipBackgrounds = {
             helmet: { row: 0, col: 0 },
-            chest:  { row: 0, col: 1 },
-            legs:   { row: 0, col: 2 },
-            boots:  { row: 1, col: 0 }
+            chest:  { row: 1, col: 0 },
+            legs:   { row: 2, col: 0 },
+            boots:  { row: 3, col: 0 }
         };
 
         this.initEvents();
