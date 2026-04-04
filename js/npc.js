@@ -13,13 +13,12 @@ const NPC_STATES = Object.freeze({
 
 export class Npc extends Character {
     constructor(world_pos, image_library, map_name, base_name) {
-        super(world_pos);
+        super(world_pos, "Character");
 
         this.image_library = image_library;
         this.map_name = map_name;      // e.g. "level_01"
         this.base_name = base_name;    // e.g. "blacksmith_bob"
 
-        this.display_name = "Unknown";
         this.conversation = new Conversation(map_name, base_name);
 
         this.currentState = NPC_STATES.STANDING;
@@ -44,7 +43,7 @@ export class Npc extends Character {
 
             const npcInfo = await response.json();
 
-            this.display_name = npcInfo.displayName || "Villager";
+            if (npcInfo.displayName) this.resetDisplayName(npcInfo.displayName);
 
             const spriteName = npcInfo.spriteImageName;
             if (!spriteName) {
@@ -62,8 +61,6 @@ export class Npc extends Character {
             }
 
             this.loaded = true;
-            //console.log(`✅ NPC loaded: ${this.display_name} (${this.base_name})`);
-
         } catch (error) {
             console.error(`❌ Failed to load NPC ${this.base_name}:`, error);
             throw error;

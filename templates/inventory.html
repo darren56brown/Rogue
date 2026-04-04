@@ -4,29 +4,22 @@
 <body>
     <div id="inventoryPanel" class="ui-panel">
         <div class="viewer-header">
-            <h2>Inventory</h2>
+            <h2>&lt;None&gt;</h2>
             <button id="closeInventory" class="close-x">×</button>
         </div>
         
-        <div class="inventory-body">
-            <!-- Main 10×4 grid -->
-            <div class="inventory-grid-container">
+        <div class="inventory-top-half">
+            <div class="inventory-panel">
+                <h3>Inventory</h3>
                 <div id="inventoryGrid" class="inventory-grid"></div>
             </div>
 
-            <!-- Footer: Paper Doll + Info -->
-            <div class="inventory-footer">
-                <div class="paper-doll">
-                    <h3>Paper Doll</h3>
-                    <div class="equipment-slots">
-                        <div class="equip-slot">🪖 Helmet</div>
-                        <div class="equip-slot">🛡️ Chest</div>
-                        <div class="equip-slot">👖 Legs</div>
-                        <div class="equip-slot">🥾 Boots</div>
-                    </div>
-                    <!-- You can add a small canvas preview here later -->
+            <div class="inventory-bottom-half">
+                <div class="equipment-panel">
+                    <h3>Equipment</h3>
+                    <div id="equipmentGrid" class="equipment-grid"></div>
                 </div>
-                <div class="info-panel">
+                <div class="item-info-panel">
                     <h3>Item Info</h3>
                     <div id="itemDescription" class="item-desc">Hover or select an item...</div>
                 </div>

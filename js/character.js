@@ -29,9 +29,11 @@ export class Character {
     #pos_xy = {x: 0, y: 0};
     #z = 0;
 
-    constructor(world_pos) {
-        this.sprite_image_name = null;     // ← Will be set later
-        this.spriteSheet = null;           // ← Created only when we have the real image
+    constructor(world_pos, display_name) {
+        this.display_name = display_name;
+        
+        this.sprite_image_name = null;
+        this.spriteSheet = null;
 
         this.size = { w: PLAYER_ANIM_FRAME_SIZE.w, h: PLAYER_ANIM_FRAME_SIZE.h };
         this.origin = { x: PLAYER_TILE_ORIGIN.x, y: PLAYER_TILE_ORIGIN.y };
@@ -50,9 +52,14 @@ export class Character {
         this.follow_cache = null;
 
         this.inventorySlots = Array.from({ length: 40 }, () => ({ item: null, count: 0 }));
+        this.equipment = { helmet: null, chest: null, legs: null, boots: null };
 
         this.setPositionXY(vec2D(world_pos.x, world_pos.y));
         this.setZ(world_pos.z);
+    }
+
+    resetDisplayName(display_name) {
+        this.display_name = display_name;
     }
 
     initializeSprite(image_library, sprite_image_name) {

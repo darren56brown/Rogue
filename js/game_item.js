@@ -20,6 +20,7 @@ export class GameItem {
         this.value = data.value || 0;         // gold/trade value
         this.weight = data.weight || 0;
         this.tags = data.tags || [];          // e.g. ["metal", "sharp", "edible"]
+        this.equipSlot = data.equipSlot || null; // "helmet", "chest", "legs", "boots"
     }
 
     // Helper methods
@@ -46,7 +47,8 @@ export class GameItem {
             description: this.description,
             value: this.value,
             weight: this.weight,
-            tags: [...this.tags]
+            tags: [...this.tags],
+            equipSlot: this.equipSlot
         });
     }
 

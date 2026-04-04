@@ -3,7 +3,7 @@ import { GameItem } from "./game_item.js";
 
 export class Player extends Character {
     constructor(world_pos, image_library, sprite_image_name) {
-        super(world_pos);
+        super(world_pos, "Player");
 
         this.selectedSlot = 0;
 
@@ -17,7 +17,15 @@ export class Player extends Character {
         const ironAxe = new GameItem({ id: "iron_axe", name: "Iron Axe", type: "tool", icon: "🪓", damage: 7 });
         const bow = new GameItem({ id: "bow", name: "Bow", type: "weapon", icon: "🏹", damage: 6 });
         const apple = new GameItem({ id: "apple", name: "Apple", type: "consumable", icon: "🍎", healAmount: 4, maxStack: 64, description: "A fresh red apple." });
-        const shield = new GameItem({ id: "wooden_shield", name: "Wooden Shield", type: "armor", icon: "🛡️", defense: 3, description: "Basic protection." });
+        const shield = new GameItem({
+            id: "wooden_shield",
+            name: "Wooden Shield",
+            type: "armor",
+            icon: "🛡️",
+            defense: 3,
+            description: "Basic protection.",
+            equipSlot: "chest"
+        });
         const torch = new GameItem({ id: "torch", name: "Torch", type: "misc", icon: "🔥", description: "Provides light." });
 
         // These directly fill the first row (hotbar) because hotbar points at the same memory

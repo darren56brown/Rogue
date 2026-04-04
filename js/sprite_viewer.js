@@ -45,20 +45,10 @@ export class SpriteViewer {
 
     activate(character) {
         this.deactivate();
-
         this.currentCharacter = character;
 
-        // Update the header title with the proper name
         const headerTitle = document.querySelector('#spriteViewer .viewer-header h2');
-        if (headerTitle) {
-            if (character.display_name) {
-                headerTitle.textContent = character.display_name;
-            } else if (character.sprite_image_name === "player_base") {
-                headerTitle.textContent = "Player";
-            } else {
-                headerTitle.textContent = "Character";
-            }
-        }
+        headerTitle.textContent = character.display_name;
 
         const sprite_image = this.image_library.get(character.sprite_image_name);
         this.spriteSheet = new SpriteSheet(sprite_image);
