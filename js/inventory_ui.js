@@ -28,6 +28,13 @@ export class InventoryUI {
             legs:   '👖',
             boots:  '🥾'
         };
+        
+        this.equipBackgrounds = {
+            helmet: { row: 0, col: 0 },
+            chest:  { row: 0, col: 1 },
+            legs:   { row: 0, col: 2 },
+            boots:  { row: 1, col: 0 }
+        };
 
         this.initEvents();
     }
@@ -66,12 +73,22 @@ export class InventoryUI {
         this.equipContainer = paperDollDiv.querySelector('.equipment-grid');
         this.equipContainer.innerHTML = ''; // Clear old content
 
+        const slotsImg = this.imageLibrary.get('slots');
+
         for (const eq of this.equipmentOrder) {
             const slotEl = document.createElement('div');
             slotEl.className = `inventory-slot equip-slot`;
             slotEl.dataset.slotType = eq.key;
 
-            // Icon container
+            // Set background from slots.png
+            const bg = this.equipBackgrounds[eq.key];
+            if (slotsImg && bg) {
+                slotEl.style.backgroundImage = `url('${slotsImg.src}')`;
+                slotEl.style.backgroundPosition = `-${bg.col * 32}px -${bg.row * 32}px`;
+                slotEl.style.backgroundSize = '128px 128px';     // Important
+            }
+
+            // Item icon (on top)
             const iconDiv = document.createElement('div');
             iconDiv.className = 'item-icon';
             slotEl.appendChild(iconDiv);
@@ -157,8 +174,10 @@ export class InventoryUI {
 
             if (item) {
                 iconDiv.textContent = item.icon;
+                iconDiv.style.opacity = "1";
             } else {
-                iconDiv.textContent = this.defaultEquipIcons[slotType] || '';
+                iconDiv.textContent = '';
+                iconDiv.style.opacity = "0";
             }
         });
     }

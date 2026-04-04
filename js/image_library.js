@@ -46,6 +46,7 @@ export class ImageLibrary {
             this.loadImage('orc_base', '../images/orc_base.png');
             this.loadImage('player_shadow', '../images/player_shadow.png');
             this.loadImage('iso_tiles', '../maps/tilesets/iso_tiles.png');
+            this.loadImage('slots', '../images/slots.png');
 
             this._checkAllLoaded();
         });
