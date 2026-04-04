@@ -73,9 +73,11 @@
     position: relative;
     cursor: pointer;
     transition: all 0.1s;
+    image-rendering: pixelated; 
+    image-rendering: crisp-edges;
 }
 
 .inventory-slot:hover {
     border-color: #4a9eff;
-    transform: scale(1.05);
+    /*transform: scale(1.05);*/
 }

@@ -85,7 +85,7 @@ export class InventoryUI {
             if (slotsImg && bg) {
                 slotEl.style.backgroundImage = `url('${slotsImg.src}')`;
                 slotEl.style.backgroundPosition = `-${bg.col * 32}px -${bg.row * 32}px`;
-                slotEl.style.backgroundSize = '128px 128px';     // Important
+                slotEl.style.backgroundSize = '128px 128px';
             }
 
             // Item icon (on top)
