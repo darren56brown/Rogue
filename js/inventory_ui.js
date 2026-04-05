@@ -15,29 +15,23 @@ export class InventoryUI {
         this.isActive = false;
 
         this.equipmentOrder = [
-            { key: 'helmet', label: 'Helmet' },
+            { key: 'head', label: 'Head' },
+            { key: 'neck', label: 'Neck' },
             { key: 'chest',  label: 'Chest' },
             { key: 'legs',   label: 'Legs' },
-            { key: 'boots',  label: 'Boots' }
+            { key: 'feet',  label: 'Feet' },
+            { key: 'hand_1',  label: 'Hand' },
+            { key: 'hand_2',  label: 'Hand' }
         ];
 
-        this.defaultEquipIcons = {
-            helmet: '🪖',
-            chest:  '🛡️',
-            legs:   '👖',
-            boots:  '🥾'
-        };
-
-        // ====================== PAPER DOLL CONFIG ======================
-        // EDIT THESE COORDINATES to place your invisible slots exactly where you want
-        // left/top are pixel offsets from the top-left of the 128x192 paper doll image
-        // size is the slot width/height (36px matches your inventory slots)
         this.paperDollSlots = {
-            helmet: { left: 46, top: 10,  size: 36 },
-            chest:  { left: 46, top: 55,  size: 36 },
-            legs:   { left: 46, top: 105, size: 36 },
-            boots:  { left: 46, top: 155, size: 36 }
-            // Add more slots here if you ever expand equipment (e.g. weapon, gloves)
+            head: { left: 46, top: -3,  size: 36 },
+            neck:  { left: 46, top: 28,  size: 36 },
+            chest:  { left: 46, top: 59,  size: 36 },
+            legs:   { left: 46, top: 93, size: 36 },
+            feet:  { left: 46, top: 159, size: 36 },
+            hand_1:  { left: 5, top: 97, size: 36 },
+            hand_2:  { left: 87, top: 97, size: 36 }
         };
 
         this.initEvents();
@@ -167,9 +161,16 @@ export class InventoryUI {
             }
         }
 
-        if (!droppedItem || droppedItem.equipSlot !== targetType) return;
+        if (!droppedItem) return;
 
-        // Swap logic (unchanged from your original code)
+        // === NEW: Flexible matching (up to first underscore) ===
+        const itemSlotType = droppedItem.equipSlot;
+        const slotBaseType = targetType.includes('_') ? targetType.split('_')[0] : targetType;
+
+        if (itemSlotType !== slotBaseType) return;
+        // =======================================================
+
+        // Swap logic
         if (fromInventoryIndex !== null) {
             const fromSlot = this.player.inventorySlots[fromInventoryIndex];
             const oldItem = this.player.equipment[targetType];
@@ -179,7 +180,6 @@ export class InventoryUI {
             fromSlot.count = oldItem ? 1 : 0;
         } 
         else if (fromEquipType && fromEquipType !== targetType) {
-            // Swap two equipment slots
             const temp = this.player.equipment[targetType];
             this.player.equipment[targetType] = this.player.equipment[fromEquipType];
             this.player.equipment[fromEquipType] = temp;
