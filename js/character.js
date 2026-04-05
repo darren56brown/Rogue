@@ -52,7 +52,19 @@ export class Character {
         this.follow_cache = null;
 
         this.inventorySlots = Array.from({ length: 40 }, () => ({ item: null, count: 0 }));
-        this.equipment = { helmet: null, chest: null, legs: null, boots: null };
+        this.equipment = {
+            head: null,
+            neck: null,
+            chest: null,
+            legs: null,
+            feet: null,
+            hand_1: null,
+            hand_2: null,
+            trinket_1: null,
+            trinket_2: null
+        };
+
+        this.gold = 100;
 
         this.setPositionXY(vec2D(world_pos.x, world_pos.y));
         this.setZ(world_pos.z);

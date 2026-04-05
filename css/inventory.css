@@ -116,3 +116,16 @@
 .paper-doll-container img {
     pointer-events: none;
 }
+
+.gold-display {
+    margin-top: 12px;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: left;
+    max-width: 300px;
+    /*background-color: red;*/
+}
+
+.gold-display span {
+    color: #ffeb3b;
+}

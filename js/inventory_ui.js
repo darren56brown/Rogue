@@ -55,6 +55,7 @@ export class InventoryUI {
         this.setupPaperDoll();
         this.refreshGrid();
         this.refreshPaperDoll();
+        this.refreshGold();
     }
 
     deactivate() {
@@ -205,6 +206,8 @@ export class InventoryUI {
                 iconDiv.style.opacity = "0";
             }
         });
+
+        this.refreshGold();
     }
 
     // ====================== MAIN INVENTORY GRID (unchanged) ======================
@@ -246,6 +249,8 @@ export class InventoryUI {
 
             this.gridContainer.appendChild(slotEl);
         }
+
+        this.refreshGold();
     }
 
     handleGridDrop(e, slotEl) {
@@ -282,6 +287,14 @@ export class InventoryUI {
         if (!isNaN(fromIndex) && fromIndex !== toIndex) {
             this.player.swapInventorySlots(fromIndex, toIndex);
             this.refreshGrid();
+        }
+    }
+
+    refreshGold() {
+        if (!this.player) return;
+        const goldEl = document.getElementById('goldAmount');
+        if (goldEl) {
+            goldEl.textContent = this.player.gold.toLocaleString();
         }
     }
 }
