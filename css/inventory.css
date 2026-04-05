@@ -53,10 +53,8 @@
 }
 
 .equipment-grid {
-    display: grid;
-    grid-template-columns: repeat(1, 36px);
-    gap: 6px;
-    justify-content: left;
+   
+    justify-content: center;
 }
 
 .inventory-slot {
@@ -79,5 +77,42 @@
 
 .inventory-slot:hover {
     border-color: #4a9eff;
-    /*transform: scale(1.05);*/
+    transform: scale(1.05);
+}
+
+
+
+
+
+
+/* Updated inventory.css - ADD these new rules at the bottom of the file */
+
+/* Paper doll container - holds the 128x192 image + overlaid slots */
+.paper-doll-container {
+    position: relative;
+    width: 128px;
+    height: 192px;
+    margin: 5px auto 0px;
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+/* Invisible equipment slots that sit on top of the paper doll */
+.paper-doll-slot {
+    background: transparent !important;
+    border: 2px solid transparent !important;
+    box-shadow: none !important;
+}
+
+/* Hover feedback (still works exactly like before) */
+.inventory-slot.paper-doll-slot:hover {
+    border-color: #4a9eff;
+    box-shadow: 0 0 10px #4a9eff;
+    transform: scale(1.05);
+}
+
+/* Optional: make sure the paper doll image itself doesn't interfere with clicks */
+.paper-doll-container img {
+    pointer-events: none;
 }

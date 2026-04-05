@@ -1,3 +1,4 @@
+/* FULLY UPDATED inventory_ui.js - replace your entire file with this */
 
 export class InventoryUI {
     constructor(imageLibrary, onOpen, onClose) {
@@ -10,8 +11,6 @@ export class InventoryUI {
         this.gridContainer = document.getElementById('inventoryGrid');
         this.itemDescEl = document.getElementById('itemDescription');
         this.closeBtn = document.getElementById('closeInventory');
-
-        this.equipContainer = null; // will hold the 4 equipment slots
 
         this.isActive = false;
 
@@ -28,12 +27,17 @@ export class InventoryUI {
             legs:   '👖',
             boots:  '🥾'
         };
-        
-        this.equipBackgrounds = {
-            helmet: { row: 0, col: 0 },
-            chest:  { row: 1, col: 0 },
-            legs:   { row: 2, col: 0 },
-            boots:  { row: 3, col: 0 }
+
+        // ====================== PAPER DOLL CONFIG ======================
+        // EDIT THESE COORDINATES to place your invisible slots exactly where you want
+        // left/top are pixel offsets from the top-left of the 128x192 paper doll image
+        // size is the slot width/height (36px matches your inventory slots)
+        this.paperDollSlots = {
+            helmet: { left: 46, top: 10,  size: 36 },
+            chest:  { left: 46, top: 55,  size: 36 },
+            legs:   { left: 46, top: 105, size: 36 },
+            boots:  { left: 46, top: 155, size: 36 }
+            // Add more slots here if you ever expand equipment (e.g. weapon, gloves)
         };
 
         this.initEvents();
@@ -67,33 +71,53 @@ export class InventoryUI {
         this.player = null;
     }
 
-    // ====================== PAPER DOLL (4x1) ======================
+    // ====================== PAPER DOLL (single 128x192 image) ======================
     setupPaperDoll() {
-        const paperDollDiv = this.container.querySelector('.equipment-panel');
-        this.equipContainer = paperDollDiv.querySelector('.equipment-grid');
-        this.equipContainer.innerHTML = ''; // Clear old content
+        const equipmentPanel = this.container.querySelector('.equipment-panel');
+        const equipGrid = equipmentPanel.querySelector('.equipment-grid'); // reuse the existing div
+        
+        const oldPaperDoll = equipGrid.querySelector('.paper-doll-container');
+        if (oldPaperDoll) {
+            oldPaperDoll.remove();
+        }
 
-        const slotsImg = this.imageLibrary.get('slots');
+        // Create the paper doll container (relative positioning parent)
+        const paperDollContainer = document.createElement('div');
+        paperDollContainer.className = 'paper-doll-container';
 
+        // Insert the 128x192 paper doll image
+        const dollImgData = this.imageLibrary.get('paper_doll');
+        if (dollImgData) {
+            const imgEl = document.createElement('img');
+            imgEl.src = dollImgData.src;
+            imgEl.alt = 'Paper Doll';
+            paperDollContainer.appendChild(imgEl);
+        } else {
+            console.warn('Paper doll image not found in ImageLibrary');
+        }
+
+        // Create invisible equipment slots at your chosen coordinates
         for (const eq of this.equipmentOrder) {
+            const pos = this.paperDollSlots[eq.key];
+            if (!pos) continue;
+
             const slotEl = document.createElement('div');
-            slotEl.className = `inventory-slot equip-slot`;
+            slotEl.className = `inventory-slot equip-slot paper-doll-slot`;
             slotEl.dataset.slotType = eq.key;
 
-            // Set background from slots.png
-            const bg = this.equipBackgrounds[eq.key];
-            if (slotsImg && bg) {
-                slotEl.style.backgroundImage = `url('${slotsImg.src}')`;
-                slotEl.style.backgroundPosition = `-${bg.col * 32}px -${bg.row * 32}px`;
-                slotEl.style.backgroundSize = '128px 128px';
-            }
+            // Position exactly where you specified on the doll
+            slotEl.style.position = 'absolute';
+            slotEl.style.left = `${pos.left}px`;
+            slotEl.style.top = `${pos.top}px`;
+            slotEl.style.width = `${pos.size}px`;
+            slotEl.style.height = `${pos.size}px`;
 
-            // Item icon (on top)
+            // Item icon overlay
             const iconDiv = document.createElement('div');
             iconDiv.className = 'item-icon';
             slotEl.appendChild(iconDiv);
 
-            // Drag & Drop
+            // === DRAG & DROP (exactly the same behavior as before) ===
             slotEl.draggable = true;
             slotEl.addEventListener('dragstart', e => {
                 const item = this.player.equipment[eq.key];
@@ -107,7 +131,7 @@ export class InventoryUI {
             slotEl.addEventListener('dragover', e => e.preventDefault());
             slotEl.addEventListener('drop', e => this.handleEquipDrop(e, slotEl));
 
-            // Hover description
+            // Hover description (exactly the same)
             slotEl.addEventListener('mouseenter', () => {
                 const item = this.player.equipment[eq.key];
                 if (item) {
@@ -117,8 +141,11 @@ export class InventoryUI {
                 }
             });
 
-            this.equipContainer.appendChild(slotEl);
+            paperDollContainer.appendChild(slotEl);
         }
+
+        // Add the finished paper doll to the equipment panel
+        equipGrid.appendChild(paperDollContainer);
     }
 
     handleEquipDrop(e, slotEl) {
@@ -142,7 +169,7 @@ export class InventoryUI {
 
         if (!droppedItem || droppedItem.equipSlot !== targetType) return;
 
-        // Swap logic
+        // Swap logic (unchanged from your original code)
         if (fromInventoryIndex !== null) {
             const fromSlot = this.player.inventorySlots[fromInventoryIndex];
             const oldItem = this.player.equipment[targetType];
@@ -163,12 +190,10 @@ export class InventoryUI {
     }
 
     refreshPaperDoll() {
-        if (!this.equipContainer) return;
-
-        const slotEls = this.equipContainer.querySelectorAll('.inventory-slot');
+        const slotEls = this.container.querySelectorAll('.equip-slot');
         
-        slotEls.forEach((slotEl, i) => {
-            const slotType = this.equipmentOrder[i].key;
+        slotEls.forEach(slotEl => {
+            const slotType = slotEl.dataset.slotType;
             const item = this.player.equipment[slotType];
             const iconDiv = slotEl.querySelector('.item-icon');
 
@@ -182,7 +207,7 @@ export class InventoryUI {
         });
     }
 
-    // ====================== MAIN INVENTORY GRID ======================
+    // ====================== MAIN INVENTORY GRID (unchanged) ======================
     refreshGrid() {
         this.gridContainer.innerHTML = '';
         for (let i = 0; i < 40; i++) {
@@ -205,13 +230,11 @@ export class InventoryUI {
                 }
             }
 
-            // Drag & Drop
             slotEl.draggable = true;
             slotEl.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', i.toString()));
             slotEl.addEventListener('dragover', e => e.preventDefault());
             slotEl.addEventListener('drop', e => this.handleGridDrop(e, slotEl));
 
-            // Hover
             slotEl.addEventListener('mouseenter', () => {
                 const item = slotData?.item;
                 if (item) {
@@ -242,7 +265,6 @@ export class InventoryUI {
                 targetSlot.count = 1;
                 this.player.equipment[fromEquipType] = null;
             } else if (targetSlot.item.equipSlot === fromEquipType) {
-                // Swap
                 const temp = targetSlot.item;
                 targetSlot.item = itemToMove;
                 targetSlot.count = 1;
@@ -256,7 +278,6 @@ export class InventoryUI {
             return;
         }
 
-        // Normal inventory slot swap
         const fromIndex = parseInt(data);
         if (!isNaN(fromIndex) && fromIndex !== toIndex) {
             this.player.swapInventorySlots(fromIndex, toIndex);
