@@ -262,7 +262,7 @@ export class App {
 
     loop(time) {
         const delta = Math.min((time - this.last_time)/1000, 0.1);
-        if (this.fps_tracker) this.fps_tracker.update(time);
+        if (this.fps_tracker) this.fps_tracker.compute(time);
 
         this.updatePhysics(delta);
         this.render();
@@ -286,7 +286,7 @@ export class App {
                 this.highlighted_tile, this.highlighted_character,
                 this.selected_character);
 
-            if (this.fps_tracker) this.fps_tracker.render(this.ctx, 20, 20);
+            if (this.fps_tracker) this.fps_tracker.draw();
         }
 
         if (this.spriteViewer) {
@@ -521,11 +521,13 @@ export class App {
     showHUD() {
         const hud = document.getElementById("hud");
         if (hud) hud.classList.add("is-active");
+        if (this.fps_tracker) this.fps_tracker.show();
     }
 
     hideHUD() {
         const hud = document.getElementById("hud");
         if (hud) hud.classList.remove("is-active");
+        if (this.fps_tracker) this.fps_tracker.hide();
     }
 
     updateHotbarUI() {

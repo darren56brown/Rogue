@@ -6,14 +6,12 @@ export class FPSTracker {
         this.lastUpdateTime = 0;
     }
 
-    // Call this once at startup (with a proper timestamp)
     init(startTime) {
         this.lastFpsTime = startTime;
         this.lastUpdateTime = startTime;
     }
 
-    // Call this every frame from your main loop
-    update(currentTime) {
+    compute(currentTime) {
         this.frameCount++;
 
         const timeSinceLast = currentTime - this.lastFpsTime;
@@ -27,30 +25,23 @@ export class FPSTracker {
         this.lastUpdateTime = currentTime;
     }
 
-    // Simple getter if you want to access FPS value elsewhere
-    getFPS() {
-        return this.currentFps;
+    show() {
+        const fpsElement = document.getElementById("fps");
+        if (fpsElement) {
+            fpsElement.classList.add("is-active");
+        }
     }
 
-    // Draw method — only called when you want to show it
-    render(ctx, x = 20, y = 20) {
-        ctx.save();
+    hide() {
+        const fpsElement = document.getElementById("fps");
+        if (fpsElement) {
+            fpsElement.classList.remove("is-active");
+        }
+    }
 
-        ctx.font = "bold 26px 'Courier New', monospace";
-        ctx.textAlign = "left";
-        ctx.textBaseline = "top";
-
-        const text = `FPS: ${this.currentFps}`;
-
-        // Black outline
-        ctx.strokeStyle = "#000000";
-        ctx.lineWidth = 6;
-        ctx.strokeText(text, x, y);
-
-        // White fill
-        ctx.fillStyle = "#ffffff";
-        ctx.fillText(text, x, y);
-
-        ctx.restore();
+    draw() {
+        const fpsElement = document.getElementById("fps");
+        if (!fpsElement) return;
+        fpsElement.textContent = `FPS: ${this.currentFps}`;
     }
 }
