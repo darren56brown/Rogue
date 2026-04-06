@@ -1,6 +1,6 @@
 #inventoryPanel {
     width: 95%;
-    max-width: 550px;
+    max-width: 500px;
     background: rgba(25, 36, 63, 0.96);
     padding: 15px;
     border-radius: 12px;
@@ -33,12 +33,12 @@
     font-weight: bold;
 }
 
-.inventory-bottom-half {
+.inventory-top-row, .inventory-bottom-row {
     display: flex;
     gap: 16px;
 }
 
-.equipment-panel, .item-info-panel, .inventory-top-half {
+.equipment-panel, .item-info-panel, .slots-panel {
     flex: 1;
     background: rgba(255,255,255,0.08);
     border: 3px solid #4a9eff;
@@ -80,12 +80,13 @@
     transform: scale(1.05);
 }
 
-
-
-
-
-
-/* Updated inventory.css - ADD these new rules at the bottom of the file */
+.slots-group {
+    display: flex;
+    flex-direction: column;
+    align-items: left;
+    margin: 0 auto;
+    width: fit-content;
+}
 
 /* Paper doll container - holds the 128x192 image + overlaid slots */
 .paper-doll-container {
@@ -123,7 +124,6 @@
     font-weight: bold;
     text-align: left;
     max-width: 300px;
-    /*background-color: red;*/
 }
 
 .gold-display span {
