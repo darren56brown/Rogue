@@ -6,7 +6,7 @@
     border-radius: 12px;
 }
 
-.inventory-top-half {
+.inventory-panel-rows {
     display: flex;
     flex-direction: column;
     gap:16px;
@@ -38,7 +38,7 @@
     gap: 16px;
 }
 
-.equipment-panel, .item-info-panel, .inventory-panel {
+.equipment-panel, .item-info-panel, .inventory-top-half {
     flex: 1;
     background: rgba(255,255,255,0.08);
     border: 3px solid #4a9eff;
