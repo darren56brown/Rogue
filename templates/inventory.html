@@ -2,18 +2,18 @@
     <link rel="stylesheet" href="css/inventory.css">
 </head>
 <body>
-    <div id="inventoryPanel" class="ui-panel">
-        <div class="viewer-header">
+    <div id="inventoryViewer" class="ui-panel">
+        <div class="inventory-viewer-header">
             <h2>&lt;None&gt;</h2>
             <button id="closeInventory" class="close-x">×</button>
         </div>
         
-        <div class="inventory-panel-rows">
+        <div class="inventory-viewer-body">
             <div class="inventory-top-row">
                 <div class="slots-panel">
                     <h3>Inventory</h3>
                     <div class="slots-group">
-                        <div id="inventoryGrid" class="inventory-grid"></div>
+                        <div id="inventorySlotGrid" class="inventory-slot-grid"></div>
                         <div id="goldDisplay" class="gold-display">
                                 Gold: <span id="goldAmount">0</span>
                         </div>

@@ -7,8 +7,8 @@ export class InventoryUI {
         this.onOpen = onOpen;
         this.onClose = onClose;
 
-        this.container = document.getElementById('inventoryPanel');
-        this.gridContainer = document.getElementById('inventoryGrid');
+        this.container = document.getElementById('inventoryViewer');
+        this.gridContainer = document.getElementById('inventorySlotGrid');
         this.itemDescEl = document.getElementById('itemDescription');
         this.closeBtn = document.getElementById('closeInventory');
 
@@ -45,7 +45,7 @@ export class InventoryUI {
         if (this.isActive) return;
         this.player = player;
 
-        const headerTitle = document.querySelector('#inventoryPanel .viewer-header h2');
+        const headerTitle = document.querySelector('#inventoryViewer .inventory-viewer-header h2');
         headerTitle.textContent = this.player.display_name;
 
         this.isActive = true;

@@ -23,28 +23,9 @@
 }
 
 .viewer-header h2 {
-    margin: 0;           /* Removes default header spacing to tighten the top */
+    margin: 0;
     color: white;
     font-family: sans-serif;
-}
-
-.close-x {
-    /* Your Original Styles */
-    background: transparent;
-    border: none;
-    font-size: 24px;
-    padding: 0;
-    margin: 0;
-    color: #4a9eff;
-    box-shadow: none;
-    cursor: pointer;
-    line-height: 1;      /* Ensures the X doesn't have extra "tallness" */
-}
-
-.close-x:hover {
-    background: transparent;
-    color: white;
-    transform: none;
 }
 
 /* ====================== MAIN VIEWER AREA (Canvas + D-Pad) ====================== */
