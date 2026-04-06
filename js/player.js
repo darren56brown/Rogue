@@ -6,6 +6,7 @@ export class Player extends Character {
         super(world_pos, "Player");
 
         this.selectedSlot = 0;
+        this.gold = 200;
 
         this.initializeSprite(image_library, sprite_image_name);
         this.initializeDefaultItems();

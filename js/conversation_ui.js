@@ -18,9 +18,7 @@ export class ConversationUI {
         this.goodbyeBtn = document.getElementById('goodbyeButton');
         this.closeBtn = document.getElementById('closeConversation');
 
-        this.isActive = false;
-        this.currentNpc = null;
-        this.conversation = null;
+        this.current_npc = null;
         this.portraitSpriteSheet = null;   // static idle frame
 
         this.initEvents();
@@ -31,25 +29,23 @@ export class ConversationUI {
         this.goodbyeBtn.onclick = () => this.endConversation();
     }
 
-        async startConversation(npc) {
-        if (!npc) return;
-
-        this.deactivate();
-
-        this.currentNpc = npc;
-        this.conversation = npc.conversation;
-
-        // Lazy load conversation only when first talking
-        if (!this.conversation.loaded) {
+    async startConversation(npc) {
+        if (npc == null) return;
+        this.endConversation();
+        
+        if (!npc.conversation.loaded) {
             try {
-                await this.conversation.ensureLoaded();
+                await npc.conversation.ensureLoaded();
             } catch (err) {
                 console.error("Failed to load conversation", err);
                 return;
             }
         }
 
-        this.conversation.start();
+        this.current_npc = npc;
+        const conversation = this.current_npc.conversation;
+
+        conversation.start();
 
         // Portrait setup
         const spriteImg = this.imageLibrary.get(npc.sprite_image_name);
@@ -63,7 +59,6 @@ export class ConversationUI {
 
         this.npcNameEl.textContent = npc.displayName || "Villager";
 
-        this.isActive = true;
         this.container.classList.add('is-active');
         this.onOpen();
         this.refreshUI();
@@ -76,15 +71,16 @@ export class ConversationUI {
     }
 
     refreshUI() {
-        if (!this.conversation) return;
+        if (!this.current_npc) return;
+        const conversation = this.current_npc.conversation;
 
         // NPC text
-        const text = this.conversation.getCurrentNpcText() || "…";
+        const text = conversation.getCurrentNpcText() || "…";
         this.npcTextEl.textContent = text;
 
         // Choices
         this.choicesContainer.innerHTML = '';
-        const available = this.conversation.getAvailableChoices();
+        const available = conversation.getAvailableChoices();
 
         if (available.length > 0) {
             this.endFooter.style.display = 'none';
@@ -97,38 +93,34 @@ export class ConversationUI {
                 this.choicesContainer.appendChild(btn);
             });
         } else {
-            // Conversation ended
             this.endFooter.style.display = 'block';
             this.choicesContainer.style.display = 'none';
         }
     }
 
     handleChoiceClick(choiceIndex) {
-        if (!this.conversation) return;
-        const success = this.conversation.selectChoice(choiceIndex);
+        if (!this.current_npc) return;
+        const conversation = this.current_npc.conversation;
+
+        const success = conversation.selectChoice(choiceIndex);
         if (success) {
             this.refreshUI();
         }
     }
 
     endConversation() {
-        if (!this.conversation || !this.currentNpc) return;
+        if (!this.current_npc) return;
+        const conversation = this.current_npc.conversation;
 
         // Persist the visited state so choices stay retired forever
-        const saveKey = `conv_state_${this.currentNpc.conversationKey || 'unknown'}`;
-        localStorage.setItem(saveKey, JSON.stringify(this.conversation.getState()));
+        const saveKey = `conv_state_${this.current_npc.conversationKey || 'unknown'}`;
+        localStorage.setItem(saveKey, JSON.stringify(conversation.getState()));
 
-        this.isActive = false;
         this.container.classList.remove('is-active');
         this.onClose();
 
-        // Clean up
-        this.currentNpc = null;
-        this.conversation = null;
+        this.current_npc = null;
         this.portraitSpriteSheet = null;
     }
 
-    deactivate() {
-        if (this.isActive) this.endConversation();
-    }
 }

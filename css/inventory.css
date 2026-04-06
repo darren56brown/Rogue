@@ -7,11 +7,20 @@
     border-radius: 12px;
 }
 
+#tradeViewer{
+    width: 95%;
+    max-width: 700px;
+    background: rgba(25, 36, 63, 0.96);
+    padding: 12px;
+    padding-top: 5px;
+    border-radius: 12px;
+}
+
 .inventory-viewer-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start; 
-    margin-bottom: 0px;
+    margin-bottom: 15px;
 }
 
 .inventory-viewer-header h2 {
@@ -54,7 +63,7 @@
     gap: 12px;
 }
 
-.equipment-panel, .item-info-panel, .slots-panel {
+.equipment-panel, .item-info-panel, .slots-panel, .blank-panel {
     flex: 1;
     background: rgba(255,255,255,0.08);
     border: 3px solid #4a9eff;

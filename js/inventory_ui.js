@@ -1,4 +1,4 @@
-/* FULLY UPDATED inventory_ui.js - replace your entire file with this */
+import { SlotGridUI } from "./slot_grid_ui.js";
 
 export class InventoryUI {
     constructor(imageLibrary, onOpen, onClose) {
@@ -8,11 +8,11 @@ export class InventoryUI {
         this.onClose = onClose;
 
         this.container = document.getElementById('inventoryViewer');
-        this.gridContainer = document.getElementById('inventorySlotGrid');
-        this.itemDescEl = document.getElementById('itemDescription');
         this.closeBtn = document.getElementById('closeInventory');
-
-        this.isActive = false;
+        
+        this.player_slot_grid = new SlotGridUI("inventorySlotGrid",
+            "inventoryGoldAmount", "inventoryItemDescription",  
+            () => this.refreshGrids());
 
         this.equipmentOrder = [
             { key: 'head', label: 'Head' },
@@ -42,32 +42,36 @@ export class InventoryUI {
     }
 
     activate(player) {
-        if (this.isActive) return;
+        if (player == null || this.player != null) return;
+
         this.player = player;
 
-        const headerTitle = document.querySelector('#inventoryViewer .inventory-viewer-header h2');
-        headerTitle.textContent = this.player.display_name;
+        this.player_slot_grid.activate(this.player);
 
-        this.isActive = true;
         this.container.classList.add('is-active');
         this.onOpen();
 
         this.setupPaperDoll();
-        this.refreshGrid();
-        this.refreshPaperDoll();
-        this.refreshGold();
+        this.refreshGrids();
     }
 
     deactivate() {
-        if (!this.isActive) return;
-        this.isActive = false;
+        this.player = null;
+
+        this.player_slot_grid.deactivate();
+
         this.container.classList.remove('is-active');
         this.onClose();
-        this.player = null;
+    }
+
+    isActive() {
+        return this.player != null;
     }
 
     // ====================== PAPER DOLL (single 128x192 image) ======================
     setupPaperDoll() {
+        const itemDescEl = this.player_slot_grid.itemDescEl;
+
         const equipmentPanel = this.container.querySelector('.equipment-panel');
         const equipGrid = equipmentPanel.querySelector('.equipment-grid'); // reuse the existing div
         
@@ -130,9 +134,9 @@ export class InventoryUI {
             slotEl.addEventListener('mouseenter', () => {
                 const item = this.player.equipment[eq.key];
                 if (item) {
-                    this.itemDescEl.innerHTML = `<strong>${item.name}</strong><br>${item.description || 'No description.'}`;
+                    itemDescEl.innerHTML = `<strong>${item.name}</strong><br>${item.description || 'No description.'}`;
                 } else {
-                    this.itemDescEl.textContent = `${eq.label} (empty)`;
+                    itemDescEl.textContent = `${eq.label} (empty)`;
                 }
             });
 
@@ -146,17 +150,24 @@ export class InventoryUI {
     handleEquipDrop(e, slotEl) {
         e.preventDefault();
         const targetType = slotEl.dataset.slotType;
-        const data = e.dataTransfer.getData('text/plain');
+        const from_data = e.dataTransfer.getData('text/plain');
 
         let droppedItem = null;
         let fromInventoryIndex = null;
         let fromEquipType = null;
 
-        if (data.startsWith('equip:')) {
-            fromEquipType = data.slice(6);
+        if (from_data.startsWith('equip:')) {
+            fromEquipType = from_data.slice(6);
             droppedItem = this.player.equipment[fromEquipType];
         } else {
-            fromInventoryIndex = parseInt(data);
+            let dataObj;
+            try {
+                dataObj = JSON.parse(from_data);
+            } catch (err) {
+                console.warn('Invalid drag data');
+                return;
+            }
+            fromInventoryIndex = parseInt(dataObj.index);
             if (!isNaN(fromInventoryIndex)) {
                 droppedItem = this.player.inventorySlots[fromInventoryIndex]?.item;
             }
@@ -186,8 +197,7 @@ export class InventoryUI {
             this.player.equipment[fromEquipType] = temp;
         }
 
-        this.refreshGrid();
-        this.refreshPaperDoll();
+        this.refreshGrids();
     }
 
     refreshPaperDoll() {
@@ -206,95 +216,10 @@ export class InventoryUI {
                 iconDiv.style.opacity = "0";
             }
         });
-
-        this.refreshGold();
     }
 
-    // ====================== MAIN INVENTORY GRID (unchanged) ======================
-    refreshGrid() {
-        this.gridContainer.innerHTML = '';
-        for (let i = 0; i < 40; i++) {
-            const slotData = this.player.inventorySlots[i];
-            const slotEl = document.createElement('div');
-            slotEl.className = `inventory-slot ${i < 10 ? 'hotbar-row' : ''}`;
-            slotEl.dataset.index = i;
-
-            if (slotData?.item) {
-                const icon = document.createElement('div');
-                icon.className = 'item-icon';
-                icon.textContent = slotData.item.icon;
-                slotEl.appendChild(icon);
-
-                if (slotData.count > 1) {
-                    const count = document.createElement('span');
-                    count.className = 'item-count';
-                    count.textContent = slotData.count;
-                    slotEl.appendChild(count);
-                }
-            }
-
-            slotEl.draggable = true;
-            slotEl.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', i.toString()));
-            slotEl.addEventListener('dragover', e => e.preventDefault());
-            slotEl.addEventListener('drop', e => this.handleGridDrop(e, slotEl));
-
-            slotEl.addEventListener('mouseenter', () => {
-                const item = slotData?.item;
-                if (item) {
-                    this.itemDescEl.innerHTML = `<strong>${item.name}</strong><br>${item.description || 'No description.'}`;
-                } else {
-                    this.itemDescEl.textContent = 'Empty slot';
-                }
-            });
-
-            this.gridContainer.appendChild(slotEl);
-        }
-
-        this.refreshGold();
-    }
-
-    handleGridDrop(e, slotEl) {
-        e.preventDefault();
-        const data = e.dataTransfer.getData('text/plain');
-        const toIndex = parseInt(slotEl.dataset.index);
-
-        if (data.startsWith('equip:')) {
-            const fromEquipType = data.slice(6);
-            const itemToMove = this.player.equipment[fromEquipType];
-            if (!itemToMove) return;
-
-            const targetSlot = this.player.inventorySlots[toIndex];
-
-            if (!targetSlot.item) {
-                targetSlot.item = itemToMove;
-                targetSlot.count = 1;
-                this.player.equipment[fromEquipType] = null;
-            } else if (targetSlot.item.equipSlot === fromEquipType) {
-                const temp = targetSlot.item;
-                targetSlot.item = itemToMove;
-                targetSlot.count = 1;
-                this.player.equipment[fromEquipType] = temp;
-            } else {
-                return;
-            }
-
-            this.refreshGrid();
-            this.refreshPaperDoll();
-            return;
-        }
-
-        const fromIndex = parseInt(data);
-        if (!isNaN(fromIndex) && fromIndex !== toIndex) {
-            this.player.swapInventorySlots(fromIndex, toIndex);
-            this.refreshGrid();
-        }
-    }
-
-    refreshGold() {
-        if (!this.player) return;
-        const goldEl = document.getElementById('goldAmount');
-        if (goldEl) {
-            goldEl.textContent = this.player.gold.toLocaleString();
-        }
+    refreshGrids() {
+        this.player_slot_grid.refreshGrid();
+        this.refreshPaperDoll();
     }
 }

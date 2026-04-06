@@ -4,18 +4,17 @@
 <body>
     <div id="inventoryViewer" class="ui-panel">
         <div class="inventory-viewer-header">
-            <h2>&lt;None&gt;</h2>
+            <h2>Player Inventory</h2>
             <button id="closeInventory" class="close-x">×</button>
         </div>
         
         <div class="inventory-viewer-body">
             <div class="inventory-top-row">
                 <div class="slots-panel">
-                    <h3>Inventory</h3>
                     <div class="slots-group">
                         <div id="inventorySlotGrid" class="inventory-slot-grid"></div>
-                        <div id="goldDisplay" class="gold-display">
-                                Gold: <span id="goldAmount">0</span>
+                        <div class="gold-display">
+                            Gold: <span id="inventoryGoldAmount">0</span>
                         </div>
                     </div>
                 </div>
@@ -28,9 +27,47 @@
                 </div>
                 <div class="item-info-panel">
                     <h3>Item Info</h3>
-                    <div id="itemDescription" class="item-desc">Hover or select an item...</div>
+                    <div id="inventoryItemDescription" class="item-desc">Hover or select an item...</div>
                 </div>
             </div>
         </div>
     </div>
+
+    <div id="tradeViewer" class="ui-panel">
+        <div class="inventory-viewer-header">
+            <h2>Trade: &lt;None&gt;</h2>
+            <button id="closeTrade" class="close-x">×</button>
+        </div>
+        
+        <div class="inventory-viewer-body">
+            <div class="inventory-top-row">
+                <div class="slots-panel">
+                    <div class="slots-group">
+                        <div id="npcSlotGrid" class="inventory-slot-grid"></div>
+                        <div class="gold-display">
+                            Gold: <span id="tradeNpcGoldAmount">0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="blank-panel">
+                </div>
+            </div>
+
+            <div class="inventory-bottom-row">
+                <div class="slots-panel">
+                    <div class="slots-group">
+                        <div id="playerSlotGrid" class="inventory-slot-grid"></div>
+                        <div class="gold-display">
+                            Gold: <span id="tradePlayerGoldAmount">0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="item-info-panel">
+                    <h3>Item Info</h3>
+                    <div id="tradeItemDescription" class="item-desc">Hover or select an item...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>

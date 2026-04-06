@@ -485,10 +485,15 @@ export class Character {
     }
 
     swapInventorySlots(index1, index2) {
-        if (index1 < 0 || index1 >= 40 || index2 < 0 || index2 >= 40) return;
-        const temp = this.inventorySlots[index1];
-        this.inventorySlots[index1] = this.inventorySlots[index2];
-        this.inventorySlots[index2] = temp;
+        this.tradeInventorySlots(index1, this, index2);
+    }
+
+    tradeInventorySlots(this_index, other, other_index) {
+        if (other == null || this_index < 0 || this_index >= 40 ||
+            other_index < 0 || other_index >= 40) return;
+        const temp = this.inventorySlots[this_index];
+        this.inventorySlots[this_index] = other.inventorySlots[other_index];
+        other.inventorySlots[other_index] = temp;
     }
 
 }

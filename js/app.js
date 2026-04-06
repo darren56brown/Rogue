@@ -10,6 +10,7 @@ import { vec2D, sub, magSq, mult, setAdd } from './vec2D.js';
 import { SpriteViewer } from './sprite_viewer.js';
 import { ConversationUI } from "./conversation_ui.js";
 import { InventoryUI } from "./inventory_ui.js";
+import { TradeUI } from "./trade_ui.js";
 
 export class App {
     constructor() {
@@ -42,6 +43,7 @@ export class App {
         this.spriteViewer = null;
         this.conversationUI = null;
         this.inventoryUI = null;
+        this.tradeUI = null;
     }
 
     async smartGetMap(mapName) {
@@ -131,23 +133,13 @@ export class App {
         this.current_game_map = await this.smartGetMap("level_01");
 
         this.spriteViewer = new SpriteViewer(this.image_library,
-            () => { this.setPauseState(true); this.hideHUD(); },
-            () => { this.setPauseState(false); this.showHUD(); }
-        );
-        this.conversationUI = new ConversationUI(
-            this.image_library,
-            () => { this.setPauseState(true); this.hideHUD(); },
-            () => { this.setPauseState(false); this.showHUD(); }
-        );
-        this.inventoryUI = new InventoryUI(
-            this.image_library,
-            () => { this.setPauseState(true); this.hideHUD(); },
-            () => { 
-                this.setPauseState(false); 
-                this.showHUD(); 
-                this.updateHotbarUI();
-            }
-        );
+            () => this._viewerOnOpen(), () => this._viewerOnClose());
+        this.conversationUI = new ConversationUI(this.image_library,
+            () => this._viewerOnOpen(), () => this._viewerOnClose());
+        this.inventoryUI = new InventoryUI(this.image_library,
+            () => this._viewerOnOpen(), () => this._viewerOnClose());
+        this.tradeUI = new TradeUI(this.image_library,
+            () => this._viewerOnOpen(), () => this._viewerOnClose());
 
         this.initPhysics();
         requestAnimationFrame(t => this.loop(t));
@@ -350,10 +342,17 @@ export class App {
                 }
             } else if (e.key.toLowerCase() === 'i') {
                 if (this.state !== "running") return;
-                if (this.inventoryUI.isActive) {
+                if (this.inventoryUI.isActive()) {
                     this.inventoryUI.deactivate();
                 } else {
                     this.inventoryUI.activate(this.player);
+                }
+            } else if (e.key.toLowerCase() === 't') {
+                if (this.state !== "running") return;
+                if (this.tradeUI.isActive()) {
+                    this.tradeUI.deactivate();
+                } else if (this.selected_character) {
+                    this.tradeUI.activate(this.player, this.selected_character);
                 }
             } else if (this.state === 'running') {
                 const num = parseInt(e.key);
@@ -618,5 +617,16 @@ export class App {
 
             container.appendChild(heart);
         }
+    }
+
+    _viewerOnOpen() {
+        this.setPauseState(true);
+        this.hideHUD();
+    }
+
+    _viewerOnClose() {
+        this.setPauseState(false); 
+        this.showHUD(); 
+        this.updateHotbarUI();
     }
 }
