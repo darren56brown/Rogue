@@ -7,11 +7,15 @@ export class SlotGridUI {
         this.gold_value = document.getElementById(gold_amount_name);
         this.itemDescEl = document.getElementById(item_desc_name);
         this.refresh_grids_func = refresh_grids_func
+
+        this.splitDialog = document.getElementById('splitDialog');
+        this.split_from_index = -1;
     }
 
     activate(character, trade_partner = null) {
         this.character = character;
         this.trade_partner = trade_partner;
+        this.initSplitDialog()
     }
 
     deactivate() {
@@ -21,9 +25,12 @@ export class SlotGridUI {
 
     refreshGrid() {
         this.slot_grid.innerHTML = '';
+        this.slot_grid.addEventListener('contextmenu', e => e.preventDefault(), { once: true });
+
         for (let i = 0; i < 40; i++) {
             const slotData = this.character.inventorySlots[i];
             const slotEl = document.createElement('div');
+
             slotEl.className = `inventory-slot ${i < 10 ? 'hotbar-row' : ''}`;
             slotEl.dataset.index = i;
 
@@ -42,6 +49,11 @@ export class SlotGridUI {
             }
 
             slotEl.draggable = true;
+            slotEl.addEventListener('contextmenu', e => {
+                e.preventDefault();
+               this.openSplitDialog(i);
+            });
+
             slotEl.addEventListener('dragstart', e => {
                 const dataObj = {
                     character_name: this.character.display_name,
@@ -116,4 +128,88 @@ export class SlotGridUI {
         }
         this.refresh_grids_func();
     }
+
+    initSplitDialog() {
+        const input = document.getElementById('splitAmountInput');
+        const confirmBtn = document.getElementById('confirmSplit');
+        const cancelBtn = document.getElementById('cancelSplit');
+        const closeBtn = document.getElementById('closeSplitDialog');
+
+        // Quick buttons
+        document.querySelectorAll('.quick-split-buttons button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.dataset.amount;
+                const max = parseInt(document.getElementById('splitMaxAmount').textContent.replace('/ ', '')) || 1;
+
+                if (type === '1') input.value = 1;
+                else if (type === 'half') input.value = Math.ceil(max / 2);
+                else if (type === 'max') input.value = max;
+            });
+        });
+
+        confirmBtn.onclick = () => this.performSplit();
+        cancelBtn.onclick = closeBtn.onclick = () => this.closeSplitDialog();
+    }
+
+    openSplitDialog(index) {
+        const slotData = this.character.inventorySlots[index];
+        if (!slotData.item || slotData.count <= 1) return;
+
+        this.split_from_index = index;
+
+        document.getElementById('splitItemIcon').textContent = slotData.item.icon;
+        document.getElementById('splitItemName').textContent = slotData.item.name;
+        document.getElementById('splitCurrentCount').textContent = `x ${slotData.count}`;
+        document.getElementById('splitMaxAmount').textContent = `/ ${slotData.count}`;
+
+        const input = document.getElementById('splitAmountInput');
+        input.max = slotData.count - 1;
+        input.value = Math.ceil(slotData.count / 2);
+
+        this.splitDialog.style.display = 'flex';
+        input.focus();
+        input.select();
+    }
+
+    closeSplitDialog() {
+        this.splitDialog.style.display = 'none';
+        this.split_from_index = -1;
+    }
+
+    performSplit() {
+        const amount = parseInt(document.getElementById('splitAmountInput').value);
+        if (!amount || this.split_from_index < 0) return;
+
+        const slotData = this.character.inventorySlots[this.split_from_index];
+        if (!slotData?.item || amount < 1 || amount >= slotData.count) {
+            this.closeSplitDialog();
+            return;
+        }
+
+        // Find first empty slot in THIS grid
+        let targetIndex = -1;
+        for (let i = 0; i < 40; i++) {
+            if (!this.character.inventorySlots[i].item) {
+                targetIndex = i;
+                break;
+            }
+        }
+
+        if (targetIndex === -1) {
+            alert("No empty slots available to split into.");
+            this.closeSplitDialog();
+            return;
+        }
+
+        // Do the split
+        const item = slotData.item;
+        slotData.count -= amount;
+
+        this.character.inventorySlots[targetIndex].item = item;
+        this.character.inventorySlots[targetIndex].count = amount;
+
+        this.closeSplitDialog();
+        this.refresh_grids_func();
+    }
 }
+
