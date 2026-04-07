@@ -168,41 +168,67 @@
     background: rgba(25, 36, 63, 0.98);
     border: 3px solid #4a9eff;
     border-radius: 12px;
-    width: 300px;
-    padding: 20px;
+    height: 185px;
+    width: 225px;
+    padding: 10px;
     padding-top: 5px;
     color: white;
+}
+
+.modal-body {
+    display: flex;
+    flex-direction: column;
+    margin-top: -5px;
+    margin-bottom: 10px;
+    gap:4px;
 }
 
 .split-item-preview {
     display: flex;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 20px;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 0px;
+    margin-bottom: 0px;
 }
 
-.split-input-area {
+/*.split-input-area {
     margin: 10px 0;
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 16px;
-}
+    gap: 200px;
+    font-size: 22px;
+}*/
 
-.split-input-area input {
+.split-count-container input {
     width: 60px;
-    padding: 8px;
+    padding: 4px;
     text-align: center;
-    font-size: 16px;
+    font-size: 14px;
 }
 
 .quick-split-buttons {
     display: flex;
-    gap: 2px;
-    margin: 2px 0 2px 0;
+    justify-content: center;
+    
+    /*gap: 1px;*/
+    /*margin: 2px 0 2px 0;*/
 }
 
 .quick-split-buttons button {
     flex: 1;
-    padding: 6px;
+    font-size: 14px;
+    padding: 4px;
+    border-radius: 8px;
+    margin: 4px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: center;
+}
+
+.modal-footer button {
+    padding: 8px;
+    margin: 4px;
 }

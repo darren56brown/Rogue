@@ -17,7 +17,7 @@ export class Player extends Character {
         const stonePickaxe = new GameItem({ id: "stone_pickaxe", name: "Stone Pickaxe", type: "tool", icon: "⛏️", damage: 3, description: "Good for breaking rocks." });
         const ironAxe = new GameItem({ id: "iron_axe", name: "Iron Axe", type: "tool", icon: "🪓", damage: 7 });
         const bow = new GameItem({ id: "bow", name: "Bow", type: "weapon", icon: "🏹", damage: 6 });
-        const apple = new GameItem({ id: "apple", name: "Apple", type: "consumable", icon: "🍎", healAmount: 4, maxStack: 64, description: "A fresh red apple." });
+        const apple = new GameItem({ id: "apple", name: "Apple", type: "consumable", icon: "🍎", healAmount: 4, maxStack: 24, description: "A fresh red apple." });
         const plain_shirt = new GameItem({
             id: "plain_shirt",
             name: "Plain shirt",
@@ -106,7 +106,7 @@ export class Player extends Character {
         this.inventorySlots[3] = { item: null, count: 0 };
         this.inventorySlots[4] = { item: bow, count: 1 };
         this.inventorySlots[5] = { item: null, count: 0 };
-        this.inventorySlots[6] = { item: apple, count: 32 };
+        this.inventorySlots[6] = { item: apple, count: 23 };
         this.inventorySlots[7] = { item: null, count: 0 };
         this.inventorySlots[8] = { item: torch, count: 1 };
         this.inventorySlots[9]  = { item: null, count: 0 };

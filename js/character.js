@@ -484,16 +484,34 @@ export class Character {
         console.warn("Inventory full for", this.constructor.name);
     }
 
-    swapInventorySlots(index1, index2) {
-        this.tradeInventorySlots(index1, this, index2);
-    }
-
     tradeInventorySlots(this_index, other, other_index) {
         if (other == null || this_index < 0 || this_index >= 40 ||
             other_index < 0 || other_index >= 40) return;
-        const temp = this.inventorySlots[this_index];
-        this.inventorySlots[this_index] = other.inventorySlots[other_index];
-        other.inventorySlots[other_index] = temp;
+
+        const to_value = this.inventorySlots[this_index];
+        const from_value = other.inventorySlots[other_index];
+        if (from_value.item && to_value.item) {
+            const max_stack = Math.min(from_value.item.maxStack,
+                to_value.item.maxStack);
+            if (from_value.item.id == to_value.item.id && max_stack > 1) {
+                to_value.count = from_value.count + to_value.count;
+                from_value.count = 0;
+                if (to_value.count > max_stack) {
+                    from_value.count = to_value.count - max_stack;
+                    to_value.count = max_stack;
+                }
+                if (from_value.count > max_stack) {
+                    from_value.count = max_stack;
+                } else if (from_value.count == 0) {
+                    from_value.item = null;
+                    from_value.count = 0;
+                }
+                return;
+            }
+        }
+
+        this.inventorySlots[this_index] = from_value;
+        other.inventorySlots[other_index] = to_value;
     }
 
 }
