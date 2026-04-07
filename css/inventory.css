@@ -16,7 +16,7 @@
     border-radius: 12px;
 }
 
-.inventory-viewer-header {
+.inventory-viewer-header, .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start; 
@@ -81,7 +81,7 @@
     justify-content: center;
 }
 
-.inventory-slot {
+.inventory-slot, .item-icon-large {
     width: 36px;
     height: 36px;
     background: rgb(58, 58, 58);
@@ -156,7 +156,7 @@
 
 
 
-.modal {
+/*.modal {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(0,0,0,0.75);
@@ -164,15 +164,24 @@
     align-items: center;
     justify-content: center;
     z-index: 2000;
-}
+}*/
 
 .modal-content {
     background: rgba(25, 36, 63, 0.98);
     border: 3px solid #4a9eff;
     border-radius: 12px;
-    width: 340px;
+    width: 300px;
     padding: 20px;
+    padding-top: 5px;
     color: white;
+    z-index: 2000;
+
+    position: fixed;
+    /*top: 0; left: 0; right: 0; bottom: 0;*/
+    /*display: flex;*/
+    /*align-items: center;*/
+    /*justify-content: center;*/
+    /*z-index: 2000;*/
 }
 
 .split-item-preview {
@@ -182,40 +191,28 @@
     margin-bottom: 20px;
 }
 
-.item-icon-large {
-    font-size: 52px;
-    width: 72px;
-    height: 72px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgb(58,58,58);
-    border: 2px solid #777;
-    border-radius: 4px;
-}
-
 .split-input-area {
-    margin: 15px 0;
+    margin: 10px 0;
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 18px;
+    font-size: 16px;
 }
 
 .split-input-area input {
-    width: 90px;
+    width: 60px;
     padding: 8px;
     text-align: center;
-    font-size: 18px;
+    font-size: 16px;
 }
 
 .quick-split-buttons {
     display: flex;
-    gap: 8px;
-    margin: 12px 0 20px 0;
+    gap: 2px;
+    margin: 2px 0 2px 0;
 }
 
 .quick-split-buttons button {
     flex: 1;
-    padding: 8px;
+    padding: 6px;
 }

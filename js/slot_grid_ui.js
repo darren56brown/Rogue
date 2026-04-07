@@ -10,6 +10,7 @@ export class SlotGridUI {
 
         this.splitDialog = document.getElementById('splitDialog');
         this.split_from_index = -1;
+        this.split_amount_element = null;
     }
 
     activate(character, trade_partner = null) {
@@ -130,7 +131,7 @@ export class SlotGridUI {
     }
 
     initSplitDialog() {
-        const input = document.getElementById('splitAmountInput');
+        this.split_amount_element = document.getElementById('splitAmountInput');
         const confirmBtn = document.getElementById('confirmSplit');
         const cancelBtn = document.getElementById('cancelSplit');
         const closeBtn = document.getElementById('closeSplitDialog');
@@ -139,11 +140,11 @@ export class SlotGridUI {
         document.querySelectorAll('.quick-split-buttons button').forEach(btn => {
             btn.addEventListener('click', () => {
                 const type = btn.dataset.amount;
-                const max = parseInt(document.getElementById('splitMaxAmount').textContent.replace('/ ', '')) || 1;
-
-                if (type === '1') input.value = 1;
-                else if (type === 'half') input.value = Math.ceil(max / 2);
-                else if (type === 'max') input.value = max;
+                const slotData = this.character.inventorySlots[this.split_from_index];
+                const max = slotData.count;
+                if (type === '1') this.split_amount_element.value = 1;
+                else if (type === 'half') this.split_amount_element.value = Math.floor(max / 2);
+                else if (type === 'max') this.split_amount_element.value = max - 1;
             });
         });
 
@@ -159,16 +160,13 @@ export class SlotGridUI {
 
         document.getElementById('splitItemIcon').textContent = slotData.item.icon;
         document.getElementById('splitItemName').textContent = slotData.item.name;
-        document.getElementById('splitCurrentCount').textContent = `x ${slotData.count}`;
-        document.getElementById('splitMaxAmount').textContent = `/ ${slotData.count}`;
 
-        const input = document.getElementById('splitAmountInput');
-        input.max = slotData.count - 1;
-        input.value = Math.ceil(slotData.count / 2);
+        this.split_amount_element.max = slotData.count - 1;
+        this.split_amount_element.value = Math.floor(slotData.count / 2);
 
-        this.splitDialog.style.display = 'flex';
-        input.focus();
-        input.select();
+        this.splitDialog.style.display = 'block';
+        this.split_amount_element.focus();
+        this.split_amount_element.select();
     }
 
     closeSplitDialog() {
@@ -177,7 +175,7 @@ export class SlotGridUI {
     }
 
     performSplit() {
-        const amount = parseInt(document.getElementById('splitAmountInput').value);
+        const amount = parseInt(this.split_amount_element.value);
         if (!amount || this.split_from_index < 0) return;
 
         const slotData = this.character.inventorySlots[this.split_from_index];
