@@ -70,25 +70,23 @@
         </div>
     </div>
 
-   <!-- <div id="splitDialog" class="ui-panel" style="display: none;">-->
-        <div id="splitDialog" class="modal-content" style="display: none;">
+   <div id="splitDialog" class="modal">
+        <div class="modal-content">
             <div class="modal-header">
                 <h3>Split Stack</h3>
                 <button id="closeSplitDialog" class="close-x">×</button>
             </div>
             
             <div class="modal-body">
-                <div class="split-item-preview">
-                    <div id="splitItemIcon" class="item-icon-large"></div>
-                    <div>
-                        <strong id="splitItemName"></strong><br>
+                <div id="splitItemPreview" class="split-item-preview">
+                    <div id="splitItemGridL">
                     </div>
                     <div class="split-input-area">
                         <input type="number" id="splitAmountInput" min="1" value="1">
                     </div>
+                    <div id="splitItemGridR">
+                    </div>
                 </div>
-
-                
 
                 <div class="quick-split-buttons">
                     <button data-amount="1">1</button>
@@ -102,6 +100,6 @@
                 <button id="confirmSplit" class="primary">Split</button>
             </div>
         </div>
-    <!--</div>
+    </div>
 
 </body>

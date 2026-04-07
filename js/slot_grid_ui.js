@@ -52,7 +52,7 @@ export class SlotGridUI {
             slotEl.draggable = true;
             slotEl.addEventListener('contextmenu', e => {
                 e.preventDefault();
-               this.openSplitDialog(i);
+               this.openSplitDialog(i, e);
             });
 
             slotEl.addEventListener('dragstart', e => {
@@ -136,15 +136,32 @@ export class SlotGridUI {
         const cancelBtn = document.getElementById('cancelSplit');
         const closeBtn = document.getElementById('closeSplitDialog');
 
+        this.split_amount_element.addEventListener('input', () => {
+            let value = parseInt(this.split_amount_element.value);
+
+            // Clamp to valid range
+            //if (isNaN(value)) value = 1;
+            //if (value < 1) value = 1;
+            //if (value > parseInt(this.split_amount_element.max)) {
+            //    value = parseInt(this.split_amount_element.max);
+            //}
+
+            this.setSplitAmountValue(value);
+        });
+
         // Quick buttons
         document.querySelectorAll('.quick-split-buttons button').forEach(btn => {
             btn.addEventListener('click', () => {
                 const type = btn.dataset.amount;
                 const slotData = this.character.inventorySlots[this.split_from_index];
                 const max = slotData.count;
-                if (type === '1') this.split_amount_element.value = 1;
-                else if (type === 'half') this.split_amount_element.value = Math.floor(max / 2);
-                else if (type === 'max') this.split_amount_element.value = max - 1;
+
+                let newValue = 1;
+                if (type === '1') newValue = 1;
+                else if (type === 'half') newValue = Math.floor(max / 2);
+                else if (type === 'max') newValue = max - 1;
+
+                this.setSplitAmountValue(newValue);
             });
         });
 
@@ -152,25 +169,122 @@ export class SlotGridUI {
         cancelBtn.onclick = closeBtn.onclick = () => this.closeSplitDialog();
     }
 
-    openSplitDialog(index) {
+    setSplitAmountValue(value) {
+        if (!this.split_amount_element) return;
+
+        const max = parseInt(this.split_amount_element.max) || 1;
+        value = Math.max(1, Math.min(max, value));   // clamp
+
+        if (parseInt(this.split_amount_element.value) !== value) {
+            this.split_amount_element.value = value;
+        }
+
+        const slotData = this.character.inventorySlots[this.split_from_index];
+        if (!slotData?.item) return;
+
+        const left_slot_grid = document.getElementById('splitItemGridL');
+        const right_slot_grid = document.getElementById('splitItemGridR');
+
+        this.replaceSlotVisual(left_slot_grid, slotData.item, value);
+        this.replaceSlotVisual(right_slot_grid, slotData.item, slotData.count - value);
+    }
+
+    openSplitDialog(index, event) {
         const slotData = this.character.inventorySlots[index];
         if (!slotData.item || slotData.count <= 1) return;
 
         this.split_from_index = index;
 
-        document.getElementById('splitItemIcon').textContent = slotData.item.icon;
-        document.getElementById('splitItemName').textContent = slotData.item.name;
-
         this.split_amount_element.max = slotData.count - 1;
-        this.split_amount_element.value = Math.floor(slotData.count / 2);
+        this.setSplitAmountValue(Math.floor(slotData.count / 2));
+
+        this.positionSplitDialog(event);
 
         this.splitDialog.style.display = 'block';
         this.split_amount_element.focus();
         this.split_amount_element.select();
     }
 
+    positionSplitDialog(event) {
+        const dlg = this.splitDialog;
+        const content = dlg.querySelector('.modal-content');
+        if (!content) return;
+
+        if (!event) {
+            dlg.style.alignItems = 'center';
+            dlg.style.justifyContent = 'center';
+            content.style.position = '';
+            content.style.left = '';
+            content.style.top = '';
+            return;
+        }
+
+        dlg.style.alignItems = 'flex-start';
+        dlg.style.justifyContent = 'flex-start';
+
+        // Make content absolutely positioned inside the full-screen modal
+        content.style.position = 'absolute';
+
+        // Temporarily show off-screen so we can measure real width/height
+        const originalLeft = content.style.left;
+        const originalTop = content.style.top;
+        content.style.left = '-9999px';
+        content.style.top = '-9999px';
+        dlg.style.display = 'block';   // must be visible to get correct size
+
+        const width = content.offsetWidth;
+        const height = content.offsetHeight;
+
+        // Reset temporary off-screen styles
+        dlg.style.display = 'none';
+        content.style.left = originalLeft;
+        content.style.top = originalTop;
+
+        let left = event.clientX;
+        let top = event.clientY;
+        if (left < 0) left = 0;
+        if (left + width > window.innerWidth)
+            left = window.innerWidth - width;
+        if (top + height > window.innerHeight)
+            top = window.innerHeight - height;
+        if (top < 0) top = 0;
+
+        content.style.left = `${left}px`;
+        content.style.top = `${top}px`;
+    }
+
+    replaceSlotVisual(slot_grid, item, count) {
+        slot_grid.innerHTML = '';
+        const slot_elem = document.createElement('div');
+        slot_elem.className = `item-icon-large`;
+        if (item) {
+            const icon = document.createElement('div');
+            icon.className = 'item-icon';
+            icon.textContent = item.icon;
+            slot_elem.appendChild(icon);
+
+            if (count > 1) {
+                const count_elem = document.createElement('span');
+                count_elem.className = 'item-count';
+                count_elem.textContent = count;
+                slot_elem.appendChild(count_elem);
+            }
+        }
+        slot_grid.appendChild(slot_elem);
+    }
+
     closeSplitDialog() {
-        this.splitDialog.style.display = 'none';
+        const modal = this.splitDialog;
+        const content = modal.querySelector('.modal-content');
+
+        modal.style.display = 'none';
+
+        modal.style.alignItems = '';
+        modal.style.justifyContent = '';
+        content.style.position = '';
+        content.style.left = '';
+        content.style.top = '';
+
         this.split_from_index = -1;
     }
 

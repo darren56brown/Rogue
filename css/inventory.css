@@ -154,17 +154,15 @@
     color: #ffeb3b;
 }
 
-
-
-/*.modal {
+.modal {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.75);
-    display: flex;
+    background: rgba(0,0,0,0);
+    display: none;
     align-items: center;
     justify-content: center;
     z-index: 2000;
-}*/
+}
 
 .modal-content {
     background: rgba(25, 36, 63, 0.98);
@@ -174,14 +172,6 @@
     padding: 20px;
     padding-top: 5px;
     color: white;
-    z-index: 2000;
-
-    position: fixed;
-    /*top: 0; left: 0; right: 0; bottom: 0;*/
-    /*display: flex;*/
-    /*align-items: center;*/
-    /*justify-content: center;*/
-    /*z-index: 2000;*/
 }
 
 .split-item-preview {
