@@ -1,3 +1,148 @@
+
+class SplitUI {
+    constructor() {
+        this.slot_data = null;
+        this.split_dialog = document.getElementById('splitDialog');
+        this.split_amount_element = document.getElementById('splitAmountInput');
+        this.split_amount = 0;
+
+        this.split_amount_element.addEventListener('input', () => {
+            const value = parseInt(this.split_amount_element.value);
+            this.setSplitAmountValue(value);
+        });
+    }
+
+    open(owner, slot_data) {
+        this.slot_data = slot_data;
+
+        this.split_amount_element.max = this.slot_data.count - 1;
+        this.setSplitAmountValue(Math.floor(this.slot_data.count / 2));
+
+        const confirmBtn = document.getElementById('confirmSplit');
+        const cancelBtn = document.getElementById('cancelSplit');
+        const closeBtn = document.getElementById('closeSplitDialog');
+
+        // Quick buttons
+        document.querySelectorAll('.quick-split-buttons button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.dataset.amount;
+                const max = this.slot_data.count;
+
+                let newValue = 1;
+                if (type === '1') newValue = 1;
+                else if (type === 'half') newValue = Math.floor(max / 2);
+                else if (type === 'max') newValue = max - 1;
+
+                this.setSplitAmountValue(newValue);
+            });
+        });
+
+        confirmBtn.onclick = () => owner.performSplit(this.split_amount, this.slot_data);
+        cancelBtn.onclick = closeBtn.onclick = () => owner.closeSplitDialog();
+        
+        this.split_dialog.style.display = 'block';
+        this.split_amount_element.focus();
+        this.split_amount_element.select();
+    }
+
+    close() {
+        const dlg = this.split_dialog;
+        const content = dlg.querySelector('.modal-content');
+
+        dlg.style.display = 'none';
+
+        dlg.style.alignItems = 'center';
+        dlg.style.justifyContent = 'center';
+        content.style.position = '';
+        content.style.left = '';
+        content.style.top = '';
+    }
+
+    setSplitAmountValue(value) {
+        if (Number.isNaN(value)) value = 0;
+        const split_item = this.slot_data.item;
+        if (!split_item) value = 0;
+
+        const max = parseInt(this.split_amount_element.max) || 1;
+        value = Math.max(1, Math.min(max, value));
+
+        if (value != this.split_amount) {
+            this.split_amount = value;
+
+            const left_slot_grid = document.getElementById('splitItemGridL');
+            this.replaceSlotVisual(left_slot_grid, split_item, this.split_amount);
+
+            const right_slot_grid = document.getElementById('splitItemGridR');
+            this.replaceSlotVisual(right_slot_grid, split_item,
+                this.slot_data.count - this.split_amount);
+        }
+
+        const ui_value = parseInt(this.split_amount_element.value);
+        if (this.split_amount != ui_value) {
+            this.split_amount_element.value = this.split_amount;
+        }
+    }
+
+    replaceSlotVisual(slot_grid, item, count) {
+        slot_grid.innerHTML = '';
+        const slot_elem = document.createElement('div');
+        slot_elem.className = `item-icon-large`;
+        if (item) {
+            const icon = document.createElement('div');
+            icon.className = 'item-icon';
+            icon.textContent = item.icon;
+            slot_elem.appendChild(icon);
+
+            if (count > 1) {
+                const count_elem = document.createElement('span');
+                count_elem.className = 'item-count';
+                count_elem.textContent = count;
+                slot_elem.appendChild(count_elem);
+            }
+        }
+        slot_grid.appendChild(slot_elem);
+    }
+
+    setPosition(left, top) {
+        const dlg = this.split_dialog;
+        const content = dlg.querySelector('.modal-content');
+
+        dlg.style.alignItems = 'flex-start';
+        dlg.style.justifyContent = 'flex-start';
+
+        // Make content absolutely positioned inside the full-screen modal
+        content.style.position = 'absolute';
+
+        // Temporarily show off-screen so we can measure real width/height
+        const originalLeft = content.style.left;
+        const originalTop = content.style.top;
+        content.style.left = '-9999px';
+        content.style.top = '-9999px';
+        dlg.style.display = 'block';   // must be visible to get correct size
+
+        const width = content.offsetWidth;
+        const height = content.offsetHeight;
+
+        // Reset temporary off-screen styles
+        dlg.style.display = 'none';
+        content.style.left = originalLeft;
+        content.style.top = originalTop;
+
+        if (left < 0) left = 0;
+        if (left + width > window.innerWidth)
+            left = window.innerWidth - width;
+        if (top + height > window.innerHeight)
+            top = window.innerHeight - height;
+        if (top < 0) top = 0;
+
+        content.style.left = `${left}px`;
+        content.style.top = `${top}px`;
+    }
+}
+
+/////////////////////////////////
+/////////////////////////////////
+
 export class SlotGridUI {
     constructor(grid_element_name, gold_amount_name, item_desc_name,
         refresh_grids_func) {
@@ -8,15 +153,12 @@ export class SlotGridUI {
         this.itemDescEl = document.getElementById(item_desc_name);
         this.refresh_grids_func = refresh_grids_func
 
-        this.splitDialog = document.getElementById('splitDialog');
-        this.split_from_index = -1;
-        this.split_amount_element = null;
+        this.split_ui = null;
     }
 
     activate(character, trade_partner = null) {
         this.character = character;
         this.trade_partner = trade_partner;
-        this.initSplitDialog()
     }
 
     deactivate() {
@@ -130,175 +272,37 @@ export class SlotGridUI {
         this.refresh_grids_func();
     }
 
-    initSplitDialog() {
-        this.split_amount_element = document.getElementById('splitAmountInput');
-        const confirmBtn = document.getElementById('confirmSplit');
-        const cancelBtn = document.getElementById('cancelSplit');
-        const closeBtn = document.getElementById('closeSplitDialog');
-
-        this.split_amount_element.addEventListener('input', () => {
-            let value = parseInt(this.split_amount_element.value);
-
-            // Clamp to valid range
-            //if (isNaN(value)) value = 1;
-            //if (value < 1) value = 1;
-            //if (value > parseInt(this.split_amount_element.max)) {
-            //    value = parseInt(this.split_amount_element.max);
-            //}
-
-            this.setSplitAmountValue(value);
-        });
-
-        // Quick buttons
-        document.querySelectorAll('.quick-split-buttons button').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const type = btn.dataset.amount;
-                const slotData = this.character.inventorySlots[this.split_from_index];
-                const max = slotData.count;
-
-                let newValue = 1;
-                if (type === '1') newValue = 1;
-                else if (type === 'half') newValue = Math.floor(max / 2);
-                else if (type === 'max') newValue = max - 1;
-
-                this.setSplitAmountValue(newValue);
-            });
-        });
-
-        confirmBtn.onclick = () => this.performSplit();
-        cancelBtn.onclick = closeBtn.onclick = () => this.closeSplitDialog();
-    }
-
-    setSplitAmountValue(value) {
-        if (!this.split_amount_element) return;
-
-        const max = parseInt(this.split_amount_element.max) || 1;
-        value = Math.max(1, Math.min(max, value));   // clamp
-
-        if (parseInt(this.split_amount_element.value) !== value) {
-            this.split_amount_element.value = value;
-        }
-
-        const slotData = this.character.inventorySlots[this.split_from_index];
-        if (!slotData?.item) return;
-
-        const left_slot_grid = document.getElementById('splitItemGridL');
-        const right_slot_grid = document.getElementById('splitItemGridR');
-
-        this.replaceSlotVisual(left_slot_grid, slotData.item, value);
-        this.replaceSlotVisual(right_slot_grid, slotData.item, slotData.count - value);
-    }
-
     openSplitDialog(index, event) {
+        if (!event || index < 0 ||
+            index >= this.character.inventorySlots.length) return;
+
         const slotData = this.character.inventorySlots[index];
         if (!slotData.item || slotData.count <= 1) return;
 
-        this.split_from_index = index;
+        if (!this.split_ui) this.split_ui = new SplitUI();
 
-        this.split_amount_element.max = slotData.count - 1;
-        this.setSplitAmountValue(Math.floor(slotData.count / 2));
-
-        this.positionSplitDialog(event);
-
-        this.splitDialog.style.display = 'block';
-        this.split_amount_element.focus();
-        this.split_amount_element.select();
-    }
-
-    positionSplitDialog(event) {
-        const dlg = this.splitDialog;
-        const content = dlg.querySelector('.modal-content');
-        if (!content) return;
-
-        if (!event) {
-            dlg.style.alignItems = 'center';
-            dlg.style.justifyContent = 'center';
-            content.style.position = '';
-            content.style.left = '';
-            content.style.top = '';
-            return;
-        }
-
-        dlg.style.alignItems = 'flex-start';
-        dlg.style.justifyContent = 'flex-start';
-
-        // Make content absolutely positioned inside the full-screen modal
-        content.style.position = 'absolute';
-
-        // Temporarily show off-screen so we can measure real width/height
-        const originalLeft = content.style.left;
-        const originalTop = content.style.top;
-        content.style.left = '-9999px';
-        content.style.top = '-9999px';
-        dlg.style.display = 'block';   // must be visible to get correct size
-
-        const width = content.offsetWidth;
-        const height = content.offsetHeight;
-
-        // Reset temporary off-screen styles
-        dlg.style.display = 'none';
-        content.style.left = originalLeft;
-        content.style.top = originalTop;
-
-        let left = event.clientX;
-        let top = event.clientY;
-        if (left < 0) left = 0;
-        if (left + width > window.innerWidth)
-            left = window.innerWidth - width;
-        if (top + height > window.innerHeight)
-            top = window.innerHeight - height;
-        if (top < 0) top = 0;
-
-        content.style.left = `${left}px`;
-        content.style.top = `${top}px`;
-    }
-
-    replaceSlotVisual(slot_grid, item, count) {
-        slot_grid.innerHTML = '';
-        const slot_elem = document.createElement('div');
-        slot_elem.className = `item-icon-large`;
-        if (item) {
-            const icon = document.createElement('div');
-            icon.className = 'item-icon';
-            icon.textContent = item.icon;
-            slot_elem.appendChild(icon);
-
-            if (count > 1) {
-                const count_elem = document.createElement('span');
-                count_elem.className = 'item-count';
-                count_elem.textContent = count;
-                slot_elem.appendChild(count_elem);
-            }
-        }
-        slot_grid.appendChild(slot_elem);
+        this.split_ui.setPosition(event.clientX, event.clientY);
+        this.split_ui.open(this, slotData);
     }
 
     closeSplitDialog() {
-        const modal = this.splitDialog;
-        const content = modal.querySelector('.modal-content');
-
-        modal.style.display = 'none';
-
-        modal.style.alignItems = '';
-        modal.style.justifyContent = '';
-        content.style.position = '';
-        content.style.left = '';
-        content.style.top = '';
-
-        this.split_from_index = -1;
+        this.split_ui.close();
     }
 
-    performSplit() {
-        const amount = parseInt(this.split_amount_element.value);
-        if (!amount || this.split_from_index < 0) return;
-
-        const slotData = this.character.inventorySlots[this.split_from_index];
-        if (!slotData?.item || amount < 1 || amount >= slotData.count) {
+    performSplit(num_to_split, slot_data) {
+        if (!num_to_split || !slot_data) {
+            alert("Invalid split info.");
             this.closeSplitDialog();
             return;
         }
 
-        // Find first empty slot in THIS grid
+        if (!slot_data.item || num_to_split < 1 ||
+            num_to_split >= slot_data.count) {
+            this.closeSplitDialog();
+            return;
+        }
+
+        // Find first empty slot
         let targetIndex = -1;
         for (let i = 0; i < 40; i++) {
             if (!this.character.inventorySlots[i].item) {
@@ -314,11 +318,11 @@ export class SlotGridUI {
         }
 
         // Do the split
-        const item = slotData.item;
-        slotData.count -= amount;
+        const item = slot_data.item;
+        slot_data.count -= num_to_split;
 
         this.character.inventorySlots[targetIndex].item = item;
-        this.character.inventorySlots[targetIndex].count = amount;
+        this.character.inventorySlots[targetIndex].count = num_to_split;
 
         this.closeSplitDialog();
         this.refresh_grids_func();
