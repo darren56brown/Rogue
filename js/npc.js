@@ -1,7 +1,7 @@
-// npc.js
+
 import { Character } from "./character.js";
 import { Conversation } from "./conversation.js";
-import { GameItem } from "./game_item.js";
+import { GameItemInst } from "./game_item.js";
 
 const NPC_STATES = Object.freeze({
     ENGAGED:  'engaged',
@@ -12,10 +12,11 @@ const NPC_STATES = Object.freeze({
 });
 
 export class Npc extends Character {
-    constructor(world_pos, image_library, map_name, base_name) {
+    constructor(world_pos, image_library, item_library, map_name, base_name) {
         super(world_pos, "Character");
 
         this.image_library = image_library;
+        this.item_library = item_library;
         this.map_name = map_name;      // e.g. "level_01"
         this.base_name = base_name;    // e.g. "blacksmith_bob"
 
@@ -55,8 +56,18 @@ export class Npc extends Character {
 
             // Load inventory
             if (npcInfo.inventory && Array.isArray(npcInfo.inventory)) {
-                for (const itemData of npcInfo.inventory) {
-                    this.addToInventory(new GameItem(itemData), itemData.count || 1);
+                for (const instData of npcInfo.inventory) {
+                    const def = this.item_library.get(instData.id);
+                    if (!def) {
+                        console.warn(`Item def "${instData.id}" not found for NPC ${this.base_name}`);
+                        continue;
+                    }
+
+                    const item_inst = new GameItemInst(
+                        def, instData.count || 1,
+                        instData.slot_element !== undefined ? instData.slot_element : null
+                    );
+                    this.addToInventory(item_inst);
                 }
             }
 

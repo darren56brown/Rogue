@@ -23,6 +23,7 @@ export class App {
         this.player = null;
        
         this.game_maps = new Map();
+        this.item_library = new Map();
         this.current_game_map = null;
         this.switching_maps = false;
         this.state = "start_screen";
@@ -51,7 +52,7 @@ export class App {
             return this.game_maps.get(mapName);
         }
         const map = new GameMap(mapName);
-        await map.loadAll(this.image_library);
+        await map.loadAll(this.image_library, this.item_library);
         this.game_maps.set(mapName, map);
         return map;
     }
@@ -147,7 +148,7 @@ export class App {
 
     initPhysics() {
         this.player = new Player(this.current_game_map.playerStart,
-            this.image_library, "player_base");
+            this.image_library, this.item_library, "player_base");
         this.player.initializeDefaultItems();
 
         this.characters = [...this.current_game_map.npcs];
@@ -533,43 +534,48 @@ export class App {
         const slotsContainer = document.getElementById("hotbar-slots");
         if (!slotsContainer) return;
         
+        //slotsContainer.addEventListener('contextmenu', e => e.preventDefault(), { once: true });
         slotsContainer.innerHTML = "";
 
         const NUM_HOTBAR_SLOTS = 10;
         for (let index = 0; index < NUM_HOTBAR_SLOTS; ++index)
         {
-            const slot = document.createElement("div");
-            slot.className = `slot ${index == this.player.selectedSlot ? "selected" : ""}`;
-            slot.dataset.index = index;
-            slot.draggable = true;
+            const slot_element = document.createElement("div");
+            slot_element.className = `slot ${index == this.player.selectedSlot ? "selected" : ""}`;
+            slot_element.dataset.index = index;
+            slot_element.draggable = true;
+            slot_element.addEventListener('contextmenu', e => {
+                e.preventDefault();
+               //this.openSplitDialog(i, e);
+            });
 
             const iconDiv = document.createElement("div");
             iconDiv.className = "item-icon";
 
-            const slotData = this.player.inventorySlots[index];
+            const slot = this.player.inventorySlots[index];
 
-            iconDiv.textContent = slotData?.item?.icon || "";
-            slot.appendChild(iconDiv);
+            iconDiv.textContent = slot ? slot.def.icon : "";
+            slot_element.appendChild(iconDiv);
 
-            if (slotData?.item && slotData.count > 1) {
+            if (slot && slot.count > 1) {
                 const countSpan = document.createElement("span");
                 countSpan.className = "item-count";
-                countSpan.textContent = slotData.count;
-                slot.appendChild(countSpan);
+                countSpan.textContent = slot.count;
+                slot_element.appendChild(countSpan);
             }
 
-            slot.addEventListener("dragstart", (e) => {
+            slot_element.addEventListener("dragstart", (e) => {
                 e.dataTransfer.setData("text/plain", index.toString());
             });
 
-            slot.addEventListener("dragover", (e) => {
+            slot_element.addEventListener("dragover", (e) => {
                 e.preventDefault();
             });
 
-            slot.addEventListener("drop", (e) => {
+            slot_element.addEventListener("drop", (e) => {
                 e.preventDefault();
                 const fromIndex = parseInt(e.dataTransfer.getData("text/plain"));
-                const toIndex = parseInt(slot.dataset.index);
+                const toIndex = parseInt(slot_element.dataset.index);
                 
                 if (fromIndex !== toIndex) {
                     this.player.swapHotbarSlots(fromIndex, toIndex);
@@ -577,12 +583,12 @@ export class App {
                 }
             });
 
-            slot.addEventListener("click", () => {
+            slot_element.addEventListener("click", () => {
                 this.player.selectedSlot = index;
                 this.updateHotbarUI();
             });
 
-            slotsContainer.appendChild(slot);
+            slotsContainer.appendChild(slot_element);
         };
     }
 

@@ -119,8 +119,8 @@ export class InventoryUI {
             // === DRAG & DROP (exactly the same behavior as before) ===
             slotEl.draggable = true;
             slotEl.addEventListener('dragstart', e => {
-                const item = this.player.equipment[eq.key];
-                if (item) {
+                const slot = this.player.equipment[eq.key];
+                if (slot) {
                     e.dataTransfer.setData('text/plain', `equip:${eq.key}`);
                 } else {
                     e.preventDefault();
@@ -130,11 +130,12 @@ export class InventoryUI {
             slotEl.addEventListener('dragover', e => e.preventDefault());
             slotEl.addEventListener('drop', e => this.handleEquipDrop(e, slotEl));
 
-            // Hover description (exactly the same)
             slotEl.addEventListener('mouseenter', () => {
-                const item = this.player.equipment[eq.key];
-                if (item) {
-                    itemDescEl.innerHTML = `<strong>${item.name}</strong><br>${item.description || 'No description.'}`;
+                const slot = this.player.equipment[eq.key];
+                if (slot) {
+                    const name = slot.def.name;
+                    const desc = slot.def.description;
+                    itemDescEl.innerHTML = `<strong>${name}</strong><br>${desc}`;
                 } else {
                     itemDescEl.textContent = `${eq.label} (empty)`;
                 }
@@ -149,53 +150,49 @@ export class InventoryUI {
 
     handleEquipDrop(e, slotEl) {
         e.preventDefault();
-        const targetType = slotEl.dataset.slotType;
+
+        const equip_slot_name = slotEl.dataset.slotType;
+        const equip_slot_filter = equip_slot_name.includes('_') ?
+            equip_slot_name.split('_')[0] : equip_slot_name;
+
         const from_data = e.dataTransfer.getData('text/plain');
-
-        let droppedItem = null;
-        let fromInventoryIndex = null;
-        let fromEquipType = null;
-
-        if (from_data.startsWith('equip:')) {
-            fromEquipType = from_data.slice(6);
-            droppedItem = this.player.equipment[fromEquipType];
-        } else {
-            let dataObj;
-            try {
-                dataObj = JSON.parse(from_data);
-            } catch (err) {
-                console.warn('Invalid drag data');
-                return;
-            }
-            fromInventoryIndex = parseInt(dataObj.index);
-            if (!isNaN(fromInventoryIndex)) {
-                droppedItem = this.player.inventorySlots[fromInventoryIndex]?.item;
-            }
+        if (from_data.startsWith('equip:'))
+        {
+            this.handleEquipDropFromEquip(from_data, equip_slot_name, equip_slot_filter);
+            return;
         }
 
-        if (!droppedItem) return;
+        this.handleEquipDropFromInventory(from_data, equip_slot_name, equip_slot_filter);
+    }
 
-        // === NEW: Flexible matching (up to first underscore) ===
-        const itemSlotType = droppedItem.equipSlot;
-        const slotBaseType = targetType.includes('_') ? targetType.split('_')[0] : targetType;
+    handleEquipDropFromEquip(from_data, equip_slot_name, equip_slot_filter) {
+        const from_equip_type = from_data.slice(6);
+        const item_inst = this.player.equipment[from_equip_type];
+        if (item_inst.def.equipSlot != equip_slot_filter) return;
 
-        if (itemSlotType !== slotBaseType) return;
-        // =======================================================
+        this.player.equipment[from_equip_type] =
+            this.player.equipment[equip_slot_name];
+        this.player.equipment[equip_slot_name] = item_inst;
 
-        // Swap logic
-        if (fromInventoryIndex !== null) {
-            const fromSlot = this.player.inventorySlots[fromInventoryIndex];
-            const oldItem = this.player.equipment[targetType];
+        this.refreshGrids();
+    }
 
-            this.player.equipment[targetType] = droppedItem;
-            fromSlot.item = oldItem;
-            fromSlot.count = oldItem ? 1 : 0;
-        } 
-        else if (fromEquipType && fromEquipType !== targetType) {
-            const temp = this.player.equipment[targetType];
-            this.player.equipment[targetType] = this.player.equipment[fromEquipType];
-            this.player.equipment[fromEquipType] = temp;
+    handleEquipDropFromInventory(from_data, equip_slot_name, equip_slot_filter) {
+        let inventory_index = null;
+        try {
+            const dataObj = JSON.parse(from_data);
+            inventory_index = parseInt(dataObj.index);
+        } catch (err) {
+            console.warn('Invalid drag data');
+            return;
         }
+        if (isNaN(inventory_index)) return;
+        const item_inst = this.player.inventorySlots[inventory_index];
+        if (item_inst.def.equipSlot != equip_slot_filter) return;
+
+        this.player.inventorySlots[inventory_index] =
+            this.player.equipment[equip_slot_name];
+        this.player.equipment[equip_slot_name] = item_inst;
 
         this.refreshGrids();
     }
@@ -205,11 +202,11 @@ export class InventoryUI {
         
         slotEls.forEach(slotEl => {
             const slotType = slotEl.dataset.slotType;
-            const item = this.player.equipment[slotType];
+            const slot = this.player.equipment[slotType];
             const iconDiv = slotEl.querySelector('.item-icon');
 
-            if (item) {
-                iconDiv.textContent = item.icon;
+            if (slot) {
+                iconDiv.textContent = slot.def.icon;
                 iconDiv.style.opacity = "1";
             } else {
                 iconDiv.textContent = '';

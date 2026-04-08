@@ -1,61 +1,66 @@
-export class GameItem {
+
+export class GameItemDef {
     constructor(data) {
-        this.id = data.id;                    // unique string identifier, e.g. "wooden_sword"
-        this.name = data.name;                // display name
-        this.type = data.type || "misc";      // "weapon", "tool", "consumable", "armor", "resource", etc.
-        this.rarity = data.rarity || "common"; // common, uncommon, rare, epic...
+        this.id = data.id;
+        this.name = data.name;
+        this.type = data.type || "misc";
+        this.rarity = data.rarity || "common";
         
-        this.icon = data.icon;                // emoji for now, later: image path or sprite info
-        this.maxStack = data.maxStack || 64;  // how many can stack in one slot
+        this.icon = data.icon;
+        this.maxStack = data.maxStack || 1;
         
-        // Core stats (expand as needed)
         this.damage = data.damage || 0;
         this.defense = data.defense || 0;
         this.healAmount = data.healAmount || 0;
-        this.durability = data.durability || Infinity; // Infinity = unbreakable for now
+        this.maxDurability = data.maxDurability || Infinity;
         
-        this.description = data.description || "";
+        this.description = data.description || "<None>";
         
-        // Future-proof fields
-        this.value = data.value || 0;         // gold/trade value
+        this.bid = data.value || 0;
+        this.ask = data.value || 1;
         this.weight = data.weight || 0;
-        this.tags = data.tags || [];          // e.g. ["metal", "sharp", "edible"]
-        this.equipSlot = data.equipSlot || null; // "helmet", "chest", "legs", "boots"
+        this.tags = data.tags || [];
+        this.equipSlot = data.equipSlot || null;
+    }
+}
+
+////////////////////////////////
+////////////////////////////////
+
+
+export class GameItemInst {
+    constructor(def, count = 1, durability = Infinity) {
+        if (!(def instanceof GameItemDef)) {
+            throw new Error("GameItemInst requires a valid GameItemDef");
+        }
+        this.def = def;
+        this.count = Math.max(1, count);
+
+        if (def.maxDurability == Infinity) {
+            this.durability = Infinity;
+        } else {
+            this.durability = Math.min(durability, def.maxDurability);
+        }
     }
 
-    // Helper methods
-    canStackWith(otherItem) {
-        return this.id === otherItem.id;
+    canStackWith(other) {
+        return other && other instanceof GameItemInst && this.def == other.def;
     }
 
     isStackable() {
         return this.maxStack > 1;
     }
 
-    clone() {
-        return new GameItem({
-            id: this.id,
-            name: this.name,
-            type: this.type,
-            rarity: this.rarity,
-            icon: this.icon,
-            maxStack: this.maxStack,
-            damage: this.damage,
-            defense: this.defense,
-            healAmount: this.healAmount,
-            durability: this.durability,
-            description: this.description,
-            value: this.value,
-            weight: this.weight,
-            tags: [...this.tags],
-            equipSlot: this.equipSlot
-        });
+    clone(count = this.count) {
+        return new GameItemInst(this.def, count, this.durability);
     }
 
     toJSON() {
         return {
             id: this.id,
-            count: this.count || 1   // we'll add count when in inventory
+            count: this.count,
+            durability: this.durability == Infinity ? undefined : this.durability
         };
     }
 }
+

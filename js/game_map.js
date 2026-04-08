@@ -2,6 +2,7 @@ import {ISO, MAX_DROP, MAX_HOP} from "./constants.js";
 import { getTileCoordFromPosition, isoCompare} from './util.js';
 import { vec2D } from "./vec2D.js";
 import { Npc } from "./npc.js";
+import { GameItemDef } from "./game_item.js";
 
 export class GameMap {
     constructor(name) {
@@ -19,7 +20,7 @@ export class GameMap {
         this.portals = [];
     }
 
-    async loadAll(image_library) {
+    async loadAll(image_library, item_library) {
         try {
             const tmjPath  = `maps/${this.name}/map.tmj`;
             const metadataPath = `maps/${this.name}/map.json`;
@@ -38,24 +39,26 @@ export class GameMap {
                 metaResponse.json()
             ]);
 
+            if (metadata.itemDefs && Array.isArray(metadata.itemDefs)) {
+                for (const data of metadata.itemDefs) {
+                    try {
+                        const def = new GameItemDef(data);
+                        item_library.set(def.id, def);
+                    } catch (e) {
+                        console.error(`Failed to register itemDef ${data.id || 'unknown'}`, e);
+                    }
+                }
+            }
+
             this.displayName = metadata.displayName;
             this.playerStart = metadata.playerStart;
             this.portals = metadata.portals || [];
 
             this.npcs = [];
             for (const npc_data of metadata.npcs) {
-                const startingPos = { 
-                    x: npc_data.x, 
-                    y: npc_data.y, 
-                    z: npc_data.z 
-                };
-
-                const npc = new Npc(
-                    startingPos, 
-                    image_library, 
-                    this.name,
-                    npc_data.name
-                );
+                const startingPos = {x: npc_data.x, y: npc_data.y, z: npc_data.z};
+                const npc = new Npc(startingPos, image_library, item_library,
+                    this.name, npc_data.name);
 
                 await npc.load();
                 this.npcs.push(npc);

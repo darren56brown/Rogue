@@ -75,6 +75,8 @@
     font-family: 'Courier New', monospace;
     line-height: 1.4;
     min-height: 120px;
+    margin-top: 10px;
+    color: white;
 }
 
 .equipment-grid {

@@ -13,5 +13,22 @@
             "targetMap": "level_01_cave",
             "targetPlayerStart": { "x": 1.5, "y": 9.5, "z": 0 }
         }
+    ],
+    "itemDefs": [
+        { "id": "wooden_sword", "name": "Wooden Sword", "type": "weapon", "icon": "🗡️", "damage": 5, "durability": 60, "description": "A crude but effective beginner weapon." },
+        { "id": "stone_pickaxe", "name": "Stone Pickaxe", "type": "tool", "icon": "⛏️", "damage": 3, "description": "Good for breaking rocks." },
+        { "id": "iron_axe", "name": "Iron Axe", "type": "tool", "icon": "🪓", "damage": 7 },
+        { "id": "bow", "name": "Bow", "type": "weapon", "icon": "🏹", "damage": 6 },
+        { "id": "apple", "name": "Apple", "type": "consumable", "icon": "🍎", "healAmount": 4, "maxStack": 24, "description": "A fresh red apple." },
+        { "id": "plain_shirt", "name": "Plain shirt", "type": "armor", "icon": "👕", "defense": 3, "description": "Basic protection.", "equipSlot": "chest" },
+        { "id": "helmet", "name": "Helmet", "type": "armor", "icon": "🪖", "defense": 1, "description": "Basic protection.", "equipSlot": "head" },
+        { "id": "boots", "name": "Boots", "type": "armor", "icon": "🥾", "defense": 1, "description": "Basic protection.", "equipSlot": "feet" },
+        { "id": "pants", "name": "Pants", "type": "armor", "icon": "👖", "defense": 1, "description": "Basic protection.", "equipSlot": "legs" },
+        { "id": "cool_ring", "name": "Cool Ring", "type": "armor", "icon": "💍", "defense": 1, "description": "This is a cool ring.", "equipSlot": "hand" },
+        { "id": "lame_ring", "name": "Lame Ring", "type": "armor", "icon": "〇", "defense": 1, "description": "This is a lame ring.", "equipSlot": "hand" },
+        { "id": "crown", "name": "Crown", "type": "armor", "icon": "👑", "defense": 1, "description": "Basic protection.", "equipSlot": "head" },
+        { "id": "necklace", "name": "Necklace", "type": "armor", "icon": "📿", "defense": 1, "description": "Basic jewelry.", "equipSlot": "neck" },
+        { "id": "torch", "name": "Torch", "type": "misc", "icon": "🔥", "description": "Provides light." },
+        { "id": "stone", "name": "Stone", "type": "resource", "icon": "🪨", "maxStack": 99 }
     ]
 }

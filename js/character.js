@@ -2,6 +2,7 @@ import {PLAYER_ANIM_FRAME_SIZE, PLAYER_TILE_ORIGIN, MOVE_TARGET_TOL} from "./con
 import {vec2D, add, sub, mult, setAdd, norm, div, intersect, dist, mag, dot} from './vec2D.js';
 import {cartesianToIso, getMixedDist, getTileCoordFromXY, isoCompare} from './util.js';
 import {SpriteSheet} from './sprite_sheet.js';
+import {GameItemInst} from "./game_item.js";
 
 export const PlayerFacing = Object.freeze({
     face_nw: 0,   // North-West
@@ -51,7 +52,7 @@ export class Character {
         this.follow_success = false;
         this.follow_cache = null;
 
-        this.inventorySlots = Array.from({ length: 40 }, () => ({ item: null, count: 0 }));
+        this.inventorySlots = Array.from({ length: 40 }, () => (null));
         this.equipment = {
             head: null,
             neck: null,
@@ -312,21 +313,6 @@ export class Character {
         waypoints.push({x: x, y: y, z: z}); 
     }
 
-    addToInventory(gameItem, count = 1) {
-        if (!gameItem) return;
-
-        // Try to stack with existing item
-        for (let entry of this.inventory) {
-            if (entry.item.id === gameItem.id) {
-                entry.count += count;
-                return;
-            }
-        }
-
-        // Add as new entry
-        this.inventory.push({ item: gameItem.clone(), count });
-    }
-
     startFollowing(target) {
         if (!target || target == this || target == this.follow_target) return;
         this.clearPath();
@@ -464,20 +450,24 @@ export class Character {
         this.curFacing = this._getNearestFacing(to_target);
     }
 
-    addToInventory(gameItem, count = 1) {
-        if (!gameItem) return;
-        for (let slot of this.inventorySlots) {
-            if (slot.item && slot.item.id === gameItem.id && slot.count < slot.item.maxStack) {
-                const canAdd = Math.min(count, slot.item.maxStack - slot.count);
-                slot.count += canAdd;
-                count -= canAdd;
-                if (count <= 0) return;
+    addToInventory(item_inst) {
+        if (!item_inst || !(item_inst instanceof GameItemInst)) return;
+
+        for (let old_item_inst of this.inventorySlots) {
+            if (!old_item_inst) continue;
+            if (old_item_inst.canStackWith(item_inst) &&
+                old_item_inst.count < old_item_inst.maxStack) {
+                const space = slot.maxStack - slot.count;
+                const addAmt = Math.min(item_inst.count, space);
+                slot.count += addAmt;
+                item_inst.count -= addAmt;
+                if (item_inst.count <= 0) return;
             }
         }
-        for (let slot of this.inventorySlots) {
-            if (!slot.item) {
-                slot.item = gameItem.clone();
-                slot.count = count;
+
+        for (let i = 0; i < this.inventorySlots.length; ++i) {
+            if (!this.inventorySlots[i]) {
+                this.inventorySlots[i] = item_inst;
                 return;
             }
         }
@@ -488,31 +478,27 @@ export class Character {
         if (other == null || this_index < 0 || this_index >= 40 ||
             other_index < 0 || other_index >= 40) return;
 
-        const to_value = this.inventorySlots[this_index];
-        const from_value = other.inventorySlots[other_index];
-        if (from_value.item && to_value.item) {
-            const max_stack = Math.min(from_value.item.maxStack,
-                to_value.item.maxStack);
-            if (from_value.item.id == to_value.item.id && max_stack > 1) {
-                to_value.count = from_value.count + to_value.count;
-                from_value.count = 0;
-                if (to_value.count > max_stack) {
-                    from_value.count = to_value.count - max_stack;
-                    to_value.count = max_stack;
-                }
-                if (from_value.count > max_stack) {
-                    from_value.count = max_stack;
-                } else if (from_value.count == 0) {
-                    from_value.item = null;
-                    from_value.count = 0;
-                }
-                return;
+        const thisInst = this.inventorySlots[this_index];
+        const otherInst = other.inventorySlots[other_index];
+
+        if (!thisInst && !otherInst) return;
+
+        if (thisInst && otherInst && thisInst.canStackWith(otherInst)) {
+            const max = thisInst.def.maxStack;
+            const total = thisInst.count + otherInst.count;
+            if (total <= max) {
+                thisInst.count = total;
+                other.inventorySlots[other_index] = null;
+            } else {
+                thisInst.count = max;
+                otherInst.count = total - max;
             }
+            return;
         }
 
-        this.inventorySlots[this_index] = from_value;
-        other.inventorySlots[other_index] = to_value;
+        const tmp = this.inventorySlots[this_index]
+        this.inventorySlots[this_index] = other.inventorySlots[other_index];
+        other.inventorySlots[other_index] = tmp;
     }
-
 }
 

@@ -60,7 +60,7 @@ class SplitUI {
 
     setSplitAmountValue(value) {
         if (Number.isNaN(value)) value = 0;
-        const split_item = this.slot_data.item;
+        const split_item = this.slot_data;
         if (!split_item) value = 0;
 
         const max = parseInt(this.split_amount_element.max) || 1;
@@ -83,14 +83,14 @@ class SplitUI {
         }
     }
 
-    replaceSlotVisual(slot_grid, item, count) {
+    replaceSlotVisual(slot_grid, item_inst, count) {
         slot_grid.innerHTML = '';
         const slot_elem = document.createElement('div');
         slot_elem.className = `item-icon-large`;
-        if (item) {
+        if (item_inst) {
             const icon = document.createElement('div');
             icon.className = 'item-icon';
-            icon.textContent = item.icon;
+            icon.textContent = item_inst.def.icon;
             slot_elem.appendChild(icon);
 
             if (count > 1) {
@@ -177,17 +177,17 @@ export class SlotGridUI {
             slotEl.className = `inventory-slot ${i < 10 ? 'hotbar-row' : ''}`;
             slotEl.dataset.index = i;
 
-            if (slotData?.item) {
+            if (slotData) {
                 const icon = document.createElement('div');
                 icon.className = 'item-icon';
-                icon.textContent = slotData.item.icon;
+                icon.textContent = slotData.def.icon;
                 slotEl.appendChild(icon);
 
                 if (slotData.count > 1) {
-                    const count = document.createElement('span');
-                    count.className = 'item-count';
-                    count.textContent = slotData.count;
-                    slotEl.appendChild(count);
+                    const count_element = document.createElement('span');
+                    count_element.className = 'item-count';
+                    count_element.textContent = slotData.count;
+                    slotEl.appendChild(count_element);
                 }
             }
 
@@ -208,11 +208,12 @@ export class SlotGridUI {
             slotEl.addEventListener('drop', e => this.handleGridDrop(e, slotEl));
 
             slotEl.addEventListener('mouseenter', () => {
-                const item = slotData?.item;
-                if (item) {
-                    this.itemDescEl.innerHTML = `<strong>${item.name}</strong><br>${item.description || 'No description.'}`;
+                if (slotData) {
+                    const name = slotData.def.name;
+                    const desc = slotData.def.description;
+                    this.itemDescEl.innerHTML = `<strong>${name}</strong><br>${desc}`;
                 } else {
-                    this.itemDescEl.textContent = 'Empty slot';
+                    this.itemDescEl.textContent = '<Empty slot>';
                 }
             });
 
@@ -233,21 +234,20 @@ export class SlotGridUI {
         const to_index = parseInt(slotEl.dataset.index);
 
         if (from_data.startsWith('equip:')) {
-            const fromEquipType = from_data.slice(6);
-            const itemToMove = this.character.equipment[fromEquipType];
+            const from_equip_slot_name = from_data.slice(6);
+            const itemToMove = this.character.equipment[from_equip_slot_name];
             if (!itemToMove) return;
 
-            const targetSlot = this.character.inventorySlots[to_index];
+            const equip_slot_filter = from_equip_slot_name.includes('_') ?
+                from_equip_slot_name.split('_')[0] : from_equip_slot_name;
+            const target_item = this.character.inventorySlots[to_index];
 
-            if (!targetSlot.item) {
-                targetSlot.item = itemToMove;
-                targetSlot.count = 1;
-                this.character.equipment[fromEquipType] = null;
-            } else if (targetSlot.item.equipSlot === fromEquipType) {
-                const temp = targetSlot.item;
-                targetSlot.item = itemToMove;
-                targetSlot.count = 1;
-                this.character.equipment[fromEquipType] = temp;
+            if (!target_item) {
+                this.character.inventorySlots[to_index] = itemToMove;
+                this.character.equipment[from_equip_slot_name] = null;
+            } else if (target_item.def.equipSlot == equip_slot_filter) {
+                this.character.inventorySlots[to_index] = itemToMove;
+                this.character.equipment[from_equip_slot_name] = target_item;
             } else {
                 return;
             }
@@ -277,7 +277,7 @@ export class SlotGridUI {
             index >= this.character.inventorySlots.length) return;
 
         const slotData = this.character.inventorySlots[index];
-        if (!slotData.item || slotData.count <= 1) return;
+        if (!slotData || slotData.count <= 1) return;
 
         if (!this.split_ui) this.split_ui = new SplitUI();
 
@@ -296,7 +296,7 @@ export class SlotGridUI {
             return;
         }
 
-        if (!slot_data.item || num_to_split < 1 ||
+        if (!slot_data || num_to_split < 1 ||
             num_to_split >= slot_data.count) {
             this.closeSplitDialog();
             return;
@@ -305,7 +305,7 @@ export class SlotGridUI {
         // Find first empty slot
         let targetIndex = -1;
         for (let i = 0; i < 40; i++) {
-            if (!this.character.inventorySlots[i].item) {
+            if (!this.character.inventorySlots[i]) {
                 targetIndex = i;
                 break;
             }
@@ -318,10 +318,9 @@ export class SlotGridUI {
         }
 
         // Do the split
-        const item = slot_data.item;
         slot_data.count -= num_to_split;
 
-        this.character.inventorySlots[targetIndex].item = item;
+        this.character.inventorySlots[targetIndex] = slot_data.clone();
         this.character.inventorySlots[targetIndex].count = num_to_split;
 
         this.closeSplitDialog();
