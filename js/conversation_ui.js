@@ -85,11 +85,11 @@ export class ConversationUI {
         if (available.length > 0) {
             this.endFooter.style.display = 'none';
             this.choicesContainer.style.display = 'flex';
-            available.forEach((choice, index) => {
+            available.forEach((choice) => {
                 const btn = document.createElement('button');
                 btn.className = 'choice-btn';
-                btn.textContent = choice.playerText;
-                btn.onclick = () => this.handleChoiceClick(index);
+                btn.textContent = choice.text;
+                btn.onclick = () => this.handleChoiceClick(choice.id);
                 this.choicesContainer.appendChild(btn);
             });
         } else {
@@ -98,11 +98,10 @@ export class ConversationUI {
         }
     }
 
-    handleChoiceClick(choiceIndex) {
+    handleChoiceClick(choice_id) {
         if (!this.current_npc) return;
         const conversation = this.current_npc.conversation;
-
-        const success = conversation.selectChoice(choiceIndex);
+        const success = conversation.selectChoice(choice_id);
         if (success) {
             this.refreshUI();
         }

@@ -60,24 +60,30 @@ export class Conversation {
     getAvailableChoices() {
         if (!this.#current_node) return [];
 
-        return this.#current_node.choices.filter((choice) => {
-            const next_id = choice.next;
-            const next_node = this.nodes[next_id];
-            if (!next_node) return false;
-            return !next_node.visited;
-        });
+        const result = [];
+        for (const choice of this.#current_node.choices) {
+            if (choice.next == "_trade") {
+                const choice_text = choice.playerText ? choice.playerText :
+                    "Let's see what you're selling.";
+                result.push({id: choice.next, text: choice_text});
+            } else {
+                const next_node = this.nodes[choice.next];
+                if (!next_node || next_node.visited) continue;
+
+                result.push({id: choice.next, text: choice.playerText});
+            }
+        }
+
+        return result;
     }
 
-    selectChoice(choiceIndex) {
-        const available = this.getAvailableChoices();
-        if (choiceIndex < 0 || choiceIndex >= available.length) {
-            console.warn("Invalid choice index");
+    selectChoice(choice_id) {
+        if (!choice_id) {
+            console.warn("Invalid choice ");
             return false;
         }
 
-        const chosen = available[choiceIndex];
-        this.setCurrentNodeId(chosen.next);
-
+        this.setCurrentNodeId(choice_id);
         return true;
     }
 }
