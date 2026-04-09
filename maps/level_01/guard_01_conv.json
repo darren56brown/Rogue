@@ -1,10 +1,9 @@
 {
-  "id": "guard_01",
-  "roots": ["start"],
-  "nodes": {
-    "start": {
-      "npcText": "Take a hike, buddy!",
-      "choices": []
+    "id": "guard_01",
+    "nodes": {
+        "_greeting": {
+            "npcText": "Take a hike, buddy!",
+            "choices": []
+        }
     }
-  }
 }

@@ -1,10 +1,9 @@
 {
-  "id": "guard_02",
-  "roots": ["start"],
-  "nodes": {
-    "start": {
-      "npcText": "I'm busy. Get lost!",
-      "choices": []
+    "id": "guard_02",
+    "nodes": {
+        "_greeting": {
+            "npcText": "I'm busy. Get lost!",
+            "choices": []
+        }
     }
-  }
 }

@@ -110,12 +110,7 @@ export class ConversationUI {
 
     endConversation() {
         if (!this.current_npc) return;
-        const conversation = this.current_npc.conversation;
-
-        // Persist the visited state so choices stay retired forever
-        const saveKey = `conv_state_${this.current_npc.conversationKey || 'unknown'}`;
-        localStorage.setItem(saveKey, JSON.stringify(conversation.getState()));
-
+        
         this.container.classList.remove('is-active');
         this.onClose();
 
