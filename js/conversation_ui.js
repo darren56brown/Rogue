@@ -56,7 +56,7 @@ export class ConversationUI {
             this.renderPortrait();
         }
 
-        this.npcNameEl.textContent = npc.displayName || "Villager";
+        this.npcNameEl.textContent = npc.display_name;
 
         this.container.classList.add('is-active');
         this.onOpen();

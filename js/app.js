@@ -46,7 +46,7 @@ export class App {
         this.inventoryUI = null;
         this.tradeUI = null;
 
-        this.pending_trade_partner = null;
+        this.pending_action = null;
     }
 
     async smartGetMap(mapName) {
@@ -296,10 +296,25 @@ export class App {
 
         if (this.state !== "running") return;
 
-        if (this.pending_trade_partner) {
-            const tmp = this.pending_trade_partner;
-            this.pending_trade_partner = null;
-            this.tradeUI.activate(this.player, tmp);
+        if (this.pending_action) {
+            const partner = this.pending_action.partner;
+            const type = this.pending_action.type;
+            this.pending_action = null;    
+            if (partner) {
+                if (type == "trade") {
+                    this.tradeUI.activate(this.player, partner);
+                } else if (type == "inventory") {
+                    this.inventoryUI.activate(partner);
+                } else if (type == "sprite_view") {
+                    this.spriteViewer.activate(partner);
+                }
+            } else {
+                if (type == "inventory") {
+                    this.inventoryUI.activate(this.player);
+                } else if (type == "sprite_view") {
+                    this.spriteViewer.activate(this.player);
+                }
+            }
         }
 
         for (const char of this.characters) {
@@ -342,23 +357,18 @@ export class App {
                 this.onEscapeToggle();
             } else if (e.key.toLowerCase() === 'v') {
                 if (this.state === "start_screen") return;
-                if (this.spriteViewer.isActive) {
-                    this.spriteViewer.deactivate();
-                } else if (this.selected_character) {
-                    this.spriteViewer.activate(this.selected_character);
-                } else {
-                    this.spriteViewer.activate(this.player);
-                }
+                this.pending_action = {type: "sprite_view",
+                    partner: this.selected_character};
+                this.selected_character = null;
             } else if (e.key.toLowerCase() === 'i') {
                 if (this.state !== "running") return;
-                if (this.inventoryUI.isActive()) {
-                    this.inventoryUI.deactivate();
-                } else {
-                    this.inventoryUI.activate(this.player);
-                }
+                this.pending_action = {type: "inventory",
+                    partner: this.selected_character};
+                this.selected_character = null;
             } else if (e.key.toLowerCase() === 't') {
                 if (this.state !== "running") return;
-                this.pending_trade_partner = this.selected_character;
+                this.pending_action = {type: "trade",
+                    partner: this.selected_character};
                 this.selected_character = null;
             } else if (this.state === 'running') {
                 const num = parseInt(e.key);
@@ -641,7 +651,7 @@ export class App {
         this.updateHotbarUI();
 
         if (exit_status == "init_trade" && npc) {
-            this.pending_trade_partner = npc;
+            this.pending_action = {type: "trade", partner: npc};
         }
     }
 }

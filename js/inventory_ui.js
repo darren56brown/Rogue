@@ -48,6 +48,9 @@ export class InventoryUI {
 
         this.player_slot_grid.activate(this.player);
 
+        const header_title = document.querySelector('#inventoryViewer .inventory-viewer-header h2');
+        header_title.textContent = `${this.player.display_name} Inventory`;
+
         this.container.classList.add('is-active');
         this.onOpen();
 
