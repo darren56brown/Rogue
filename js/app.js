@@ -45,6 +45,8 @@ export class App {
         this.conversationUI = null;
         this.inventoryUI = null;
         this.tradeUI = null;
+
+        this.pending_trade_partner = null;
     }
 
     async smartGetMap(mapName) {
@@ -134,13 +136,13 @@ export class App {
         this.current_game_map = await this.smartGetMap("level_01");
 
         this.spriteViewer = new SpriteViewer(this.image_library,
-            () => this._viewerOnOpen(), () => this._viewerOnClose());
+            () => this._viewerOnOpen(), () => this._viewerOnClose("okay", null));
         this.conversationUI = new ConversationUI(this.image_library,
-            () => this._viewerOnOpen(), () => this._viewerOnClose());
+            () => this._viewerOnOpen(), (exit_status, npc) => this._viewerOnClose(exit_status, npc));
         this.inventoryUI = new InventoryUI(this.image_library,
-            () => this._viewerOnOpen(), () => this._viewerOnClose());
+            () => this._viewerOnOpen(), () => this._viewerOnClose("okay", null));
         this.tradeUI = new TradeUI(this.image_library,
-            () => this._viewerOnOpen(), () => this._viewerOnClose());
+            () => this._viewerOnOpen(), () => this._viewerOnClose("okay", null));
 
         this.initPhysics();
         requestAnimationFrame(t => this.loop(t));
@@ -294,6 +296,12 @@ export class App {
 
         if (this.state !== "running") return;
 
+        if (this.pending_trade_partner) {
+            const tmp = this.pending_trade_partner;
+            this.pending_trade_partner = null;
+            this.tradeUI.activate(this.player, tmp);
+        }
+
         for (const char of this.characters) {
             char.updatePhysics(dt, this.current_game_map);
         }
@@ -350,11 +358,8 @@ export class App {
                 }
             } else if (e.key.toLowerCase() === 't') {
                 if (this.state !== "running") return;
-                if (this.tradeUI.isActive()) {
-                    this.tradeUI.deactivate();
-                } else if (this.selected_character) {
-                    this.tradeUI.activate(this.player, this.selected_character);
-                }
+                this.pending_trade_partner = this.selected_character;
+                this.selected_character = null;
             } else if (this.state === 'running') {
                 const num = parseInt(e.key);
                 if (num >= 1 && num <= 9) {
@@ -630,9 +635,13 @@ export class App {
         this.hideHUD();
     }
 
-    _viewerOnClose() {
+    _viewerOnClose(exit_status, npc) {
         this.setPauseState(false); 
         this.showHUD(); 
         this.updateHotbarUI();
+
+        if (exit_status == "init_trade" && npc) {
+            this.pending_trade_partner = npc;
+        }
     }
 }

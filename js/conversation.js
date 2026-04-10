@@ -6,6 +6,7 @@ export class Conversation {
         this.jsonPath = `maps/${map_name}/${npc_base_name}_conv.json`;
         this.nodes = {};
         this.loaded = false;
+        this.init_trade = false;
     }
 
     async ensureLoaded() {
@@ -37,6 +38,11 @@ export class Conversation {
     }
 
     setCurrentNodeId(id) {
+        this.init_trade = (id == "_trade");
+        if (this.init_trade) {
+            this.#current_node = null;
+            return null;
+        }
         this.#current_node = this.nodes[id];
         if (!this.#current_node) return null;
         this.#current_node.visited = true;

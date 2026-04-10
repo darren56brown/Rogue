@@ -30,8 +30,7 @@ export class ConversationUI {
     }
 
     async startConversation(npc) {
-        if (npc == null) return;
-        this.endConversation();
+        if (this.current_npc || npc == null) return;
         
         if (!npc.conversation.loaded) {
             try {
@@ -71,9 +70,8 @@ export class ConversationUI {
     }
 
     refreshUI() {
-        if (!this.current_npc) return;
         const conversation = this.current_npc.conversation;
-
+        
         // NPC text
         const text = conversation.getCurrentNpcText() || "…";
         this.npcTextEl.textContent = text;
@@ -96,22 +94,26 @@ export class ConversationUI {
             this.endFooter.style.display = 'block';
             this.choicesContainer.style.display = 'none';
         }
-    }
+    }   
 
     handleChoiceClick(choice_id) {
-        if (!this.current_npc) return;
         const conversation = this.current_npc.conversation;
         const success = conversation.selectChoice(choice_id);
         if (success) {
+            if (conversation.init_trade) {
+                this.endConversation();
+                return;
+            }
             this.refreshUI();
         }
     }
 
     endConversation() {
-        if (!this.current_npc) return;
-        
+        let exit_status = "okay";
+        if (this.current_npc.conversation.init_trade) exit_status = "init_trade";
         this.container.classList.remove('is-active');
-        this.onClose();
+
+        this.onClose(exit_status, this.current_npc);
 
         this.current_npc = null;
         this.portraitSpriteSheet = null;
