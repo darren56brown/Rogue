@@ -8,7 +8,7 @@ export class TradeUI {
         this.onOpen = onOpen;
         this.onClose = onClose;
 
-        // Original state saved on activate
+        // Original state
         this.originalPlayerInventory = [];
         this.originalNpcInventory = [];
         this.originalPlayerGold = 0;
@@ -18,6 +18,7 @@ export class TradeUI {
         this.closeBtn = document.getElementById('closeTrade');
         this.tradeBtn = document.getElementById('tradeBtn');
         this.cancelBtn = document.getElementById('cancelTradeBtn');
+        this.resetBtn = document.getElementById('resetTradeBtn');
 
         this.player_slot_grid = new SlotGridUI("playerSlotGrid",
             "tradePlayerGoldAmount", "tradeItemDescription",  
@@ -33,10 +34,11 @@ export class TradeUI {
     initEvents() {
         this.closeBtn.onclick = () => this.cancelTrade();
         this.cancelBtn.onclick = () => this.cancelTrade();
+        this.resetBtn.onclick = () => this.resetTrade();
         
         this.tradeBtn.onclick = () => {
             if (!this.tradeBtn.disabled) {
-                this.deactivate();   // keep all changes + gold
+                this.deactivate();
             }
         };
     }
@@ -48,7 +50,7 @@ export class TradeUI {
         this.player = player;
         this.npc = npc;
 
-        // === SAVE ORIGINAL STATE (items + gold) ===
+        // Save original state
         this.originalPlayerInventory = this.player.inventorySlots.map(slot => 
             slot ? slot.clone() : null
         );
@@ -69,6 +71,8 @@ export class TradeUI {
 
         this.refreshGrids();
         this._updateGoldColors();
+        
+        // Start with no changes
         this.updateTradeButton({ hasChanges: false, newPlayerGold: this.player.gold, newNpcGold: this.npc.gold });
     }
 
@@ -87,10 +91,11 @@ export class TradeUI {
         this.onClose();
     }
 
-    cancelTrade() {
+    // ==================== RESET (only active when changes exist) ====================
+    resetTrade() {
         if (!this.player || !this.npc) return;
 
-        // Restore everything to original state
+        // Restore original state
         this.player.inventorySlots = this.originalPlayerInventory.map(slot => 
             slot ? slot.clone() : null
         );
@@ -100,11 +105,16 @@ export class TradeUI {
         this.player.gold = this.originalPlayerGold;
         this.npc.gold = this.originalNpcGold;
 
-        this.deactivate();
+        this.refreshGrids();
+        this._updateGoldColors();
+        
+        // No changes after reset
+        this.updateTradeButton({ hasChanges: false, newPlayerGold: this.player.gold, newNpcGold: this.npc.gold });
     }
 
-    isActive() {
-        return this.player != null;
+    cancelTrade() {
+        this.resetTrade();
+        this.deactivate();
     }
 
     refreshGrids() {
@@ -112,11 +122,9 @@ export class TradeUI {
         this.npc_slot_grid.refreshGrid();
     }
 
-    // Called after every drag/drop or split
     onGridsChanged() {
         const delta = this._computeGoldDelta();
 
-        // Apply the new gold values (can go negative)
         this.player.gold = delta.newPlayerGold;
         this.npc.gold = delta.newNpcGold;
 
@@ -125,14 +133,20 @@ export class TradeUI {
         this.updateTradeButton(delta);
     }
 
+    // ====================== BUTTON STATE ======================
     updateTradeButton(delta) {
-        const can = delta.hasChanges && 
-                    delta.newPlayerGold >= 0 && 
-                    delta.newNpcGold >= 0;
-        this.tradeBtn.disabled = !can;
+        const hasChanges = delta.hasChanges || false;
+
+        // Trade button: needs changes + non-negative gold
+        this.tradeBtn.disabled = !(hasChanges && 
+                                  delta.newPlayerGold >= 0 && 
+                                  delta.newNpcGold >= 0);
+
+        // Reset button: only active if changes were made
+        this.resetBtn.disabled = !hasChanges;
     }
 
-    // ====================== GOLD TRADING LOGIC ======================
+    // ====================== GOLD CALCULATION ======================
     _getCountMap(slots) {
         const map = new Map();
         for (const slot of slots) {
@@ -148,7 +162,6 @@ export class TradeUI {
         const origPlayerMap = this._getCountMap(this.originalPlayerInventory);
         const currPlayerMap = this._getCountMap(this.player.inventorySlots);
 
-        // Build a quick lookup of def by id (from any inventory that has the item)
         const defMap = new Map();
         const allInventories = [
             this.originalPlayerInventory,
@@ -164,8 +177,8 @@ export class TradeUI {
             }
         }
 
-        let playerPays = 0;   // total ask price (player buying from NPC)
-        let npcPays = 0;      // total bid price (NPC buying from player)
+        let playerPays = 0;
+        let npcPays = 0;
         let hasChanges = false;
 
         const allIds = new Set([...origPlayerMap.keys(), ...currPlayerMap.keys()]);
@@ -175,15 +188,13 @@ export class TradeUI {
             const currCount = currPlayerMap.get(id) || 0;
             const netToPlayer = currCount - origCount;
 
-            if (netToPlayer != 0) {
+            if (netToPlayer !== 0) {
                 hasChanges = true;
                 const def = defMap.get(id);
                 if (def) {
                     if (netToPlayer > 0) {
-                        // Player is buying these items from NPC
                         playerPays += netToPlayer * def.ask;
                     } else {
-                        // Player is selling these items to NPC
                         npcPays += (-netToPlayer) * def.bid;
                     }
                 }
