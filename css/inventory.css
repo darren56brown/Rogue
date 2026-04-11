@@ -234,3 +234,35 @@
     padding: 8px;
     margin: 4px;
 }
+
+.trade-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 14px;
+    padding-bottom: 5px;
+    border-top: 2px solid rgba(74, 158, 255, 0.3);
+}
+
+.trade-btn {
+    padding: 12px 32px;
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0px;
+}
+
+.trade-btn.cancel {
+    background: #555;
+    border-color: #888;
+}
+
+.trade-btn.primary {
+    background: #3a7ed8;
+    border-color: #4a9eff;
+}
+
+.trade-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
