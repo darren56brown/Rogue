@@ -222,6 +222,7 @@ export class TradeUI {
     getTradeHoverInfo(itemInst, isCurrentlyOnNpcSide) {
         if (!itemInst) return null;
 
+        const count = itemInst.count;
         const origPlayerHasItemType = this.originalPlayerInventory.some(s => 
             s && s.def.id === itemInst.def.id
         );
@@ -229,29 +230,29 @@ export class TradeUI {
             s && s.def.id === itemInst.def.id
         );
 
+        let label, totalPrice, unitPrice, color;
+
         if (isCurrentlyOnNpcSide && origPlayerHasItemType) {
-            // Player sold this item to NPC
-            return {
-                label: "Selling",
-                price: itemInst.def.bid,
-                color: "#ffeb3b"
-            };
-        }
-        
-        if (!isCurrentlyOnNpcSide && origNpcHasItemType) {
-            // Player bought this item from NPC
-            return {
-                label: "Buying",
-                price: itemInst.def.ask,
-                color: "#ffeb3b"
-            };
+            label = "Selling";
+            totalPrice = itemInst.def.bid * count;
+            unitPrice = itemInst.def.bid;
+            color = "#ffeb3b";
+        } 
+        else if (!isCurrentlyOnNpcSide && origNpcHasItemType) {
+            label = "Buying";
+            totalPrice = itemInst.def.ask * count;
+            unitPrice = itemInst.def.ask;
+            color = "#ffeb3b";
+        } 
+        else {
+            label = isCurrentlyOnNpcSide ? "Buy" : "Sell";
+            totalPrice = isCurrentlyOnNpcSide 
+                ? itemInst.def.ask * count 
+                : itemInst.def.bid * count;
+            unitPrice = isCurrentlyOnNpcSide ? itemInst.def.ask : itemInst.def.bid;
+            color = "#ffeb3b";
         }
 
-        // Normal case
-        return {
-            label: isCurrentlyOnNpcSide ? "Buy" : "Sell",
-            price: isCurrentlyOnNpcSide ? itemInst.def.ask : itemInst.def.bid,
-            color: "#ffeb3b"
-        };
+        return { label, totalPrice, unitPrice, color };
     }
 }

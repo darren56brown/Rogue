@@ -231,9 +231,18 @@ export class SlotGridUI {
                         const canAfford = this.canTradeItem(slotData, this.isNpcSide);
                         const priceColor = canAfford ? tradeInfo.color : '#ff4444';
 
-                        extraInfo = `<br><br>
+                        let priceHTML = `
                             <span style="color:#888;font-weight:bold">${tradeInfo.label}: </span>
-                            <span style="color:${priceColor};font-weight:bold">${tradeInfo.price.toLocaleString()}g</span>`;
+                            <span style="color:${priceColor};font-weight:bold">${tradeInfo.totalPrice.toLocaleString()}g</span>
+                        `;
+
+                        // Extra per-unit line for stacks
+                        if (slotData.count > 1) {
+                            priceHTML += `<br>
+                                <span style="color:#888;font-size:0.9em">(${tradeInfo.unitPrice.toLocaleString()}g each)</span>`;
+                        }
+
+                        extraInfo = `<br><br>${priceHTML}`;
                     }
                 }
 
