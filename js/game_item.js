@@ -16,8 +16,8 @@ export class GameItemDef {
         
         this.description = data.description || "<None>";
         
-        this.bid = data.value || 0;
-        this.ask = data.value || 1;
+        this.bid = data.bid || 0;
+        this.ask = data.ask || 1;
         this.weight = data.weight || 0;
         this.tags = data.tags || [];
         this.equipSlot = data.equipSlot || null;

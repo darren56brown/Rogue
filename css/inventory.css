@@ -252,6 +252,15 @@
     margin: 0px;
 }
 
+.trade-btn.reset {
+    background: #d97706;
+    border-color: #f59e0b;
+}
+
+.trade-btn.reset:hover {
+    background: #f59e0b;
+}
+
 .trade-btn.cancel {
     background: #555;
     border-color: #888;
