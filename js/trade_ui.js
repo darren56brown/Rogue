@@ -8,7 +8,7 @@ export class TradeUI {
         this.onOpen = onOpen;
         this.onClose = onClose;
 
-        // Original state
+        // Original state (saved when trade window opens)
         this.originalPlayerInventory = [];
         this.originalNpcInventory = [];
         this.originalPlayerGold = 0;
@@ -38,6 +38,7 @@ export class TradeUI {
         
         this.tradeBtn.onclick = () => {
             if (!this.tradeBtn.disabled) {
+                this.commitTrade();     // ← NEW: make current state the new baseline
                 this.deactivate();
             }
         };
@@ -50,7 +51,7 @@ export class TradeUI {
         this.player = player;
         this.npc = npc;
 
-        // Save original state
+        // Save original state for this trade session
         this.originalPlayerInventory = this.player.inventorySlots.map(slot => 
             slot ? slot.clone() : null
         );
@@ -71,9 +72,22 @@ export class TradeUI {
 
         this.refreshGrids();
         this._updateGoldColors();
-        
-        // Start with no changes
         this.updateTradeButton({ hasChanges: false, newPlayerGold: this.player.gold, newNpcGold: this.npc.gold });
+    }
+
+    // ==================== NEW: COMMIT SUCCESSFUL TRADE ====================
+    commitTrade() {
+        if (!this.player || !this.npc) return;
+
+        // Current state becomes the new "original" for the next trade session
+        this.originalPlayerInventory = this.player.inventorySlots.map(slot => 
+            slot ? slot.clone() : null
+        );
+        this.originalNpcInventory = this.npc.inventorySlots.map(slot => 
+            slot ? slot.clone() : null
+        );
+        this.originalPlayerGold = this.player.gold;
+        this.originalNpcGold = this.npc.gold;
     }
 
     deactivate() {
@@ -91,11 +105,9 @@ export class TradeUI {
         this.onClose();
     }
 
-    // ==================== RESET (only active when changes exist) ====================
     resetTrade() {
         if (!this.player || !this.npc) return;
 
-        // Restore original state
         this.player.inventorySlots = this.originalPlayerInventory.map(slot => 
             slot ? slot.clone() : null
         );
@@ -107,8 +119,6 @@ export class TradeUI {
 
         this.refreshGrids();
         this._updateGoldColors();
-        
-        // No changes after reset
         this.updateTradeButton({ hasChanges: false, newPlayerGold: this.player.gold, newNpcGold: this.npc.gold });
     }
 
@@ -219,38 +229,61 @@ export class TradeUI {
         }
     }
 
+        // Called from SlotGridUI when hovering in trade window
     getTradeHoverInfo(itemInst, isCurrentlyOnNpcSide) {
         if (!itemInst) return null;
 
         const count = itemInst.count;
-        const origPlayerHasItemType = this.originalPlayerInventory.some(s => 
-            s && s.def.id === itemInst.def.id
-        );
-        const origNpcHasItemType = this.originalNpcInventory.some(s => 
-            s && s.def.id === itemInst.def.id
-        );
+        const itemId = itemInst.def.id;
+
+        // Count how many of this item each side had at the start of trade
+        const origPlayerCount = this.originalPlayerInventory.reduce((sum, slot) => {
+            return sum + (slot && slot.def.id === itemId ? slot.count : 0);
+        }, 0);
+
+        const origNpcCount = this.originalNpcInventory.reduce((sum, slot) => {
+            return sum + (slot && slot.def.id === itemId ? slot.count : 0);
+        }, 0);
 
         let label, totalPrice, unitPrice, color;
 
-        if (isCurrentlyOnNpcSide && origPlayerHasItemType) {
-            label = "Selling";
-            totalPrice = itemInst.def.bid * count;
-            unitPrice = itemInst.def.bid;
-            color = "#ffeb3b";
-        } 
-        else if (!isCurrentlyOnNpcSide && origNpcHasItemType) {
-            label = "Buying";
-            totalPrice = itemInst.def.ask * count;
-            unitPrice = itemInst.def.ask;
-            color = "#ffeb3b";
+        if (isCurrentlyOnNpcSide) {
+            // Currently on NPC side
+            const currentNpcCount = this.npc.inventorySlots.reduce((sum, slot) => {
+                return sum + (slot && slot.def.id === itemId ? slot.count : 0);
+            }, 0);
+
+            if (currentNpcCount > origNpcCount) {
+                // NPC has more than originally → player sold some
+                label = "Selling";
+                totalPrice = itemInst.def.bid * count;
+                unitPrice = itemInst.def.bid;
+                color = "#ffeb3b";
+            } else {
+                label = "Buy";
+                totalPrice = itemInst.def.ask * count;
+                unitPrice = itemInst.def.ask;
+                color = "#ffeb3b";
+            }
         } 
         else {
-            label = isCurrentlyOnNpcSide ? "Buy" : "Sell";
-            totalPrice = isCurrentlyOnNpcSide 
-                ? itemInst.def.ask * count 
-                : itemInst.def.bid * count;
-            unitPrice = isCurrentlyOnNpcSide ? itemInst.def.ask : itemInst.def.bid;
-            color = "#ffeb3b";
+            // Currently on Player side
+            const currentPlayerCount = this.player.inventorySlots.reduce((sum, slot) => {
+                return sum + (slot && slot.def.id === itemId ? slot.count : 0);
+            }, 0);
+
+            if (currentPlayerCount > origPlayerCount) {
+                // Player has more than originally → bought from NPC
+                label = "Buying";
+                totalPrice = itemInst.def.ask * count;
+                unitPrice = itemInst.def.ask;
+                color = "#ffeb3b";
+            } else {
+                label = "Sell";
+                totalPrice = itemInst.def.bid * count;
+                unitPrice = itemInst.def.bid;
+                color = "#ffeb3b";
+            }
         }
 
         return { label, totalPrice, unitPrice, color };
