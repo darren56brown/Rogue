@@ -154,11 +154,17 @@ export class SlotGridUI {
         this.refresh_grids_func = refresh_grids_func
 
         this.split_ui = null;
+        this.isTradeGrid = false;
+        this.isNpcSide = false;
     }
 
-    activate(character, trade_partner = null) {
+    activate(character, trade_partner = null, tradeUI = null) {
         this.character = character;
         this.trade_partner = trade_partner;
+        this.tradeUI = tradeUI;
+
+        this.isTradeGrid = trade_partner !== null;
+        this.isNpcSide = this.slot_grid.id === "npcSlotGrid";
     }
 
     deactivate() {
@@ -208,13 +214,30 @@ export class SlotGridUI {
             slotEl.addEventListener('drop', e => this.handleGridDrop(e, slotEl));
 
             slotEl.addEventListener('mouseenter', () => {
-                if (slotData) {
-                    const name = slotData.def.name;
-                    const desc = slotData.def.description;
-                    this.itemDescEl.innerHTML = `<strong>${name}</strong><br>${desc}`;
-                } else {
+                if (!slotData) {
                     this.itemDescEl.textContent = '<Empty slot>';
+                    return;
                 }
+
+                const name = slotData.def.name;
+                const baseDesc = slotData.def.description || "";
+
+                let extraInfo = "";
+
+                if (this.isTradeGrid && this.tradeUI) {
+                    const tradeInfo = this.tradeUI.getTradeHoverInfo(slotData, this.isNpcSide);
+
+                    if (tradeInfo) {
+                        const canAfford = this.canTradeItem(slotData, this.isNpcSide);
+                        const priceColor = canAfford ? tradeInfo.color : '#ff4444';
+
+                        extraInfo = `<br><br>
+                            <span style="color:#888;font-weight:bold">${tradeInfo.label}: </span>
+                            <span style="color:${priceColor};font-weight:bold">${tradeInfo.price.toLocaleString()}g</span>`;
+                    }
+                }
+
+                this.itemDescEl.innerHTML = `<strong>${name}</strong><br>${baseDesc}${extraInfo}`;
             });
 
             this.slot_grid.appendChild(slotEl);
@@ -325,6 +348,23 @@ export class SlotGridUI {
 
         this.closeSplitDialog();
         this.refresh_grids_func();
+    }
+
+    canTradeItem(itemInst, isBuying) {
+        if (!itemInst || !this.character) return false;
+
+        const count = itemInst.count;
+
+        if (isBuying) {
+            // Player buying from NPC → check PLAYER's gold
+            const totalCost = itemInst.def.ask * count;
+            return this.character.gold >= totalCost;
+        } else {
+            // Player selling to NPC → check NPC's gold
+            if (!this.trade_partner) return true;
+            const totalValue = itemInst.def.bid * count;
+            return this.trade_partner.gold >= totalValue;
+        }
     }
 }
 

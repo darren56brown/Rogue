@@ -60,8 +60,8 @@ export class TradeUI {
         this.originalPlayerGold = this.player.gold;
         this.originalNpcGold = this.npc.gold;
 
-        this.player_slot_grid.activate(this.player, this.npc);
-        this.npc_slot_grid.activate(this.npc, this.player);
+        this.player_slot_grid.activate(this.player, this.npc, this);
+        this.npc_slot_grid.activate(this.npc, this.player, this);
 
         const headerTitle = document.querySelector('#tradeViewer .inventory-viewer-header h2');
         headerTitle.textContent = `Trade: ${this.npc.display_name}`;
@@ -217,5 +217,41 @@ export class TradeUI {
         if (npcGoldEl) {
             npcGoldEl.style.color = (this.npc.gold < 0) ? '#ff4444' : '#ffeb3b';
         }
+    }
+
+    getTradeHoverInfo(itemInst, isCurrentlyOnNpcSide) {
+        if (!itemInst) return null;
+
+        const origPlayerHasItemType = this.originalPlayerInventory.some(s => 
+            s && s.def.id === itemInst.def.id
+        );
+        const origNpcHasItemType = this.originalNpcInventory.some(s => 
+            s && s.def.id === itemInst.def.id
+        );
+
+        if (isCurrentlyOnNpcSide && origPlayerHasItemType) {
+            // Player sold this item to NPC
+            return {
+                label: "Selling",
+                price: itemInst.def.bid,
+                color: "#ffeb3b"
+            };
+        }
+        
+        if (!isCurrentlyOnNpcSide && origNpcHasItemType) {
+            // Player bought this item from NPC
+            return {
+                label: "Buying",
+                price: itemInst.def.ask,
+                color: "#ffeb3b"
+            };
+        }
+
+        // Normal case
+        return {
+            label: isCurrentlyOnNpcSide ? "Buy" : "Sell",
+            price: isCurrentlyOnNpcSide ? itemInst.def.ask : itemInst.def.bid,
+            color: "#ffeb3b"
+        };
     }
 }

@@ -102,7 +102,7 @@
 }
 
 .inventory-slot:hover {
-    border-color: #4a9eff;
+    /*border-color: #4a9eff;*/
     transform: scale(1.05);
 }
 
