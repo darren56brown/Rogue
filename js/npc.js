@@ -13,10 +13,9 @@ const NPC_STATES = Object.freeze({
 
 export class Npc extends Character {
     constructor(world_pos, image_library, item_library, map_name, base_name) {
-        super(world_pos, "Character");
+        super(world_pos, "Character", item_library);
 
         this.image_library = image_library;
-        this.item_library = item_library;
         this.map_name = map_name;      // e.g. "level_01"
         this.base_name = base_name;    // e.g. "blacksmith_bob"
 

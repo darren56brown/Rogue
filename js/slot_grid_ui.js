@@ -270,20 +270,7 @@ export class SlotGridUI {
             const itemToMove = this.character.equipment[from_equip_slot_name];
             if (!itemToMove) return;
 
-            const equip_slot_filter = from_equip_slot_name.includes('_') ?
-                from_equip_slot_name.split('_')[0] : from_equip_slot_name;
-            const target_item = this.character.inventorySlots[to_index];
-
-            if (!target_item) {
-                this.character.inventorySlots[to_index] = itemToMove;
-                this.character.equipment[from_equip_slot_name] = null;
-            } else if (target_item.def.equipSlot == equip_slot_filter) {
-                this.character.inventorySlots[to_index] = itemToMove;
-                this.character.equipment[from_equip_slot_name] = target_item;
-            } else {
-                return;
-            }
-
+            this.character.swapInventoryAndEquipmentSlots(to_index, from_equip_slot_name)
             this.refresh_grids_func();
             return;
         }
@@ -297,16 +284,15 @@ export class SlotGridUI {
         }
         const from_index = parseInt(dataObj.index);
         if (dataObj.character_name == this.character.display_name) {
-            this.character.tradeInventorySlots(to_index, this.character, from_index);
+            this.character.swapInventorySlots(to_index, this.character, from_index);
         } else if (this.trade_partner) {
-            this.character.tradeInventorySlots(to_index, this.trade_partner, from_index);
+            this.character.swapInventorySlots(to_index, this.trade_partner, from_index);
         }
         this.refresh_grids_func();
     }
 
     openSplitDialog(index, event) {
-        if (!event || index < 0 ||
-            index >= this.character.inventorySlots.length) return;
+        if (!event || index < 0 || index >= 40) return;
 
         const slotData = this.character.inventorySlots[index];
         if (!slotData || slotData.count <= 1) return;

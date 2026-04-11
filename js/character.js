@@ -30,8 +30,9 @@ export class Character {
     #pos_xy = {x: 0, y: 0};
     #z = 0;
 
-    constructor(world_pos, display_name) {
+    constructor(world_pos, display_name, item_library) {
         this.display_name = display_name;
+        this.item_library = item_library;
         
         this.sprite_image_name = null;
         this.spriteSheet = null;
@@ -474,9 +475,11 @@ export class Character {
         console.warn("Inventory full for", this.constructor.name);
     }
 
-    tradeInventorySlots(this_index, other, other_index) {
+    swapInventorySlots(this_index, other, other_index) {
         if (other == null || this_index < 0 || this_index >= 40 ||
             other_index < 0 || other_index >= 40) return;
+
+        if (this != other) console.log("Cross-character swap");
 
         const thisInst = this.inventorySlots[this_index];
         const otherInst = other.inventorySlots[other_index];
@@ -499,6 +502,44 @@ export class Character {
         const tmp = this.inventorySlots[this_index]
         this.inventorySlots[this_index] = other.inventorySlots[other_index];
         other.inventorySlots[other_index] = tmp;
+    }
+
+    swapInventoryAndEquipmentSlots(inventory_index, equip_slot_name) {
+        if (inventory_index < 0 || inventory_index >= 40) return;
+
+        const equip_slot_filter = equip_slot_name.includes('_') ?
+            equip_slot_name.split('_')[0] : equip_slot_name;
+
+        const tmp = this.inventorySlots[inventory_index];
+        if (tmp && tmp.def.equipSlot != equip_slot_filter) return;
+
+        this.inventorySlots[inventory_index] = this.equipment[equip_slot_name];
+        this.equipment[equip_slot_name] = tmp;
+    }
+
+    swapEquipmentAndEquipmentSlots(equip_slot_1, equip_slot_2) {
+        const equip_slot_filter_1 = equip_slot_1.includes('_') ?
+            equip_slot_1.split('_')[0] : equip_slot_1;
+        const equip_slot_filter_2 = equip_slot_2.includes('_') ?
+            equip_slot_2.split('_')[0] : equip_slot_2;
+        if (equip_slot_filter_1 != equip_slot_filter_2) return;
+
+        const tmp = this.equipment[equip_slot_1];
+        this.equipment[equip_slot_1] = this.equipment[equip_slot_2];
+        this.equipment[equip_slot_2] = tmp;
+    }
+
+    makeInventoryItem(inventory_index, id, quantity = 1, durability = null) {
+        if (inventory_index < 0 || inventory_index >= 40) return;
+        const def = this.item_library.get(id);
+        if (!def) throw new Error(`Missing item definition: ${id}`);
+        this.inventorySlots[inventory_index] =
+            new GameItemInst(def, quantity, durability);
+    }
+
+    destroyInventoryItem(inventory_index) {
+        if (inventory_index < 0 || inventory_index >= 40) return;
+        this.inventorySlots[inventory_index] = null;
     }
 }
 

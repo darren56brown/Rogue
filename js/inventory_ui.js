@@ -155,32 +155,14 @@ export class InventoryUI {
         e.preventDefault();
 
         const equip_slot_name = slotEl.dataset.slotType;
-        const equip_slot_filter = equip_slot_name.includes('_') ?
-            equip_slot_name.split('_')[0] : equip_slot_name;
-
         const from_data = e.dataTransfer.getData('text/plain');
         if (from_data.startsWith('equip:'))
         {
-            this.handleEquipDropFromEquip(from_data, equip_slot_name, equip_slot_filter);
+            this.player.swapEquipmentAndEquipmentSlots(from_data.slice(6), equip_slot_name);
+            this.refreshGrids();
             return;
         }
 
-        this.handleEquipDropFromInventory(from_data, equip_slot_name, equip_slot_filter);
-    }
-
-    handleEquipDropFromEquip(from_data, equip_slot_name, equip_slot_filter) {
-        const from_equip_type = from_data.slice(6);
-        const item_inst = this.player.equipment[from_equip_type];
-        if (item_inst.def.equipSlot != equip_slot_filter) return;
-
-        this.player.equipment[from_equip_type] =
-            this.player.equipment[equip_slot_name];
-        this.player.equipment[equip_slot_name] = item_inst;
-
-        this.refreshGrids();
-    }
-
-    handleEquipDropFromInventory(from_data, equip_slot_name, equip_slot_filter) {
         let inventory_index = null;
         try {
             const dataObj = JSON.parse(from_data);
@@ -190,12 +172,8 @@ export class InventoryUI {
             return;
         }
         if (isNaN(inventory_index)) return;
-        const item_inst = this.player.inventorySlots[inventory_index];
-        if (item_inst.def.equipSlot != equip_slot_filter) return;
-
-        this.player.inventorySlots[inventory_index] =
-            this.player.equipment[equip_slot_name];
-        this.player.equipment[equip_slot_name] = item_inst;
+        this.player.swapInventoryAndEquipmentSlots(inventory_index,
+            equip_slot_name);
 
         this.refreshGrids();
     }

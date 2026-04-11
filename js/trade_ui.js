@@ -28,20 +28,10 @@ export class TradeUI {
             "tradeNpcGoldAmount", "tradeItemDescription",  
             () => this.onGridsChanged());
 
-        this.initEvents();
-    }
-
-    initEvents() {
         this.closeBtn.onclick = () => this.cancelTrade();
         this.cancelBtn.onclick = () => this.cancelTrade();
         this.resetBtn.onclick = () => this.resetTrade();
-        
-        this.tradeBtn.onclick = () => {
-            if (!this.tradeBtn.disabled) {
-                this.commitTrade();     // ← NEW: make current state the new baseline
-                this.deactivate();
-            }
-        };
+        this.tradeBtn.onclick = () => this.deactivate();
     }
 
     activate(player, npc) {
@@ -73,21 +63,6 @@ export class TradeUI {
         this.refreshGrids();
         this._updateGoldColors();
         this.updateTradeButton({ hasChanges: false, newPlayerGold: this.player.gold, newNpcGold: this.npc.gold });
-    }
-
-    // ==================== NEW: COMMIT SUCCESSFUL TRADE ====================
-    commitTrade() {
-        if (!this.player || !this.npc) return;
-
-        // Current state becomes the new "original" for the next trade session
-        this.originalPlayerInventory = this.player.inventorySlots.map(slot => 
-            slot ? slot.clone() : null
-        );
-        this.originalNpcInventory = this.npc.inventorySlots.map(slot => 
-            slot ? slot.clone() : null
-        );
-        this.originalPlayerGold = this.player.gold;
-        this.originalNpcGold = this.npc.gold;
     }
 
     deactivate() {
