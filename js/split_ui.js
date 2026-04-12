@@ -1,7 +1,8 @@
 
 export class SplitUI {
     constructor() {
-        this.slot_data = null;
+        this.owner = null;
+        this.slot_index = -1;
         this.split_dialog = document.getElementById('splitDialog');
         this.split_amount_element = document.getElementById('splitAmountInput');
         this.split_amount = 0;
@@ -12,11 +13,14 @@ export class SplitUI {
         });
     }
 
-    open(owner, slot_data) {
-        this.slot_data = slot_data;
+    open(owner, slot_index) {
+        this.owner = owner;
+        this.slot_index = slot_index;
+        const split_item_instance = this.getSplitItemInstance();
+        const num_split_items = split_item_instance.count;
 
-        this.split_amount_element.max = this.slot_data.count - 1;
-        this.setSplitAmountValue(Math.floor(this.slot_data.count / 2));
+        this.split_amount_element.max = num_split_items - 1;
+        this.setSplitAmountValue(Math.floor(num_split_items / 2));
 
         const confirmBtn = document.getElementById('confirmSplit');
         const cancelBtn = document.getElementById('cancelSplit');
@@ -26,7 +30,7 @@ export class SplitUI {
         document.querySelectorAll('.quick-split-buttons button').forEach(btn => {
             btn.addEventListener('click', () => {
                 const type = btn.dataset.amount;
-                const max = this.slot_data.count;
+                const max = num_split_items;
 
                 let newValue = 1;
                 if (type === '1') newValue = 1;
@@ -37,12 +41,16 @@ export class SplitUI {
             });
         });
 
-        confirmBtn.onclick = () => owner.performSplit(this.split_amount, this.slot_data);
-        cancelBtn.onclick = closeBtn.onclick = () => owner.closeSplitDialog();
+        confirmBtn.onclick = () => this.owner.performSplit(this.split_amount, this.slot_index);
+        cancelBtn.onclick = closeBtn.onclick = () => this.owner.closeSplitDialog();
         
         this.split_dialog.style.display = 'block';
         this.split_amount_element.focus();
         this.split_amount_element.select();
+    }
+
+    getSplitItemInstance() {
+        return this.owner.character.inventorySlots[this.slot_index];
     }
 
     close() {
@@ -60,8 +68,8 @@ export class SplitUI {
 
     setSplitAmountValue(value) {
         if (Number.isNaN(value)) value = 0;
-        const split_item = this.slot_data;
-        if (!split_item) value = 0;
+        const split_item_instance = this.getSplitItemInstance();
+        const num_split_items = split_item_instance.count;
 
         const max = parseInt(this.split_amount_element.max) || 1;
         value = Math.max(1, Math.min(max, value));
@@ -70,11 +78,11 @@ export class SplitUI {
             this.split_amount = value;
 
             const left_slot_grid = document.getElementById('splitItemGridL');
-            this.replaceSlotVisual(left_slot_grid, split_item, this.split_amount);
+            this.replaceSlotVisual(left_slot_grid, split_item_instance, this.split_amount);
 
             const right_slot_grid = document.getElementById('splitItemGridR');
-            this.replaceSlotVisual(right_slot_grid, split_item,
-                this.slot_data.count - this.split_amount);
+            this.replaceSlotVisual(right_slot_grid, split_item_instance,
+                num_split_items - this.split_amount);
         }
 
         const ui_value = parseInt(this.split_amount_element.value);

@@ -479,7 +479,7 @@ export class Character {
         if (other == null || this_index < 0 || this_index >= 40 ||
             other_index < 0 || other_index >= 40) return;
 
-        if (this != other) console.log("Cross-character swap");
+        //if (this != other) console.log("Cross-character swap");
 
         const thisInst = this.inventorySlots[this_index];
         const otherInst = other.inventorySlots[other_index];
@@ -540,6 +540,44 @@ export class Character {
     destroyInventoryItem(inventory_index) {
         if (inventory_index < 0 || inventory_index >= 40) return;
         this.inventorySlots[inventory_index] = null;
+    }
+
+    splitInventoryItem(num_to_split, index) {
+        if (!num_to_split || index < 0 || index >= 40) {
+            alert("Invalid split info.");
+            return -1;
+        }
+
+        const split_item_inst = this.inventorySlots[index];
+        if (!split_item_inst || num_to_split < 1 ||
+            num_to_split >= split_item_inst.count) {
+            return -1;
+        }
+
+        // Find first empty slot
+        let empt_slot_index = -1;
+        for (let i = 0; i < 40; i++) {
+            if (!this.inventorySlots[i]) {
+                empt_slot_index = i;
+                break;
+            }
+        }
+
+        if (empt_slot_index == -1) {
+            alert("No empty slots available to split into.");
+            return -1;
+        }
+
+        const num_remaining = split_item_inst.count - num_to_split;
+        const first_half = split_item_inst.clone();
+        first_half.count = num_remaining;
+        const second_half = split_item_inst.clone();
+        second_half.count = num_to_split;
+
+        this.inventorySlots[index] = first_half;
+        this.inventorySlots[empt_slot_index] = second_half;
+
+        return empt_slot_index;
     }
 }
 

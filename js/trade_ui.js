@@ -112,8 +112,8 @@ export class TradeUI {
     }
 
     _computeGoldDelta() {
-        const new_player_items = this.player_slot_grid.getNewItemsInInventory();
-        const new_npc_items = this.npc_slot_grid.getNewItemsInInventory();
+        const new_player_items = this.player_slot_grid.getTradedForItems(this.npc_slot_grid);
+        const new_npc_items = this.npc_slot_grid.getTradedForItems(this.player_slot_grid);
         
         let has_changes = false;
         let player_pays = 0;
@@ -154,7 +154,7 @@ export class TradeUI {
 
         let label, totalPrice, unitPrice, color;
         if (isCurrentlyOnNpcSide) {
-            const new_npc_items = this.npc_slot_grid.getNewItemsInInventory();
+            const new_npc_items = this.npc_slot_grid.getTradedForItems(this.player_slot_grid);
             if (new_npc_items.includes(itemInst)) {
                 label = "Selling";
                 totalPrice = itemInst.def.bid * itemInst.count;
@@ -167,7 +167,7 @@ export class TradeUI {
                 color = "#ffeb3b";
             }
         } else {
-            const new_player_items = this.player_slot_grid.getNewItemsInInventory();
+            const new_player_items = this.player_slot_grid.getTradedForItems(this.npc_slot_grid);
             if (new_player_items.includes(itemInst)) {
                 label = "Buying";
                 totalPrice = itemInst.def.ask * itemInst.count;

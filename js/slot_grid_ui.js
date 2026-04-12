@@ -16,6 +16,7 @@ export class SlotGridUI {
         this.isNpcSide = false;
 
         this.orig_inventory_slots = [];
+        this.orig_inventory_set = null;
     }
 
     activate(character, trade_partner = null, tradeUI = null) {
@@ -30,6 +31,7 @@ export class SlotGridUI {
         for (const slot of character.inventorySlots) {
             this.orig_inventory_slots.push(slot);
         }
+        this.orig_inventory_set = new Set(this.orig_inventory_slots);
     }
 
     resetInventory() {
@@ -39,14 +41,19 @@ export class SlotGridUI {
         }
     }
 
-    getNewItemsInInventory() {
-        const oldSet = new Set(this.orig_inventory_slots);
-        return this.character.inventorySlots.filter(item => !oldSet.has(item));
-    }
+    getTradedForItems(other_grid_ui) {
+        const new_items = this.character.inventorySlots.filter(
+            item => !this.orig_inventory_set.has(item)
+        );
 
-    getMissingItemsInInventory() {
-        const newSet = new Set(this.character.inventorySlots);
-        return this.orig_inventory_slots.filter(item => !newSet.has(item));
+        if (!new_items.length) return [];
+
+        const other_new_item_set = new Set(other_grid_ui.character.inventorySlots);
+        const missing_items = new Set(other_grid_ui.orig_inventory_slots.filter(
+            item => !other_new_item_set.has(item)
+        ));
+        
+        return new_items.filter(item => missing_items.has(item));
     }
 
     deactivate() {
@@ -183,47 +190,15 @@ export class SlotGridUI {
         if (!this.split_ui) this.split_ui = new SplitUI();
 
         this.split_ui.setPosition(event.clientX, event.clientY);
-        this.split_ui.open(this, slotData);
+        this.split_ui.open(this, index);
     }
 
     closeSplitDialog() {
         this.split_ui.close();
     }
 
-    performSplit(num_to_split, slot_data) {
-        if (!num_to_split || !slot_data) {
-            alert("Invalid split info.");
-            this.closeSplitDialog();
-            return;
-        }
-
-        if (!slot_data || num_to_split < 1 ||
-            num_to_split >= slot_data.count) {
-            this.closeSplitDialog();
-            return;
-        }
-
-        // Find first empty slot
-        let targetIndex = -1;
-        for (let i = 0; i < 40; i++) {
-            if (!this.character.inventorySlots[i]) {
-                targetIndex = i;
-                break;
-            }
-        }
-
-        if (targetIndex === -1) {
-            alert("No empty slots available to split into.");
-            this.closeSplitDialog();
-            return;
-        }
-
-        // Do the split
-        slot_data.count -= num_to_split;
-
-        this.character.inventorySlots[targetIndex] = slot_data.clone();
-        this.character.inventorySlots[targetIndex].count = num_to_split;
-
+    performSplit(num_to_split, index) {
+        this.character.splitInventoryItem(num_to_split, index);
         this.closeSplitDialog();
         this.refresh_grids_func();
     }
