@@ -579,5 +579,19 @@ export class Character {
 
         return empt_slot_index;
     }
+
+    getFungibleItemCounts() {
+        const fungible_items = new Map();
+        for (const item_instance of this.inventorySlots) {
+            if (!item_instance || !item_instance.isFungible()) continue;
+            const map_key = item_instance.def;
+            let prev_count = 0;
+            if (fungible_items.has(map_key)) {
+                prev_count = fungible_items.get(map_key);
+            }
+            fungible_items.set(map_key, item_instance.count + prev_count);
+        }
+        return fungible_items;
+    }
 }
 

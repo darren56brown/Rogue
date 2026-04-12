@@ -112,22 +112,36 @@ export class TradeUI {
     }
 
     _computeGoldDelta() {
-        const new_player_items = this.player_slot_grid.getTradedForItems(this.npc_slot_grid);
-        const new_npc_items = this.npc_slot_grid.getTradedForItems(this.player_slot_grid);
-        
         let has_changes = false;
+        const new_player_items =
+            this.player_slot_grid.getPendingNonFungibleItems(this.npc_slot_grid);
+        const new_npc_items =
+            this.npc_slot_grid.getPendingNonFungibleItems(this.player_slot_grid);
+        if (new_player_items.length || new_npc_items.length) has_changes = true;
+        
         let player_pays = 0;
         for (const new_item of new_player_items) {
             const item_price = new_item.def.ask;
             player_pays += new_item.count * item_price;
-            has_changes = true;
         }
 
         let npc_pays = 0;
         for (const new_item of new_npc_items) {
             const item_price = new_item.def.bid;
             npc_pays += new_item.count * item_price;
-            has_changes = true;
+        }
+
+        const fungible_deltas = this.player_slot_grid.getPendingFungibleItemDeltas();
+        for (const [map_key, count] of fungible_deltas) {
+            if (count < 0) {
+                const item_price = map_key.bid;
+                npc_pays -= count * item_price;
+                has_changes = true
+            } else if (count > 0) {
+                const item_price = map_key.ask;
+                player_pays += count * item_price;
+                has_changes = true
+            }
         }
         
         const new_player_gold = this.originalPlayerGold - player_pays + npc_pays;
@@ -154,7 +168,7 @@ export class TradeUI {
 
         let label, totalPrice, unitPrice, color;
         if (isCurrentlyOnNpcSide) {
-            const new_npc_items = this.npc_slot_grid.getTradedForItems(this.player_slot_grid);
+            const new_npc_items = this.npc_slot_grid.getPendingNonFungibleItems(this.player_slot_grid);
             if (new_npc_items.includes(itemInst)) {
                 label = "Selling";
                 totalPrice = itemInst.def.bid * itemInst.count;
@@ -167,7 +181,7 @@ export class TradeUI {
                 color = "#ffeb3b";
             }
         } else {
-            const new_player_items = this.player_slot_grid.getTradedForItems(this.npc_slot_grid);
+            const new_player_items = this.player_slot_grid.getPendingNonFungibleItems(this.npc_slot_grid);
             if (new_player_items.includes(itemInst)) {
                 label = "Buying";
                 totalPrice = itemInst.def.ask * itemInst.count;

@@ -77,7 +77,7 @@
         },
         {
             "id": "torch", "name": "Torch", "type": "misc",
-            "icon": "🔥", "description": "Provides light.",
+            "icon": "🔥", "maxStack": 24, "description": "Provides light.",
             "bid": 1, "ask": 2
         },
         {

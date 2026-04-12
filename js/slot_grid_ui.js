@@ -16,7 +16,8 @@ export class SlotGridUI {
         this.isNpcSide = false;
 
         this.orig_inventory_slots = [];
-        this.orig_inventory_set = null;
+        this.orig_fungible_items = null;
+        this.orig_regular_items = null;
     }
 
     activate(character, trade_partner = null, tradeUI = null) {
@@ -28,10 +29,13 @@ export class SlotGridUI {
         this.isNpcSide = this.slot_grid.id === "npcSlotGrid";
 
         this.orig_inventory_slots = [];
-        for (const slot of character.inventorySlots) {
-            this.orig_inventory_slots.push(slot);
+        this.orig_regular_items = new Set();
+        for (const item_instance of character.inventorySlots) {
+            this.orig_inventory_slots.push(item_instance);
+            if (!item_instance || item_instance.isFungible()) continue;
+            this.orig_regular_items.add(item_instance);
         }
-        this.orig_inventory_set = new Set(this.orig_inventory_slots);
+        this.orig_fungible_items = character.getFungibleItemCounts();
     }
 
     resetInventory() {
@@ -41,19 +45,25 @@ export class SlotGridUI {
         }
     }
 
-    getTradedForItems(other_grid_ui) {
-        const new_items = this.character.inventorySlots.filter(
-            item => !this.orig_inventory_set.has(item)
+    getPendingNonFungibleItems(other_grid_ui) {
+        const new_items_in_inventory = this.character.inventorySlots.filter(
+            item => !this.orig_regular_items.has(item)
         );
+        return new_items_in_inventory.filter(
+            item => other_grid_ui.orig_regular_items.has(item)
+        );
+    }
 
-        if (!new_items.length) return [];
-
-        const other_new_item_set = new Set(other_grid_ui.character.inventorySlots);
-        const missing_items = new Set(other_grid_ui.orig_inventory_slots.filter(
-            item => !other_new_item_set.has(item)
-        ));
-        
-        return new_items.filter(item => missing_items.has(item));
+    getPendingFungibleItemDeltas() {
+        const cur_fungible_items = this.character.getFungibleItemCounts();
+        for (const [map_key, count] of this.orig_fungible_items) {
+            let prev_count = 0;
+            if (cur_fungible_items.has(map_key)) {
+                prev_count = cur_fungible_items.get(map_key);
+            }
+            cur_fungible_items.set(map_key, prev_count - count);
+        }
+        return cur_fungible_items;
     }
 
     deactivate() {
@@ -67,22 +77,22 @@ export class SlotGridUI {
         this.slot_grid.addEventListener('contextmenu', e => e.preventDefault(), { once: true });
 
         for (let i = 0; i < 40; i++) {
-            const slotData = this.character.inventorySlots[i];
+            const item_instance = this.character.inventorySlots[i];
             const slotEl = document.createElement('div');
 
             slotEl.className = `inventory-slot ${i < 10 ? 'hotbar-row' : ''}`;
             slotEl.dataset.index = i;
 
-            if (slotData) {
+            if (item_instance) {
                 const icon = document.createElement('div');
                 icon.className = 'item-icon';
-                icon.textContent = slotData.def.icon;
+                icon.textContent = item_instance.def.icon;
                 slotEl.appendChild(icon);
 
-                if (slotData.count > 1) {
+                if (item_instance.count > 1) {
                     const count_element = document.createElement('span');
                     count_element.className = 'item-count';
-                    count_element.textContent = slotData.count;
+                    count_element.textContent = item_instance.count;
                     slotEl.appendChild(count_element);
                 }
             }
@@ -104,21 +114,25 @@ export class SlotGridUI {
             slotEl.addEventListener('drop', e => this.handleGridDrop(e, slotEl));
 
             slotEl.addEventListener('mouseenter', () => {
-                if (!slotData) {
+                if (!item_instance) {
                     this.itemDescEl.textContent = '<Empty slot>';
                     return;
                 }
 
-                const name = slotData.def.name;
-                const baseDesc = slotData.def.description || "";
+                const name = item_instance.def.name;
+                const baseDesc = item_instance.def.description || "";
+                let fungible_tag = "";
+                if (item_instance.isFungible()) {
+                    fungible_tag = "<br>(Fungible)"
+                }
 
                 let extraInfo = "";
 
                 if (this.isTradeGrid && this.tradeUI) {
-                    const tradeInfo = this.tradeUI.getTradeHoverInfo(slotData, this.isNpcSide);
+                    const tradeInfo = this.tradeUI.getTradeHoverInfo(item_instance, this.isNpcSide);
 
                     if (tradeInfo) {
-                        const canAfford = this.canTradeItem(slotData, this.isNpcSide);
+                        const canAfford = this.canTradeItem(item_instance, this.isNpcSide);
                         const priceColor = canAfford ? tradeInfo.color : '#ff4444';
 
                         let priceHTML = `
@@ -127,7 +141,7 @@ export class SlotGridUI {
                         `;
 
                         // Extra per-unit line for stacks
-                        if (slotData.count > 1) {
+                        if (item_instance.count > 1) {
                             priceHTML += `<br>
                                 <span style="color:#888;font-size:0.9em">(${tradeInfo.unitPrice.toLocaleString()}g each)</span>`;
                         }
@@ -136,7 +150,7 @@ export class SlotGridUI {
                     }
                 }
 
-                this.itemDescEl.innerHTML = `<strong>${name}</strong><br>${baseDesc}${extraInfo}`;
+                this.itemDescEl.innerHTML = `<strong>${name}</strong><br>${baseDesc}${fungible_tag}${extraInfo}`;
             });
 
             this.slot_grid.appendChild(slotEl);

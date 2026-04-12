@@ -2,5 +2,7 @@
   "varname": "guard_02",
   "displayName": "Grumpy Guard",
   "spriteImageName": "orc_base",
-  "inventory": []
+  "inventory": [
+    { "id": "torch", "count": 2 }
+  ]
 }
