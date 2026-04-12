@@ -44,11 +44,14 @@ export class GameItemInst {
     }
 
     canStackWith(other) {
-        return other && other instanceof GameItemInst && this.def == other.def;
+        if (!other) return false;
+        if (other == this) return false;
+        if (!this.isFungible() || !other.isFungible()) return false;
+        return other instanceof GameItemInst && this.def == other.def;
     }
 
-    isStackable() {
-        return this.maxStack > 1;
+    isFungible() {
+        return this.def.maxStack > 1 && this.def.maxDurability == Infinity;
     }
 
     clone(count = this.count) {
