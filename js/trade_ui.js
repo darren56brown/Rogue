@@ -9,8 +9,6 @@ export class TradeUI {
         this.onClose = onClose;
 
         // Original state (saved when trade window opens)
-        this.originalPlayerInventory = [];
-        this.originalNpcInventory = [];
         this.originalPlayerGold = 0;
         this.originalNpcGold = 0;
 
@@ -41,13 +39,6 @@ export class TradeUI {
         this.player = player;
         this.npc = npc;
 
-        // Save original state for this trade session
-        this.originalPlayerInventory = this.player.inventorySlots.map(slot => 
-            slot ? slot.clone() : null
-        );
-        this.originalNpcInventory = this.npc.inventorySlots.map(slot => 
-            slot ? slot.clone() : null
-        );
         this.originalPlayerGold = this.player.gold;
         this.originalNpcGold = this.npc.gold;
 
@@ -68,8 +59,6 @@ export class TradeUI {
     deactivate() {
         this.player = null;
         this.npc = null;
-        this.originalPlayerInventory = [];
-        this.originalNpcInventory = [];
         this.originalPlayerGold = 0;
         this.originalNpcGold = 0;
 
@@ -83,12 +72,9 @@ export class TradeUI {
     resetTrade() {
         if (!this.player || !this.npc) return;
 
-        this.player.inventorySlots = this.originalPlayerInventory.map(slot => 
-            slot ? slot.clone() : null
-        );
-        this.npc.inventorySlots = this.originalNpcInventory.map(slot => 
-            slot ? slot.clone() : null
-        );
+        this.player_slot_grid.resetInventory();
+        this.npc_slot_grid.resetInventory();
+
         this.player.gold = this.originalPlayerGold;
         this.npc.gold = this.originalNpcGold;
 
@@ -110,86 +96,44 @@ export class TradeUI {
     onGridsChanged() {
         const delta = this._computeGoldDelta();
 
-        this.player.gold = delta.newPlayerGold;
-        this.npc.gold = delta.newNpcGold;
+        this.player.gold = delta.new_player_gold;
+        this.npc.gold = delta.new_npc_gold;
 
         this.refreshGrids();
         this._updateGoldColors();
         this.updateTradeButton(delta);
     }
 
-    // ====================== BUTTON STATE ======================
     updateTradeButton(delta) {
-        const hasChanges = delta.hasChanges || false;
-
-        // Trade button: needs changes + non-negative gold
-        this.tradeBtn.disabled = !(hasChanges && 
-                                  delta.newPlayerGold >= 0 && 
-                                  delta.newNpcGold >= 0);
-
-        // Reset button: only active if changes were made
-        this.resetBtn.disabled = !hasChanges;
-    }
-
-    // ====================== GOLD CALCULATION ======================
-    _getCountMap(slots) {
-        const map = new Map();
-        for (const slot of slots) {
-            if (slot) {
-                const id = slot.def.id;
-                map.set(id, (map.get(id) || 0) + slot.count);
-            }
-        }
-        return map;
+        this.tradeBtn.disabled = !(delta.has_changes && 
+                                  delta.new_player_gold >= 0 && 
+                                  delta.new_npc_gold >= 0);
+        this.resetBtn.disabled = !delta.has_changes;
     }
 
     _computeGoldDelta() {
-        const origPlayerMap = this._getCountMap(this.originalPlayerInventory);
-        const currPlayerMap = this._getCountMap(this.player.inventorySlots);
-
-        const defMap = new Map();
-        const allInventories = [
-            this.originalPlayerInventory,
-            this.originalNpcInventory,
-            this.player.inventorySlots,
-            this.npc.inventorySlots
-        ];
-        for (const inv of allInventories) {
-            for (const item of inv) {
-                if (item && !defMap.has(item.def.id)) {
-                    defMap.set(item.def.id, item.def);
-                }
-            }
+        const new_player_items = this.player_slot_grid.getNewItemsInInventory();
+        const new_npc_items = this.npc_slot_grid.getNewItemsInInventory();
+        
+        let has_changes = false;
+        let player_pays = 0;
+        for (const new_item of new_player_items) {
+            const item_price = new_item.def.ask;
+            player_pays += new_item.count * item_price;
+            has_changes = true;
         }
 
-        let playerPays = 0;
-        let npcPays = 0;
-        let hasChanges = false;
-
-        const allIds = new Set([...origPlayerMap.keys(), ...currPlayerMap.keys()]);
-
-        for (const id of allIds) {
-            const origCount = origPlayerMap.get(id) || 0;
-            const currCount = currPlayerMap.get(id) || 0;
-            const netToPlayer = currCount - origCount;
-
-            if (netToPlayer !== 0) {
-                hasChanges = true;
-                const def = defMap.get(id);
-                if (def) {
-                    if (netToPlayer > 0) {
-                        playerPays += netToPlayer * def.ask;
-                    } else {
-                        npcPays += (-netToPlayer) * def.bid;
-                    }
-                }
-            }
+        let npc_pays = 0;
+        for (const new_item of new_npc_items) {
+            const item_price = new_item.def.bid;
+            npc_pays += new_item.count * item_price;
+            has_changes = true;
         }
+        
+        const new_player_gold = this.originalPlayerGold - player_pays + npc_pays;
+        const new_npc_gold = this.originalNpcGold + player_pays - npc_pays;
 
-        const newPlayerGold = this.originalPlayerGold - playerPays + npcPays;
-        const newNpcGold = this.originalNpcGold + playerPays - npcPays;
-
-        return { newPlayerGold, newNpcGold, hasChanges };
+        return { new_player_gold, new_npc_gold, has_changes };
     }
 
     _updateGoldColors() {
@@ -208,59 +152,35 @@ export class TradeUI {
     getTradeHoverInfo(itemInst, isCurrentlyOnNpcSide) {
         if (!itemInst) return null;
 
-        const count = itemInst.count;
-        const itemId = itemInst.def.id;
-
-        // Count how many of this item each side had at the start of trade
-        const origPlayerCount = this.originalPlayerInventory.reduce((sum, slot) => {
-            return sum + (slot && slot.def.id === itemId ? slot.count : 0);
-        }, 0);
-
-        const origNpcCount = this.originalNpcInventory.reduce((sum, slot) => {
-            return sum + (slot && slot.def.id === itemId ? slot.count : 0);
-        }, 0);
-
         let label, totalPrice, unitPrice, color;
-
         if (isCurrentlyOnNpcSide) {
-            // Currently on NPC side
-            const currentNpcCount = this.npc.inventorySlots.reduce((sum, slot) => {
-                return sum + (slot && slot.def.id === itemId ? slot.count : 0);
-            }, 0);
-
-            if (currentNpcCount > origNpcCount) {
-                // NPC has more than originally → player sold some
+            const new_npc_items = this.npc_slot_grid.getNewItemsInInventory();
+            if (new_npc_items.includes(itemInst)) {
                 label = "Selling";
-                totalPrice = itemInst.def.bid * count;
+                totalPrice = itemInst.def.bid * itemInst.count;
                 unitPrice = itemInst.def.bid;
                 color = "#ffeb3b";
             } else {
                 label = "Buy";
-                totalPrice = itemInst.def.ask * count;
+                totalPrice = itemInst.def.ask * itemInst.count;
                 unitPrice = itemInst.def.ask;
                 color = "#ffeb3b";
             }
-        } 
-        else {
-            // Currently on Player side
-            const currentPlayerCount = this.player.inventorySlots.reduce((sum, slot) => {
-                return sum + (slot && slot.def.id === itemId ? slot.count : 0);
-            }, 0);
-
-            if (currentPlayerCount > origPlayerCount) {
-                // Player has more than originally → bought from NPC
+        } else {
+            const new_player_items = this.player_slot_grid.getNewItemsInInventory();
+            if (new_player_items.includes(itemInst)) {
                 label = "Buying";
-                totalPrice = itemInst.def.ask * count;
+                totalPrice = itemInst.def.ask * itemInst.count;
                 unitPrice = itemInst.def.ask;
                 color = "#ffeb3b";
             } else {
                 label = "Sell";
-                totalPrice = itemInst.def.bid * count;
+                totalPrice = itemInst.def.bid * itemInst.count;
                 unitPrice = itemInst.def.bid;
                 color = "#ffeb3b";
             }
         }
-
+        
         return { label, totalPrice, unitPrice, color };
     }
 }

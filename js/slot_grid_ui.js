@@ -14,6 +14,8 @@ export class SlotGridUI {
         this.split_ui = null;
         this.isTradeGrid = false;
         this.isNpcSide = false;
+
+        this.orig_inventory_slots = [];
     }
 
     activate(character, trade_partner = null, tradeUI = null) {
@@ -23,11 +25,34 @@ export class SlotGridUI {
 
         this.isTradeGrid = trade_partner !== null;
         this.isNpcSide = this.slot_grid.id === "npcSlotGrid";
+
+        this.orig_inventory_slots = [];
+        for (const slot of character.inventorySlots) {
+            this.orig_inventory_slots.push(slot);
+        }
+    }
+
+    resetInventory() {
+        this.character.inventorySlots = [];
+        for (const slot of this.orig_inventory_slots) {
+            this.character.inventorySlots.push(slot);
+        }
+    }
+
+    getNewItemsInInventory() {
+        const oldSet = new Set(this.orig_inventory_slots);
+        return this.character.inventorySlots.filter(item => !oldSet.has(item));
+    }
+
+    getMissingItemsInInventory() {
+        const newSet = new Set(this.character.inventorySlots);
+        return this.orig_inventory_slots.filter(item => !newSet.has(item));
     }
 
     deactivate() {
         this.character = null;
         this.trade_partner = null;
+        this.orig_inventory_slots = [];
     }
 
     refreshGrid() {
