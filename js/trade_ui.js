@@ -58,8 +58,6 @@ export class TradeUI {
     }
 
     resetTrade() {
-        if (!this.player || !this.npc) return;
-
         this.player_slot_grid.resetInventory();
         this.npc_slot_grid.resetInventory();
 
@@ -78,12 +76,10 @@ export class TradeUI {
     }
 
     onGridsChanged() {
-        let has_changes = false;
         const new_player_items =
             this.player_slot_grid.getPendingNonFungibleItems(this.npc_slot_grid);
         const new_npc_items =
             this.npc_slot_grid.getPendingNonFungibleItems(this.player_slot_grid);
-        if (new_player_items.length || new_npc_items.length) has_changes = true;
         
         let player_pays = 0;
         for (const new_item of new_player_items) {
@@ -102,11 +98,9 @@ export class TradeUI {
             if (count < 0) {
                 const item_price = map_key.bid;
                 npc_pays -= count * item_price;
-                has_changes = true
             } else if (count > 0) {
                 const item_price = map_key.ask;
                 player_pays += count * item_price;
-                has_changes = true
             }
         }
         
@@ -114,10 +108,13 @@ export class TradeUI {
         this.npc.gold = this.npc_slot_grid.orig_gold + player_pays - npc_pays;
 
         this.refreshGrids();
-        this.updateTradeButton(has_changes);
+        this.updateTradeButton();
     }
 
-    updateTradeButton(has_changes) {
+    updateTradeButton() {
+        const has_changes = this.player_slot_grid.hasChanges() ||
+            this.npc_slot_grid.hasChanges();
+
         this.tradeBtn.disabled = !(has_changes &&
             this.player.gold >= 0 && this.npc.gold >= 0);
         this.resetBtn.disabled = !has_changes;

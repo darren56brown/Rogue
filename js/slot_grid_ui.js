@@ -277,18 +277,15 @@ export class SlotGridUI {
         return { label, total_price, display_count, unitPrice, color };
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+    hasChanges() {
+        const num_slots = this.character.inventorySlots.length;
+        if (this.orig_inventory_slots.length != num_slots) return true;
+        for (let i = 0; i < num_slots; ++i)
+        {
+            if (this.character.inventorySlots[i] !=
+                this.orig_inventory_slots[i]) return true;
+        }
+        return false;
+    }
 }
 
