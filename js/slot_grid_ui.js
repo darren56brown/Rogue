@@ -54,6 +54,11 @@ export class SlotGridUI {
         );
     }
 
+    isPendingNonFungibleItem(item_instance, other_grid_ui) {
+        const pending_items = this.getPendingNonFungibleItems(other_grid_ui);
+        return pending_items.includes(item_instance);
+    }
+
     getPendingFungibleItemDeltas() {
         const cur_fungible_items = this.character.getFungibleItemCounts();
         for (const [map_key, count] of this.orig_fungible_items) {
@@ -64,6 +69,12 @@ export class SlotGridUI {
             cur_fungible_items.set(map_key, prev_count - count);
         }
         return cur_fungible_items;
+    }
+
+    getPendingFungibleItemDelta(item_instance) {
+        const fungibleItemDeltas = this.getPendingFungibleItemDeltas();
+        if (!fungibleItemDeltas.has(item_instance.def)) return 0;
+        return fungibleItemDeltas.get(item_instance.def);
     }
 
     deactivate() {

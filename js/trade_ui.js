@@ -168,28 +168,46 @@ export class TradeUI {
 
         let label, totalPrice, unitPrice, color;
         if (isCurrentlyOnNpcSide) {
-            const new_npc_items = this.npc_slot_grid.getPendingNonFungibleItems(this.player_slot_grid);
-            if (new_npc_items.includes(itemInst)) {
+            let is_pending = false;
+            let display_count = 1;
+            if (itemInst.isFungible()) {
+                const delta = this.player_slot_grid.getPendingFungibleItemDelta(itemInst);
+                is_pending = delta < 0;
+                display_count = is_pending ? Math.abs(delta) : itemInst.count;
+            } else {
+                is_pending = this.npc_slot_grid.isPendingNonFungibleItem(itemInst,
+                    this.player_slot_grid);
+            }
+            if (is_pending) {
                 label = "Selling";
-                totalPrice = itemInst.def.bid * itemInst.count;
+                totalPrice = itemInst.def.bid * display_count;
                 unitPrice = itemInst.def.bid;
                 color = "#ffeb3b";
             } else {
                 label = "Buy";
-                totalPrice = itemInst.def.ask * itemInst.count;
+                totalPrice = itemInst.def.ask * display_count;
                 unitPrice = itemInst.def.ask;
                 color = "#ffeb3b";
             }
         } else {
-            const new_player_items = this.player_slot_grid.getPendingNonFungibleItems(this.npc_slot_grid);
-            if (new_player_items.includes(itemInst)) {
+            let is_pending = false;
+            let display_count = 1;
+            if (itemInst.isFungible()) {
+                const delta = this.player_slot_grid.getPendingFungibleItemDelta(itemInst);
+                is_pending = delta > 0;
+                display_count = is_pending ? Math.abs(delta) : itemInst.count;
+            } else {
+                is_pending = this.player_slot_grid.isPendingNonFungibleItem(itemInst,
+                    this.npc_slot_grid);
+            }
+            if (is_pending) {
                 label = "Buying";
-                totalPrice = itemInst.def.ask * itemInst.count;
+                totalPrice = itemInst.def.ask * display_count;
                 unitPrice = itemInst.def.ask;
                 color = "#ffeb3b";
             } else {
                 label = "Sell";
-                totalPrice = itemInst.def.bid * itemInst.count;
+                totalPrice = itemInst.def.bid * display_count;
                 unitPrice = itemInst.def.bid;
                 color = "#ffeb3b";
             }
