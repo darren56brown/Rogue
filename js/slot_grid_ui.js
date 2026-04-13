@@ -125,49 +125,53 @@ export class SlotGridUI {
             slotEl.addEventListener('drop', e => this.handleGridDrop(e, slotEl));
 
             slotEl.addEventListener('mouseenter', () => {
-                if (!item_instance) {
-                    this.itemDescEl.textContent = '<Empty slot>';
-                    return;
-                }
-
-                const name = item_instance.def.name;
-                const baseDesc = item_instance.def.description || "";
-                let fungible_tag = "";
-                if (item_instance.isFungible()) {
-                    fungible_tag = "<br>(Fungible)"
-                }
-
-                let extraInfo = "";
-
-                if (this.isTradeGrid && this.tradeUI) {
-                    const tradeInfo = this.tradeUI.getTradeHoverInfo(item_instance, this.isNpcSide);
-
-                    if (tradeInfo) {
-                        const canAfford = this.canTradeItem(item_instance, this.isNpcSide);
-                        const priceColor = canAfford ? tradeInfo.color : '#ff4444';
-
-                        let priceHTML = `
-                            <span style="color:#888;font-weight:bold">${tradeInfo.label}: </span>
-                            <span style="color:${priceColor};font-weight:bold">${tradeInfo.totalPrice.toLocaleString()}g</span>
-                        `;
-
-                        // Extra per-unit line for stacks
-                        if (item_instance.count > 1) {
-                            priceHTML += `<br>
-                                <span style="color:#888;font-size:0.9em">(${tradeInfo.unitPrice.toLocaleString()}g each)</span>`;
-                        }
-
-                        extraInfo = `<br><br>${priceHTML}`;
-                    }
-                }
-
-                this.itemDescEl.innerHTML = `<strong>${name}</strong><br>${baseDesc}${fungible_tag}${extraInfo}`;
+                this.handleMouseEnter(item_instance);
             });
 
             this.slot_grid.appendChild(slotEl);
         }
 
         this.refreshGold();
+    }
+
+    handleMouseEnter(item_instance) {
+        if (!item_instance) {
+            this.itemDescEl.textContent = '<Empty slot>';
+            return;
+        }
+
+        const name = item_instance.def.name;
+        const baseDesc = item_instance.def.description || "";
+        let fungible_tag = "";
+        if (item_instance.isFungible()) {
+            fungible_tag = "<br>(Fungible)"
+        }
+
+        let extraInfo = "";
+
+        if (this.isTradeGrid && this.tradeUI) {
+            const tradeInfo = this.tradeUI.getTradeHoverInfo(item_instance, this.isNpcSide);
+
+            if (tradeInfo) {
+                const canAfford = this.canTradeItem(item_instance, this.isNpcSide);
+                const priceColor = canAfford ? tradeInfo.color : '#ff4444';
+
+                let priceHTML = `
+                    <span style="color:#888;font-weight:bold">${tradeInfo.label}: </span>
+                    <span style="color:${priceColor};font-weight:bold">${tradeInfo.totalPrice.toLocaleString()}g</span>
+                `;
+
+                // Extra per-unit line for stacks
+                if (tradeInfo.display_count > 1) {
+                    priceHTML += `<br>
+                        <span style="color:#888;font-size:0.9em">(${tradeInfo.unitPrice.toLocaleString()}g each)</span>`;
+                }
+
+                extraInfo = `<br><br>${priceHTML}`;
+            }
+        }
+
+        this.itemDescEl.innerHTML = `<strong>${name}</strong><br>${baseDesc}${fungible_tag}${extraInfo}`;
     }
 
     refreshGold() {

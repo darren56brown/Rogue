@@ -167,9 +167,9 @@ export class TradeUI {
         if (!itemInst) return null;
 
         let label, totalPrice, unitPrice, color;
+        let display_count = 1;
         if (isCurrentlyOnNpcSide) {
             let is_pending = false;
-            let display_count = 1;
             if (itemInst.isFungible()) {
                 const delta = this.player_slot_grid.getPendingFungibleItemDelta(itemInst);
                 is_pending = delta < 0;
@@ -191,7 +191,6 @@ export class TradeUI {
             }
         } else {
             let is_pending = false;
-            let display_count = 1;
             if (itemInst.isFungible()) {
                 const delta = this.player_slot_grid.getPendingFungibleItemDelta(itemInst);
                 is_pending = delta > 0;
@@ -213,6 +212,6 @@ export class TradeUI {
             }
         }
         
-        return { label, totalPrice, unitPrice, color };
+        return { label, totalPrice, display_count, unitPrice, color };
     }
 }
