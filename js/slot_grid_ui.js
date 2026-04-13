@@ -2,18 +2,17 @@
 import {SplitUI} from "./split_ui.js";
 
 export class SlotGridUI {
-    constructor(grid_element_name, gold_amount_name, item_desc_name,
+    constructor(is_for_player, grid_element_name, gold_amount_name,
         refresh_grids_func) {
         this.character = null;
         this.trade_partner_ui = null;
-        this.owner = null;
         this.slot_grid = document.getElementById(grid_element_name);
         this.gold_element = document.getElementById(gold_amount_name);
-        this.itemDescEl = document.getElementById(item_desc_name);
+        this.itemDescEl = document.getElementById("tradeItemDescription");
         this.refresh_grids_func = refresh_grids_func
 
         this.split_ui = null;
-        this.isNpcSide = false;
+        this.is_for_player = is_for_player;
 
         this.orig_gold = 0;
         this.orig_inventory_slots = [];
@@ -21,12 +20,9 @@ export class SlotGridUI {
         this.orig_regular_items = null;
     }
 
-    activate(character, trade_partner_ui = null, owner = null) {
+    activate(character, trade_partner_ui = null) {
         this.character = character;
         this.trade_partner_ui = trade_partner_ui;
-        this.owner = owner;
-
-        this.isNpcSide = this.slot_grid.id === "npcSlotGrid";
 
         this.orig_gold = this.character.gold;
         this.orig_inventory_slots = [];
@@ -83,7 +79,6 @@ export class SlotGridUI {
     deactivate() {
         this.character = null;
         this.trade_partner_ui = null;
-        this.owner = null;
 
         this.orig_gold = 0;
         this.orig_inventory_slots = [];
@@ -157,16 +152,12 @@ export class SlotGridUI {
 
         let extraInfo = "";
 
-        if (this.owner) {
-            const tradeInfo = this.owner.getTradeHoverInfo(item_instance, this.isNpcSide);
-
+        if (this.trade_partner_ui) {
+            const tradeInfo = this.getTradeHoverInfo(item_instance);
             if (tradeInfo) {
-                const canAfford = this.canTradeItem(item_instance, this.isNpcSide);
-                const priceColor = canAfford ? tradeInfo.color : '#ff4444';
-
                 let priceHTML = `
                     <span style="color:#888;font-weight:bold">${tradeInfo.label}: </span>
-                    <span style="color:${priceColor};font-weight:bold">${tradeInfo.totalPrice.toLocaleString()}g</span>
+                    <span style="color:${tradeInfo.color};font-weight:bold">${tradeInfo.total_price.toLocaleString()}g</span>
                 `;
 
                 // Extra per-unit line for stacks
@@ -246,21 +237,58 @@ export class SlotGridUI {
         this.refresh_grids_func();
     }
 
-    canTradeItem(itemInst, isBuying) {
-        if (!itemInst || !this.character) return false;
+    getTradeHoverInfo(itemInst) {
+        if (!itemInst) return null;
 
-        const count = itemInst.count;
-
-        if (isBuying) {
-            // Player buying from NPC → check PLAYER's gold
-            const totalCost = itemInst.def.ask * count;
-            return this.character.gold >= totalCost;
+        let display_count = 1;
+        let is_pending = false;
+        if (itemInst.isFungible()) {
+            const delta = this.getPendingFungibleItemDelta(itemInst);
+            is_pending = delta > 0;
+            display_count = is_pending ? Math.abs(delta) : itemInst.count;
         } else {
-            // Player selling to NPC → check NPC's gold
-            if (!this.trade_partner_ui) return true;
-            const totalValue = itemInst.def.bid * count;
-            return this.trade_partner_ui.character.gold >= totalValue;
+            is_pending = this.isPendingNonFungibleItem(itemInst, this.trade_partner_ui);
         }
+
+        let label, unitPrice, color;
+        if (this.is_for_player) {
+            if (is_pending) {
+                label = "Buying";
+                unitPrice = itemInst.def.ask;
+                color = "#ffeb3b";
+            } else {
+                label = "Sell";
+                unitPrice = itemInst.def.bid;
+                color = "#ffeb3b";
+            }
+        } else {
+            if (is_pending) {
+                label = "Selling";
+                unitPrice = itemInst.def.bid;
+                color = "#ffeb3b";
+            } else {
+                label = "Buy";
+                unitPrice = itemInst.def.ask;
+                color = "#ffeb3b";
+            }
+        }
+
+        const total_price = unitPrice * display_count;
+        return { label, total_price, display_count, unitPrice, color };
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 

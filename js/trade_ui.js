@@ -14,13 +14,11 @@ export class TradeUI {
         this.cancelBtn = document.getElementById('cancelTradeBtn');
         this.resetBtn = document.getElementById('resetTradeBtn');
 
-        this.player_slot_grid = new SlotGridUI("playerSlotGrid",
-            "tradePlayerGoldAmount", "tradeItemDescription",  
-            () => this.onGridsChanged());
+        this.player_slot_grid = new SlotGridUI(true, "playerSlotGrid",
+            "tradePlayerGoldAmount", () => this.onGridsChanged());
 
-        this.npc_slot_grid = new SlotGridUI("npcSlotGrid",
-            "tradeNpcGoldAmount", "tradeItemDescription",  
-            () => this.onGridsChanged());
+        this.npc_slot_grid = new SlotGridUI(false, "npcSlotGrid",
+            "tradeNpcGoldAmount", () => this.onGridsChanged());
 
         this.closeBtn.onclick = () => this.cancelTrade();
         this.cancelBtn.onclick = () => this.cancelTrade();
@@ -123,57 +121,5 @@ export class TradeUI {
         this.tradeBtn.disabled = !(has_changes &&
             this.player.gold >= 0 && this.npc.gold >= 0);
         this.resetBtn.disabled = !has_changes;
-    }
-
-    getTradeHoverInfo(itemInst, isCurrentlyOnNpcSide) {
-        if (!itemInst) return null;
-
-        let label, totalPrice, unitPrice, color;
-        let display_count = 1;
-        if (isCurrentlyOnNpcSide) {
-            let is_pending = false;
-            if (itemInst.isFungible()) {
-                const delta = this.player_slot_grid.getPendingFungibleItemDelta(itemInst);
-                is_pending = delta < 0;
-                display_count = is_pending ? Math.abs(delta) : itemInst.count;
-            } else {
-                is_pending = this.npc_slot_grid.isPendingNonFungibleItem(itemInst,
-                    this.player_slot_grid);
-            }
-            if (is_pending) {
-                label = "Selling";
-                totalPrice = itemInst.def.bid * display_count;
-                unitPrice = itemInst.def.bid;
-                color = "#ffeb3b";
-            } else {
-                label = "Buy";
-                totalPrice = itemInst.def.ask * display_count;
-                unitPrice = itemInst.def.ask;
-                color = "#ffeb3b";
-            }
-        } else {
-            let is_pending = false;
-            if (itemInst.isFungible()) {
-                const delta = this.player_slot_grid.getPendingFungibleItemDelta(itemInst);
-                is_pending = delta > 0;
-                display_count = is_pending ? Math.abs(delta) : itemInst.count;
-            } else {
-                is_pending = this.player_slot_grid.isPendingNonFungibleItem(itemInst,
-                    this.npc_slot_grid);
-            }
-            if (is_pending) {
-                label = "Buying";
-                totalPrice = itemInst.def.ask * display_count;
-                unitPrice = itemInst.def.ask;
-                color = "#ffeb3b";
-            } else {
-                label = "Sell";
-                totalPrice = itemInst.def.bid * display_count;
-                unitPrice = itemInst.def.bid;
-                color = "#ffeb3b";
-            }
-        }
-        
-        return { label, totalPrice, display_count, unitPrice, color };
     }
 }
