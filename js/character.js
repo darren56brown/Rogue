@@ -337,7 +337,6 @@ export class Character {
     _updateFollow(game_map) {
         const target_xy = this.follow_target.getPositionXY();
         const target_z = this.follow_target.getZ();
-        const target_facing = this.follow_target.curFacing;
         const target_is_walking = this.follow_target.isWalking();
         this.follow_success = false;
 
@@ -354,8 +353,7 @@ export class Character {
 
         //Throw away cache if the target has moved or turned.
         if (this.follow_cache) {
-            if (target_facing != this.follow_cache.target_facing ||
-                target_is_walking != this.follow_cache.target_is_walking ||
+            if (target_is_walking != this.follow_cache.target_is_walking ||
                 getMixedDist(target_xy, target_z, this.follow_cache.target_xy,
                 this.follow_cache.target_z) > 0.1) {
                 this.follow_cache = null;
@@ -364,62 +362,37 @@ export class Character {
 
         //If we still have a cache, test it and see if we are good.
         if (this.follow_cache) {
-            if (this.follow_cache.desired_xy) {
-                if (this._isCloseEnoughToTarget(this.follow_cache.desired_xy,
-                    this.follow_cache.target_z)) {
-                    this.clearPath();
-                    this.follow_success = !target_is_walking;
-                }
+            if (this._isCloseEnoughToTarget(this.follow_cache.target_xy,
+                this.follow_cache.target_z)) {
+                this.clearPath();
+                this.follow_success = !target_is_walking;
             }
             this._turnToFollowTarget();
             return;
         }
 
-        const test_dirs = [
-            target_facing,
-            (target_facing + 1) % 8,
-            (target_facing + 7) % 8,   // -1
-            (target_facing + 2) % 8,
-            (target_facing + 6) % 8,
-            (target_facing + 3) % 8,
-            (target_facing + 5) % 8,
-            (target_facing + 4) % 8    // opposite last
-        ];
-        //console.log(test_dirs);
+        if (this._isCloseEnoughToTarget(target_xy, target_z)) {
+            this.clearPath();
+            this.follow_success = !target_is_walking;
+            this._turnToFollowTarget();
+            return;
+        }
 
-        for (const test_facing of test_dirs) {
-            const facing_vector = target_is_walking ?
-                (test_facing + 4) % 8 : test_facing;
-            const offset = mult(FACING_VECTORS.get(facing_vector), 0.9);
-            const desired_xy = add(target_xy, offset);
-
-            if (this._isCloseEnoughToTarget(desired_xy, target_z)) {
-                this.clearPath();
-                this.follow_success = !target_is_walking;
-                this._turnToFollowTarget();
-                return;
-            }
-
-            this.buildPathToPosition(game_map, desired_xy, target_z);
-            if (this.waypoints.length > 0) {
-                this.follow_cache = {
-                    target_xy: target_xy,
-                    target_z: target_z,
-                    target_facing: target_facing,
-                    target_is_walking: target_is_walking,
-                    desired_xy: desired_xy
-                };
-                this._turnToFollowTarget();
-                return;
-            }
+        this.buildPathToPosition(game_map, target_xy, target_z);
+        if (this.waypoints.length > 0) {
+            this.follow_cache = {
+                target_xy: target_xy,
+                target_z: target_z,
+                target_is_walking: target_is_walking
+            };
+            this._turnToFollowTarget();
+            return;
         }
 
         this.follow_cache = {
             target_xy: target_xy,
             target_z: target_z,
-            target_facing: target_facing,
             target_is_walking: target_is_walking,
-            desired_xy: null
         };
         this._turnToFollowTarget();
     }
@@ -439,7 +412,7 @@ export class Character {
 
     _isCloseEnoughToTarget(target_xy, target_z) {
         return getMixedDist(this.getPositionXY(), this.getZ(),
-                target_xy, target_z) <= 0.05;
+                target_xy, target_z) <= 0.9;
     }
 
     _turnToFollowTarget() {

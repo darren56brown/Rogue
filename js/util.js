@@ -19,7 +19,7 @@ export function getTileCoordFromXY(worldX, worldY) {
     return vec2D(Math.floor(worldX), Math.floor(worldY));
 }
 
-export function getTileCoordFromPosition(pos) {
+export function getTileIndicesFromPosition(pos) {
     return vec2D(Math.floor(pos.x), Math.floor(pos.y));
 }
 

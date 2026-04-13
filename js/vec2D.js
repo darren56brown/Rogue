@@ -1,5 +1,5 @@
 
-export const vec2D = (x = 0, y = 0) => ({x: x, y: y});
+export const vec2D = (x, y) => ({x: x, y: y});
 
 export const vec2DCopy = (other) => ({x: other.x, y: other.y});
 
@@ -92,3 +92,5 @@ export const intersect = (a1, a2, b1, b2) => {
 
     return add(a1, mult(r, t));
 };
+
+export const vec3DFromVec2d = (xy, z) => ({x: xy.x, y: xy.y, z: z});

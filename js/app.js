@@ -321,7 +321,7 @@ export class App {
             char.updatePhysics(dt, this.current_game_map);
         }
 
-        if (this.player.follow_success &&
+        if (false && this.player.follow_success &&
             this.player.follow_target &&
             this.player.follow_target.conversation) {
             const follow_target = this.player.follow_target;
