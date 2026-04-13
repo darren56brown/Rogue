@@ -8,10 +8,6 @@ export class TradeUI {
         this.onOpen = onOpen;
         this.onClose = onClose;
 
-        // Original state (saved when trade window opens)
-        this.originalPlayerGold = 0;
-        this.originalNpcGold = 0;
-
         this.container = document.getElementById('tradeViewer');
         this.closeBtn = document.getElementById('closeTrade');
         this.tradeBtn = document.getElementById('tradeBtn');
@@ -39,9 +35,6 @@ export class TradeUI {
         this.player = player;
         this.npc = npc;
 
-        this.originalPlayerGold = this.player.gold;
-        this.originalNpcGold = this.npc.gold;
-
         this.player_slot_grid.activate(this.player, this.npc_slot_grid, this);
         this.npc_slot_grid.activate(this.npc, this.player_slot_grid, this);
 
@@ -52,16 +45,13 @@ export class TradeUI {
         this.onOpen();
 
         this.refreshGrids();
-        this._updateGoldColors();
-        this.updateTradeButton({ hasChanges: false, newPlayerGold: this.player.gold, newNpcGold: this.npc.gold });
+        this.updateTradeButton(false);
     }
 
     deactivate() {
         this.player = null;
         this.npc = null;
-        this.originalPlayerGold = 0;
-        this.originalNpcGold = 0;
-
+        
         this.player_slot_grid.deactivate();
         this.npc_slot_grid.deactivate();
 
@@ -75,12 +65,8 @@ export class TradeUI {
         this.player_slot_grid.resetInventory();
         this.npc_slot_grid.resetInventory();
 
-        this.player.gold = this.originalPlayerGold;
-        this.npc.gold = this.originalNpcGold;
-
         this.refreshGrids();
-        this._updateGoldColors();
-        this.updateTradeButton({ hasChanges: false, newPlayerGold: this.player.gold, newNpcGold: this.npc.gold });
+        this.updateTradeButton(false);
     }
 
     cancelTrade() {
@@ -94,24 +80,6 @@ export class TradeUI {
     }
 
     onGridsChanged() {
-        const delta = this._computeGoldDelta();
-
-        this.player.gold = delta.new_player_gold;
-        this.npc.gold = delta.new_npc_gold;
-
-        this.refreshGrids();
-        this._updateGoldColors();
-        this.updateTradeButton(delta);
-    }
-
-    updateTradeButton(delta) {
-        this.tradeBtn.disabled = !(delta.has_changes && 
-                                  delta.new_player_gold >= 0 && 
-                                  delta.new_npc_gold >= 0);
-        this.resetBtn.disabled = !delta.has_changes;
-    }
-
-    _computeGoldDelta() {
         let has_changes = false;
         const new_player_items =
             this.player_slot_grid.getPendingNonFungibleItems(this.npc_slot_grid);
@@ -144,22 +112,17 @@ export class TradeUI {
             }
         }
         
-        const new_player_gold = this.originalPlayerGold - player_pays + npc_pays;
-        const new_npc_gold = this.originalNpcGold + player_pays - npc_pays;
+        this.player.gold = this.player_slot_grid.orig_gold - player_pays + npc_pays;
+        this.npc.gold = this.npc_slot_grid.orig_gold + player_pays - npc_pays;
 
-        return { new_player_gold, new_npc_gold, has_changes };
+        this.refreshGrids();
+        this.updateTradeButton(has_changes);
     }
 
-    _updateGoldColors() {
-        const playerGoldEl = document.getElementById('tradePlayerGoldAmount');
-        const npcGoldEl = document.getElementById('tradeNpcGoldAmount');
-
-        if (playerGoldEl) {
-            playerGoldEl.style.color = (this.player.gold < 0) ? '#ff4444' : '#ffeb3b';
-        }
-        if (npcGoldEl) {
-            npcGoldEl.style.color = (this.npc.gold < 0) ? '#ff4444' : '#ffeb3b';
-        }
+    updateTradeButton(has_changes) {
+        this.tradeBtn.disabled = !(has_changes &&
+            this.player.gold >= 0 && this.npc.gold >= 0);
+        this.resetBtn.disabled = !has_changes;
     }
 
     getTradeHoverInfo(itemInst, isCurrentlyOnNpcSide) {

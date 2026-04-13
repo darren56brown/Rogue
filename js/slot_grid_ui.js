@@ -8,13 +8,14 @@ export class SlotGridUI {
         this.trade_partner_ui = null;
         this.owner = null;
         this.slot_grid = document.getElementById(grid_element_name);
-        this.gold_value = document.getElementById(gold_amount_name);
+        this.gold_element = document.getElementById(gold_amount_name);
         this.itemDescEl = document.getElementById(item_desc_name);
         this.refresh_grids_func = refresh_grids_func
 
         this.split_ui = null;
         this.isNpcSide = false;
 
+        this.orig_gold = 0;
         this.orig_inventory_slots = [];
         this.orig_fungible_items = null;
         this.orig_regular_items = null;
@@ -27,17 +28,20 @@ export class SlotGridUI {
 
         this.isNpcSide = this.slot_grid.id === "npcSlotGrid";
 
+        this.orig_gold = this.character.gold;
         this.orig_inventory_slots = [];
         this.orig_regular_items = new Set();
-        for (const item_instance of character.inventorySlots) {
+        for (const item_instance of this.character.inventorySlots) {
             this.orig_inventory_slots.push(item_instance);
             if (!item_instance || item_instance.isFungible()) continue;
             this.orig_regular_items.add(item_instance);
         }
-        this.orig_fungible_items = character.getFungibleItemCounts();
+        this.orig_fungible_items = this.character.getFungibleItemCounts();
     }
 
     resetInventory() {
+        this.character.gold = this.orig_gold;
+
         this.character.inventorySlots = [];
         for (const slot of this.orig_inventory_slots) {
             this.character.inventorySlots.push(slot);
@@ -80,7 +84,11 @@ export class SlotGridUI {
         this.character = null;
         this.trade_partner_ui = null;
         this.owner = null;
+
+        this.orig_gold = 0;
         this.orig_inventory_slots = [];
+        this.orig_fungible_items = null;
+        this.orig_regular_items = null;
     }
 
     refreshGrid() {
@@ -144,7 +152,7 @@ export class SlotGridUI {
         const baseDesc = item_instance.def.description || "";
         let fungible_tag = "";
         if (item_instance.isFungible()) {
-            fungible_tag = "<br>(Fungible)"
+            //fungible_tag = "<br>(Fungible)"
         }
 
         let extraInfo = "";
@@ -176,7 +184,8 @@ export class SlotGridUI {
 
     refreshGold() {
         if (!this.character) return;
-        this.gold_value.textContent = this.character.gold.toLocaleString();
+        this.gold_element.textContent = this.character.gold.toLocaleString();
+        this.gold_element.style.color = (this.character.gold < 0) ? '#ff4444' : '#ffeb3b';
     }
 
     handleGridDrop(e, slotEl) {
