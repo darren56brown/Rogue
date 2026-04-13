@@ -255,7 +255,7 @@ export class SlotGridUI {
             if (is_pending) {
                 label = "Buying";
                 unitPrice = itemInst.def.ask;
-                color = "#ffeb3b";
+                color = "rgb(128, 128, 128)";
             } else {
                 label = "Sell";
                 unitPrice = itemInst.def.bid;
@@ -265,7 +265,7 @@ export class SlotGridUI {
             if (is_pending) {
                 label = "Selling";
                 unitPrice = itemInst.def.bid;
-                color = "#ffeb3b";
+                color = "rgb(128, 128, 128)";
             } else {
                 label = "Buy";
                 unitPrice = itemInst.def.ask;
@@ -274,6 +274,12 @@ export class SlotGridUI {
         }
 
         const total_price = unitPrice * display_count;
+        if (is_pending){
+            if (this.character.gold < 0) color = "#ff4444";
+        } else {
+            if (this.trade_partner_ui.character.gold - total_price < 0) color = "#ff4444";
+        }
+
         return { label, total_price, display_count, unitPrice, color };
     }
 
