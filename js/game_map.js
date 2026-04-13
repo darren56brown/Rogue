@@ -1,6 +1,6 @@
 import {ISO, MAX_DROP, MAX_HOP} from "./constants.js";
-import { getTileCoordFromPosition, isoCompare} from './util.js';
-import { vec2D } from "./vec2D.js";
+import { getTileIndicesFromPosition, isoCompare} from './util.js';
+import { vec2D, vec3DFromVec2d } from "./vec2D.js";
 import { Npc } from "./npc.js";
 import { GameItemDef } from "./game_item.js";
 
@@ -213,9 +213,9 @@ export class GameMap {
     getDropDistance(xy_pos, z) {
         if (!this.isLoaded) return 0;
 
-        const xy_coord = getTileCoordFromPosition(xy_pos);
-        if (xy_coord.x < 0 || xy_coord.x >= this.size.w ||
-            xy_coord.y < 0 || xy_coord.y >= this.size.h) {
+        const tile_indices = getTileIndicesFromPosition(xy_pos);
+        if (tile_indices.x < 0 || tile_indices.x >= this.size.w ||
+            tile_indices.y < 0 || tile_indices.y >= this.size.h) {
             return 0;
         }
 
@@ -224,7 +224,7 @@ export class GameMap {
             if (layer.zHeight > z) continue;
 
             const tileInfo =
-                this.getTileInfoForLayer(xy_coord.x, xy_coord.y, layer);
+                this.getTileInfoForLayer(tile_indices.x, tile_indices.y, layer);
             if (!tileInfo) continue;
 
             return z - layer.zHeight;
@@ -236,9 +236,9 @@ export class GameMap {
     getHopDistance(xy_pos, z) {
         if (!this.isLoaded) return 0;
 
-        const xy_coord = getTileCoordFromPosition(xy_pos);
-        if (xy_coord.x < 0 || xy_coord.x >= this.size.w ||
-            xy_coord.y < 0 || xy_coord.y >= this.size.h) {
+        const tile_indices = getTileIndicesFromPosition(xy_pos);
+        if (tile_indices.x < 0 || tile_indices.x >= this.size.w ||
+            tile_indices.y < 0 || tile_indices.y >= this.size.h) {
             return 0;
         }
 
@@ -247,7 +247,7 @@ export class GameMap {
             if (layer.zHeight <= z) continue;
 
             const tileInfo =
-                this.getTileInfoForLayer(xy_coord.x, xy_coord.y, layer);
+                this.getTileInfoForLayer(tile_indices.x, tile_indices.y, layer);
             if (!tileInfo) continue;
 
             let obstructed_above = false;
@@ -258,7 +258,7 @@ export class GameMap {
                 if (height_gap > 1.9) break;
 
                 const tileInfoAbove =
-                    this.getTileInfoForLayer(xy_coord.x, xy_coord.y, layer_above);
+                    this.getTileInfoForLayer(tile_indices.x, tile_indices.y, layer_above);
                 if (tileInfoAbove) {
                     obstructed_above = true;
                     break;
@@ -271,19 +271,17 @@ export class GameMap {
         return Infinity;
     }
 
-    isObstructed(xy_pos, z) {
-        if (!this.isLoaded) return 0;
+    isTileObstructed(tile_indices_xy, tile_index_z) {
+        if (!this.isLoaded) return true;
 
-        const xy_coord = getTileCoordFromPosition(xy_pos);
-
-        if (xy_coord.x < 0 || xy_coord.x >= this.size.w ||
-            xy_coord.y < 0 || xy_coord.y >= this.size.h) {
-            return 0; //Don't fall off the edge?
+        if (tile_indices_xy.x < 0 || tile_indices_xy.x >= this.size.w ||
+            tile_indices_xy.y < 0 || tile_indices_xy.y >= this.size.h) {
+            return true;
         }
 
-        const zToFind = Math.floor(z + 1.0);
+        const zToFind = tile_index_z + 1.0;
 
-        const idx = xy_coord.y * this.size.w + xy_coord.x;
+        const idx = tile_indices_xy.y * this.size.w + tile_indices_xy.x;
         for (let i = this.layers.length - 1; i >= 0; i--) {
             const layer = this.layers[i];
             if (layer.zHeight != zToFind) continue;
@@ -299,22 +297,27 @@ export class GameMap {
         return false;
     }
 
-    isTileWalkable(tileX, tileY, z) {
-        if (tileX < 0 || tileX >= this.size.w || tileY < 0 || tileY >= this.size.h) return false;
-        const testPos = { x: tileX + 0.5, y: tileY + 0.5 };
-        return !this.isObstructed(testPos, z);
+    isPositionObstructed(position_xy, z) {
+        const tile_indices_xy = getTileIndicesFromPosition(position_xy);
+        const tile_index_z = Math.floor(z);
+
+        return this.isTileObstructed(tile_indices_xy, tile_index_z);
     }
 
     findPath(startWorldPos, startZ, goalWorldPos, goalZ) {
-        const startTile = { ...getTileCoordFromPosition(startWorldPos), z: Math.round(startZ) };
-        const goalTile  = { ...getTileCoordFromPosition(goalWorldPos), z: Math.round(goalZ) };
-
-        if (!this.isTileWalkable(startTile.x, startTile.y, startTile.z) ||
-            !this.isTileWalkable(goalTile.x, goalTile.y, goalTile.z)) {
+        if (this.isPositionObstructed(startWorldPos, startZ) ||
+            this.isPositionObstructed(goalWorldPos, goalZ)) {
             return [];
         }
 
-        if (startTile.x === goalTile.x && startTile.y === goalTile.y && startTile.z === goalTile.z) {
+        const startTile = vec3DFromVec2d(getTileIndicesFromPosition(startWorldPos),
+            Math.round(startZ));
+        const goalTile = vec3DFromVec2d(getTileIndicesFromPosition(goalWorldPos),
+            Math.round(goalZ));
+        
+        if (startTile.x == goalTile.x &&
+            startTile.y == goalTile.y &&
+            startTile.z == goalTile.z) {
             return [startTile];
         }
 
@@ -415,7 +418,7 @@ export class GameMap {
             if (nx < 0 || nx >= this.size.w || ny < 0 || ny >= this.size.h) continue;
             const neighCenter = { x: nx + 0.5, y: ny + 0.5 };
 
-            if (this.isTileWalkable(nx, ny, tile_coord.z)) {
+            if (!this.isTileObstructed(vec2D(nx, ny), tile_coord.z)) {
                 const drop = this.getDropDistance(neighCenter, tile_coord.z);
                 if (drop < 0.1) openCardinal.add(`${dx},${dy}`);
 
@@ -442,7 +445,7 @@ export class GameMap {
             const cardinalB = `0,${dy}`;
 
             if (openCardinal.has(cardinalA) && openCardinal.has(cardinalB)) {
-                if (this.isTileWalkable(nx, ny, tile_coord.z)) {
+                if (!this.isTileObstructed(vec2D(nx, ny), tile_coord.z)) {
                     neighbors.push({ x: nx, y: ny, z: tile_coord.z });
                 }
             }
