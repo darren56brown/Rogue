@@ -42,8 +42,8 @@ export class TradeUI {
         this.originalPlayerGold = this.player.gold;
         this.originalNpcGold = this.npc.gold;
 
-        this.player_slot_grid.activate(this.player, this.npc, this);
-        this.npc_slot_grid.activate(this.npc, this.player, this);
+        this.player_slot_grid.activate(this.player, this.npc_slot_grid, this);
+        this.npc_slot_grid.activate(this.npc, this.player_slot_grid, this);
 
         const headerTitle = document.querySelector('#tradeViewer .inventory-viewer-header h2');
         headerTitle.textContent = `Trade: ${this.npc.display_name}`;
@@ -162,7 +162,6 @@ export class TradeUI {
         }
     }
 
-        // Called from SlotGridUI when hovering in trade window
     getTradeHoverInfo(itemInst, isCurrentlyOnNpcSide) {
         if (!itemInst) return null;
 

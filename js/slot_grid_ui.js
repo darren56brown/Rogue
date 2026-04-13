@@ -5,14 +5,14 @@ export class SlotGridUI {
     constructor(grid_element_name, gold_amount_name, item_desc_name,
         refresh_grids_func) {
         this.character = null;
-        this.trade_partner = null;
+        this.trade_partner_ui = null;
+        this.owner = null;
         this.slot_grid = document.getElementById(grid_element_name);
         this.gold_value = document.getElementById(gold_amount_name);
         this.itemDescEl = document.getElementById(item_desc_name);
         this.refresh_grids_func = refresh_grids_func
 
         this.split_ui = null;
-        this.isTradeGrid = false;
         this.isNpcSide = false;
 
         this.orig_inventory_slots = [];
@@ -20,12 +20,11 @@ export class SlotGridUI {
         this.orig_regular_items = null;
     }
 
-    activate(character, trade_partner = null, tradeUI = null) {
+    activate(character, trade_partner_ui = null, owner = null) {
         this.character = character;
-        this.trade_partner = trade_partner;
-        this.tradeUI = tradeUI;
+        this.trade_partner_ui = trade_partner_ui;
+        this.owner = owner;
 
-        this.isTradeGrid = trade_partner !== null;
         this.isNpcSide = this.slot_grid.id === "npcSlotGrid";
 
         this.orig_inventory_slots = [];
@@ -79,7 +78,8 @@ export class SlotGridUI {
 
     deactivate() {
         this.character = null;
-        this.trade_partner = null;
+        this.trade_partner_ui = null;
+        this.owner = null;
         this.orig_inventory_slots = [];
     }
 
@@ -149,8 +149,8 @@ export class SlotGridUI {
 
         let extraInfo = "";
 
-        if (this.isTradeGrid && this.tradeUI) {
-            const tradeInfo = this.tradeUI.getTradeHoverInfo(item_instance, this.isNpcSide);
+        if (this.owner) {
+            const tradeInfo = this.owner.getTradeHoverInfo(item_instance, this.isNpcSide);
 
             if (tradeInfo) {
                 const canAfford = this.canTradeItem(item_instance, this.isNpcSide);
@@ -204,8 +204,13 @@ export class SlotGridUI {
         const from_index = parseInt(dataObj.index);
         if (dataObj.character_name == this.character.display_name) {
             this.character.swapInventorySlots(to_index, this.character, from_index);
-        } else if (this.trade_partner) {
-            this.character.swapInventorySlots(to_index, this.trade_partner, from_index);
+        } else if (this.trade_partner_ui) {
+            const trade_partner = this.trade_partner_ui.character;
+            if (dataObj.character_name == trade_partner.display_name) {
+                this.character.swapInventorySlots(to_index, trade_partner, from_index);
+            } else {
+                alert("Invalid grid drop.");
+            }
         }
         this.refresh_grids_func();
     }
@@ -243,9 +248,9 @@ export class SlotGridUI {
             return this.character.gold >= totalCost;
         } else {
             // Player selling to NPC → check NPC's gold
-            if (!this.trade_partner) return true;
+            if (!this.trade_partner_ui) return true;
             const totalValue = itemInst.def.bid * count;
-            return this.trade_partner.gold >= totalValue;
+            return this.trade_partner_ui.character.gold >= totalValue;
         }
     }
 }
