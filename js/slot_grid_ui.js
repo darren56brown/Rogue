@@ -3,12 +3,12 @@ import {SplitUI} from "./split_ui.js";
 
 export class SlotGridUI {
     constructor(is_for_player, grid_element_name, gold_amount_name,
-        refresh_grids_func) {
+        item_desc_elem_name, refresh_grids_func) {
         this.character = null;
         this.trade_partner_ui = null;
         this.slot_grid = document.getElementById(grid_element_name);
         this.gold_element = document.getElementById(gold_amount_name);
-        this.itemDescEl = document.getElementById("tradeItemDescription");
+        this.itemDescEl = document.getElementById(item_desc_elem_name);
         this.refresh_grids_func = refresh_grids_func
 
         this.split_ui = null;
@@ -20,7 +20,7 @@ export class SlotGridUI {
         this.orig_regular_items = null;
     }
 
-    activate(character, trade_partner_ui = null) {
+    activate(character, trade_partner_ui) {
         this.character = character;
         this.trade_partner_ui = trade_partner_ui;
 

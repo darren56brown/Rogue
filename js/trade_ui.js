@@ -15,10 +15,10 @@ export class TradeUI {
         this.resetBtn = document.getElementById('resetTradeBtn');
 
         this.player_slot_grid = new SlotGridUI(true, "playerSlotGrid",
-            "tradePlayerGoldAmount", () => this.onGridsChanged());
+            "tradePlayerGoldAmount", "tradeItemDescription", () => this.onGridsChanged());
 
         this.npc_slot_grid = new SlotGridUI(false, "npcSlotGrid",
-            "tradeNpcGoldAmount", () => this.onGridsChanged());
+            "tradeNpcGoldAmount", "tradeItemDescription", () => this.onGridsChanged());
 
         this.closeBtn.onclick = () => this.cancelTrade();
         this.cancelBtn.onclick = () => this.cancelTrade();

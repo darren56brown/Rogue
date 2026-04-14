@@ -295,26 +295,7 @@ export class App {
 
         if (this.state !== "running") return;
 
-        if (this.pending_action) {
-            const partner = this.pending_action.partner;
-            const type = this.pending_action.type;
-            this.pending_action = null;    
-            if (partner) {
-                if (type == "trade") {
-                    this.tradeUI.activate(this.player, partner);
-                } else if (type == "inventory") {
-                    this.inventoryUI.activate(partner);
-                } else if (type == "sprite_view") {
-                    this.spriteViewer.activate(partner);
-                }
-            } else {
-                if (type == "inventory") {
-                    this.inventoryUI.activate(this.player);
-                } else if (type == "sprite_view") {
-                    this.spriteViewer.activate(this.player);
-                }
-            }
-        }
+        if (this.canTakePendingAction()) this.takePendingAction();
 
         for (const char of this.characters) {
             char.updatePhysics(dt, this.current_game_map);
@@ -346,6 +327,59 @@ export class App {
             setAdd(this.view_origin, mult(view_origin_error, lerpFactor * dt));
 
         this.updateHighlights();
+    }
+
+    canTakePendingAction() {
+        if (!this.pending_action) return false;
+
+        if (this.pending_action.type == "move_to") {
+            return !this.player.isHoppingOrDropping();
+        }
+
+        return true;
+    }
+
+    takePendingAction() {
+        if (!this.pending_action) return;
+
+        const partner = this.pending_action.partner;
+        const type = this.pending_action.type;
+        const world_pos = this.pending_action.world_pos;
+        this.pending_action = null;    
+
+        if (partner) {
+            if (type == "trade") {
+                this.tradeUI.activate(this.player, partner);
+                return;
+            }
+            
+            if (type == "inventory") {
+                this.inventoryUI.activate(partner);
+                return;
+            }
+            
+            if (type == "sprite_view") {
+                this.spriteViewer.activate(partner);
+                return;
+            }
+
+            return;
+        }
+
+        if (type == "inventory") {
+            this.inventoryUI.activate(this.player);
+            return;
+        }
+        
+        if (type == "sprite_view") {
+            this.spriteViewer.activate(this.player);
+            return;
+        }
+        
+        if (type == "move_to") {
+            this.player.moveTo(this.current_game_map, world_pos);
+            return;
+        }
     }
 
     initUserInput() {
@@ -522,7 +556,7 @@ export class App {
             const tile_z = this.highlighted_tile.layerZ;
             const screen_pos = this.getPositionFromEvent(e);
             const world_pos = this.screenToWorld(screen_pos, tile_z);
-            this.player.moveTo(this.current_game_map, world_pos);
+            this.pending_action = {type: "move_to", world_pos: world_pos};
             return;
         }
 

@@ -309,8 +309,13 @@ export class Character {
     }
 
     _updateFollow(game_map) {
-        const target_is_walking = this.follow_target.isWalking();
         this.follow_success = false;
+
+        //If we are in the process of falling or jumping, 
+        //we must complete the action before doing anything.
+        if (this.isHoppingOrDropping()) return;
+
+        const target_is_walking = this.follow_target.isWalking();
 
         const dist_to_target = Math.hypot(
             this.#world_pos.x -this.follow_target.#world_pos.x,
@@ -522,6 +527,14 @@ export class Character {
             fungible_items.set(map_key, item_instance.count + prev_count);
         }
         return fungible_items;
+    }
+
+    isHoppingOrDropping()
+    {
+        if (!this.isWalking()) return false;
+        const target_xyz = this.waypoints[this.currentWaypointIndex];
+        const abs_delta_z = Math.abs(target_xyz.z - this.#world_pos.z);
+        return abs_delta_z > 1e-3;
     }
 }
 

@@ -10,7 +10,7 @@ export class InventoryUI {
         this.container = document.getElementById('inventoryViewer');
         this.closeBtn = document.getElementById('closeInventory');
         
-        this.player_slot_grid = new SlotGridUI("inventorySlotGrid",
+        this.player_slot_grid = new SlotGridUI(true, "inventorySlotGrid",
             "inventoryGoldAmount", "inventoryItemDescription",  
             () => this.refreshGrids());
 
@@ -46,7 +46,7 @@ export class InventoryUI {
 
         this.player = player;
 
-        this.player_slot_grid.activate(this.player);
+        this.player_slot_grid.activate(this.player, null);
 
         const header_title = document.querySelector('#inventoryViewer .inventory-viewer-header h2');
         header_title.textContent = `${this.player.display_name} Inventory`;
