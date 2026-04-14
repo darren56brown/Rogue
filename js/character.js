@@ -1,5 +1,5 @@
 import {PLAYER_ANIM_FRAME_SIZE, PLAYER_TILE_ORIGIN, MOVE_TARGET_TOL} from "./constants.js";
-import {vec2D, add, sub, mult, setAdd, norm, div, intersect, dist, mag, dot} from './vec2D.js';
+import {vec2D, add, sub, mult, norm, div, intersect, dist, dot} from './vec2D.js';
 import {cartesianToIso, getMixedDist, getTileCoordFromXY, isoCompare} from './util.js';
 import {SpriteSheet} from './sprite_sheet.js';
 import {GameItemInst} from "./game_item.js";
@@ -205,11 +205,8 @@ export class Character {
         this.currentWaypointIndex = 0;
     }
 
-    buildPathToPosition(game_map, goal_pos_xy, goal_z) {
-        const start_pos_xy = vec2D(this.#world_pos.x, this.#world_pos.y);
-        const startZ = this.#world_pos.z;
-        const tilePath = game_map.findPath(start_pos_xy, startZ,
-            goal_pos_xy, goal_z);
+    buildPathToPosition(game_map, world_pos) {
+        const tilePath = game_map.findPath(this.#world_pos, world_pos);
 
         if (!tilePath.length) {
             this.clearPath();
@@ -217,12 +214,12 @@ export class Character {
         }
 
         let waypoints = [];
-        this._pushWaypoint(waypoints, start_pos_xy.x, start_pos_xy.y, startZ);
+        this._pushWaypoint(waypoints, this.#world_pos.x, this.#world_pos.y, this.#world_pos.z);
         for (let i = 1; i < tilePath.length - 1; ++i) {
             const pathPoint = tilePath[i];
             this._pushWaypoint(waypoints, pathPoint.x + 0.5, pathPoint.y + 0.5, pathPoint.z);
         }
-        this._pushWaypoint(waypoints, goal_pos_xy.x, goal_pos_xy.y, goal_z);
+        this._pushWaypoint(waypoints, world_pos.x, world_pos.y, world_pos.z);
         this.setWaypoints(waypoints);
     }
     
@@ -308,7 +305,7 @@ export class Character {
 
     moveTo(game_map, world_pos) {
         this.stopFollowing();
-        this.buildPathToPosition(game_map, vec2D(world_pos.x, world_pos.y), world_pos.z);
+        this.buildPathToPosition(game_map, world_pos);
     }
 
     _updateFollow(game_map) {
@@ -358,7 +355,7 @@ export class Character {
             return;
         }
 
-        this.buildPathToPosition(game_map, target_xy, target_z);
+        this.buildPathToPosition(game_map, this.follow_target.#world_pos);
         if (this.waypoints.length > 0) {
             this.follow_cache = {
                 target_xy: target_xy,

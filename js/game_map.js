@@ -1,6 +1,6 @@
 import {ISO, MAX_DROP, MAX_HOP} from "./constants.js";
 import { getTileIndicesFromPosition, isoCompare} from './util.js';
-import { vec2D, vec3DFromVec2d } from "./vec2D.js";
+import { vec2D } from "./vec2D.js";
 import { Npc } from "./npc.js";
 import { GameItemDef } from "./game_item.js";
 
@@ -210,10 +210,9 @@ export class GameMap {
         return null;
     }
 
-    getDropDistance(world_pos) {
+    getDropDistance(tile_indices) {
         if (!this.isLoaded) return 0;
 
-        const tile_indices = getTileIndicesFromPosition(vec2D(world_pos.x, world_pos.y));
         if (tile_indices.x < 0 || tile_indices.x >= this.size.w ||
             tile_indices.y < 0 || tile_indices.y >= this.size.h) {
             return 0;
@@ -221,22 +220,21 @@ export class GameMap {
 
         for (let i = this.layers.length - 1; i >= 0; i--) {
             const layer = this.layers[i];
-            if (layer.zHeight > world_pos.z) continue;
+            if (layer.zHeight > tile_indices.z) continue;
 
             const tileInfo =
                 this.getTileInfoForLayer(tile_indices.x, tile_indices.y, layer);
             if (!tileInfo) continue;
 
-            return world_pos.z - layer.zHeight;
+            return tile_indices.z - layer.zHeight;
         }
 
         return Infinity;
     }
 
-    getHopDistance(world_pos) {
+    getHopDistance(tile_indices) {
         if (!this.isLoaded) return 0;
 
-        const tile_indices = getTileIndicesFromPosition(vec2D(world_pos.x, world_pos.y));
         if (tile_indices.x < 0 || tile_indices.x >= this.size.w ||
             tile_indices.y < 0 || tile_indices.y >= this.size.h) {
             return 0;
@@ -244,7 +242,7 @@ export class GameMap {
 
         for (let i = 0; i < this.layers.length; i++) {
             const layer = this.layers[i];
-            if (layer.zHeight <= world_pos.z) continue;
+            if (layer.zHeight <= tile_indices.z) continue;
 
             const tileInfo =
                 this.getTileInfoForLayer(tile_indices.x, tile_indices.y, layer);
@@ -265,7 +263,7 @@ export class GameMap {
                 }
             }
 
-            if (!obstructed_above) return layer.zHeight - world_pos.z;
+            if (!obstructed_above) return layer.zHeight - tile_indices.z;
         }
 
         return Infinity;
@@ -304,16 +302,22 @@ export class GameMap {
         return this.isTileObstructed(tile_indices);
     }
 
-    findPath(startWorldPos, startZ, goalWorldPos, goalZ) {
-        if (this.isPositionObstructed(vec3DFromVec2d(startWorldPos, startZ)) ||
-            this.isPositionObstructed(vec3DFromVec2d(goalWorldPos, goalZ))) {
+    findPath(start_world_pos, goal_world_pos) {
+        if (this.isPositionObstructed(start_world_pos) ||
+            this.isPositionObstructed(goal_world_pos)) {
             return [];
         }
 
-        const startTile = vec3DFromVec2d(getTileIndicesFromPosition(startWorldPos),
-            Math.round(startZ));
-        const goalTile = vec3DFromVec2d(getTileIndicesFromPosition(goalWorldPos),
-            Math.round(goalZ));
+        const startTile = {
+            x: Math.floor(start_world_pos.x),
+            y: Math.floor(start_world_pos.y),
+            z: Math.round(start_world_pos.z)
+        };
+        const goalTile = {
+            x: Math.floor(goal_world_pos.x),
+            y: Math.floor(goal_world_pos.y),
+            z: Math.round(goal_world_pos.z)
+        };
         
         if (startTile.x == goalTile.x &&
             startTile.y == goalTile.y &&
@@ -409,25 +413,34 @@ export class GameMap {
             vec2D(0, -1), vec2D(-1, 0)
         ]; 
         for (const cardinalDir of cardinalDirs) {
-            const nx = tile_coord.x + cardinalDir.x;
-            const ny = tile_coord.y + cardinalDir.y;
-            if (nx < 0 || nx >= this.size.w || ny < 0 || ny >= this.size.h) continue;
-            const neighCenter = { x: nx + 0.5, y: ny + 0.5, z: tile_coord.z};
+            const neighbor_idx = {
+                x: tile_coord.x + cardinalDir.x,
+                y: tile_coord.y + cardinalDir.y,
+                z: tile_coord.z
+            }
+            if (neighbor_idx.x < 0 || neighbor_idx.x >= this.size.w ||
+                neighbor_idx.y < 0 || neighbor_idx.y >= this.size.h) continue;
 
-            if (!this.isTileObstructed(vec3DFromVec2d(vec2D(nx, ny), tile_coord.z))) {
-                const drop = this.getDropDistance(neighCenter);
+            if (this.isTileObstructed(neighbor_idx)) {
+                const hop = this.getHopDistance(neighbor_idx);
+                if (hop <= MAX_HOP) {
+                    neighbors.push({
+                        x: neighbor_idx.x,
+                        y: neighbor_idx.y,
+                        z: tile_coord.z + hop
+                    });
+                }    
+            } else {
+                const drop = this.getDropDistance(neighbor_idx);
                 if (drop < 0.1) openCardinal.add(`${cardinalDir.x},${cardinalDir.y}`);
 
                 if (drop <= MAX_DROP) {
-                    const landingZ = tile_coord.z - drop;
-                    neighbors.push({ x: nx, y: ny, z: landingZ });
-                }
-            } else {
-                const hop = this.getHopDistance(neighCenter);
-                if (hop <= MAX_HOP) {
-                    const landingZ = tile_coord.z + hop;
-                    neighbors.push({ x: nx, y: ny, z: landingZ });
-                }
+                    neighbors.push({
+                        x: neighbor_idx.x,
+                        y: neighbor_idx.y,
+                        z: tile_coord.z - drop
+                    });
+                }     
             }
         }
 
@@ -436,16 +449,24 @@ export class GameMap {
             vec2D(-1, 1), vec2D(-1, -1)
         ];
         for (const diagonalDir of diagonalDirs) {
-            const nx = tile_coord.x + diagonalDir.x;
-            const ny = tile_coord.y + diagonalDir.y
-            if (nx < 0 || nx >= this.size.w || ny < 0 || ny >= this.size.h) continue;
+            const neighbor_idx = {
+                x: tile_coord.x + diagonalDir.x,
+                y: tile_coord.y + diagonalDir.y,
+                z: tile_coord.z
+            }
+            if (neighbor_idx.x < 0 || neighbor_idx.x >= this.size.w ||
+                neighbor_idx.y < 0 || neighbor_idx.y >= this.size.h) continue;
 
             const cardinalA = `${diagonalDir.x},0`;
             const cardinalB = `0,${diagonalDir.y}`;
 
             if (openCardinal.has(cardinalA) && openCardinal.has(cardinalB)) {
-                if (!this.isTileObstructed(vec3DFromVec2d(vec2D(nx, ny), tile_coord.z))) {
-                    neighbors.push({ x: nx, y: ny, z: tile_coord.z });
+                if (!this.isTileObstructed(neighbor_idx)) {
+                    neighbors.push({
+                        x: neighbor_idx.x,
+                        y: neighbor_idx.y,
+                        z: neighbor_idx.z
+                    });
                 }
             }
         }

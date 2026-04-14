@@ -171,13 +171,15 @@ export class Npc extends Character {
             if (tx < 0 || tx >= game_map.size.w || ty < 0 || ty >= game_map.size.h) continue;
             if (tx === currentTileX && ty === currentTileY) continue;
 
-            const goalPos = {x: tx + 0.5, y: ty + 0.5, z: 1000};
-            const dropFromSky = game_map.getDropDistance(goalPos);
-            if (dropFromSky === Infinity || dropFromSky < 0) continue;
+            const drop_in_tile_idx = {x: tx, y: ty, z: 1000};
+            const drop_distance = game_map.getDropDistance(drop_in_tile_idx);
+            if (drop_distance === Infinity || drop_distance < 0) continue;
 
-            const goalZ = 1000 - dropFromSky;
-
-            this.buildPathToPosition(game_map, goalPos, goalZ);
+            const world_pos = {
+                x: tx + 0.5,
+                y: ty + 0.5,
+                z: 1000 - drop_distance};
+            this.buildPathToPosition(game_map, world_pos);
 
             if (this.waypoints.length >= 2) {
                 this._transitionTo(NPC_STATES.WALKING);

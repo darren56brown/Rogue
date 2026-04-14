@@ -93,4 +93,3 @@ export const intersect = (a1, a2, b1, b2) => {
     return add(a1, mult(r, t));
 };
 
-export const vec3DFromVec2d = (xy, z) => ({x: xy.x, y: xy.y, z: z});
