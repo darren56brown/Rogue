@@ -91,8 +91,7 @@ export class App {
             this.current_game_map = newMap;
 
             // Teleport player
-            this.player.setPositionXY({ x: targetPos.x, y: targetPos.y });
-            this.player.setZ(targetPos.z);
+            this.player.setWorldPosition(targetPos);
             this.player.clearPath();
             this.player.stopFollowing();
 
@@ -330,8 +329,7 @@ export class App {
             this.conversationUI.startConversation(follow_target);
         }
 
-        const portal = this.current_game_map.getPortalAt(
-            this.player.getPositionXY(), this.player.getZ());
+        const portal = this.current_game_map.getPortalAt(this.player.getWorldPosition());
         if (portal) {
             this.switchMap(portal.targetMap, portal.targetPlayerStart);
         }
@@ -405,11 +403,12 @@ export class App {
         this.canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
     }
 
-    screenToWorld(screenPos, z = 0) {
+    screenToWorld(screenPos, z) {
         const viewIso = cartesianToIso(this.view_origin.x, this.view_origin.y, 0);
         const isoX = screenPos.x + viewIso.x;
         const isoY = screenPos.y + viewIso.y + z * ISO.TILE_Z;
-        return isoToCartesian(isoX, isoY);
+        const cartesian = isoToCartesian(isoX, isoY);
+        return {x: cartesian.x, y: cartesian.y, z: z};
     }
 
     getPositionFromEvent(e) {
@@ -424,7 +423,7 @@ export class App {
     }
 
     updateHighlights() {
-        if (this.state !== "running") {
+        if (this.state != "running") {
             this.highlighted_tile = null;
             this.highlighted_character = null;
             return;
@@ -433,24 +432,27 @@ export class App {
         if (this.highlighted_character) {
             this.highlighted_tile = null;
         } else {
-            this.highlighted_tile = this.getMouseOverTile(this.last_screen_pos);
+            const world_pos = this.getMouseOverWorldPos(this.last_screen_pos);
+            if (world_pos) {
+                this.highlighted_tile = {
+                    tileCoord: vec2D(Math.floor(world_pos.x), Math.floor(world_pos.y)),
+                    layerZ: world_pos.z
+                }
+            }
         }
     }
 
-    getMouseOverTile(screenPos) {
-        if (!this.current_game_map?.isLoaded) return null;
+    getMouseOverWorldPos(screenPos) {
+        if (!this.current_game_map || !this.current_game_map.isLoaded) return null;
 
         for (let i = this.current_game_map.layers.length - 1; i >= 0; i--) {
             const layer = this.current_game_map.layers[i];
-            const worldPos = this.screenToWorld(screenPos, layer.zHeight);
+            const world_pos = this.screenToWorld(screenPos, layer.zHeight);
             
-            const tx = Math.floor(worldPos.x);
-            const ty = Math.floor(worldPos.y);
+            const tx = Math.floor(world_pos.x);
+            const ty = Math.floor(world_pos.y);
             if (this.current_game_map.getTileInfoForLayer(tx, ty, layer)) {
-                return {
-                    tileCoord: vec2D(tx, ty),
-                    layerZ: layer.zHeight
-                };
+                return world_pos;
             }
         }
         return null;
@@ -519,8 +521,8 @@ export class App {
         if (this.highlighted_tile) {
             const tile_z = this.highlighted_tile.layerZ;
             const screen_pos = this.getPositionFromEvent(e);
-            const world_pos_xy = this.screenToWorld(screen_pos, tile_z);
-            this.player.moveTo(this.current_game_map, {x: world_pos_xy.x, y: world_pos_xy.y, z: tile_z});
+            const world_pos = this.screenToWorld(screen_pos, tile_z);
+            this.player.moveTo(this.current_game_map, world_pos);
             return;
         }
 

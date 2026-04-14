@@ -54,12 +54,15 @@ export class Renderer {
             const img = this.imageLibrary.get(info.imageName);
             if (!img) continue;
 
-            const xy_sort = vec2D(drawItem.x + 0.5, drawItem.y + 0.5);
-            const z_sort = drawItem.layer.zHeight - 0.5;
+            const world_pos_sort = {
+                x: drawItem.x + 0.5,
+                y: drawItem.y + 0.5,
+                z: drawItem.layer.zHeight - 0.5
+            }
 
             while (nextCharacterIdx < characters.length) {
                 const nextCharacter = characters[nextCharacterIdx];
-                if (nextCharacter.compareToSortInfo(xy_sort, z_sort) > 0) break;
+                if (nextCharacter.compareToSortInfo(world_pos_sort) > 0) break;
                 this.renderCharacter(nextCharacter, false);
                 nextCharacterIdx++;
             }

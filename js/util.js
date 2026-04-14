@@ -23,9 +23,9 @@ export function getTileIndicesFromPosition(pos) {
     return vec2D(Math.floor(pos.x), Math.floor(pos.y));
 }
 
-export function isoCompare(xy_sort_1, z_sort_1, xy_sort_2, z_sort_2) {
-        return xy_sort_1.x + xy_sort_1.y + z_sort_1 - 
-            (xy_sort_2.x + xy_sort_2.y + z_sort_2);
+export function isoCompare(world_pos1, world_pos2) {
+        return world_pos1.x + world_pos1.y + world_pos1.z - 
+            (world_pos2.x + world_pos2.y + world_pos2.z);
 };
 
 export function getMixedDist(xy_1, z_1, xy_2, z_2) {

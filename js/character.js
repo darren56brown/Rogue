@@ -27,10 +27,10 @@ export const FACING_VECTORS = new Map([
 ]);
 
 export class Character {
-    #pos_xy = {x: 0, y: 0};
-    #z = 0;
+    #world_pos = {x: 0, y: 0, z: 0};
 
     constructor(world_pos, display_name, item_library) {
+        this.#world_pos = world_pos;
         this.display_name = display_name;
         this.item_library = item_library;
         
@@ -67,9 +67,6 @@ export class Character {
         };
 
         this.gold = 100;
-
-        this.setPositionXY(vec2D(world_pos.x, world_pos.y));
-        this.setZ(world_pos.z);
     }
 
     resetDisplayName(display_name) {
@@ -96,60 +93,44 @@ export class Character {
         return this.waypoints.length > 0;
     }
 
-    getZ() {
-        return this.#z;
+    getWorldPosition() {
+        return {
+            x: this.#world_pos.x,
+            y: this.#world_pos.y,
+            z: this.#world_pos.z
+        }
     }
 
-    getPositionXY() {
-        return { x: this.#pos_xy.x, y: this.#pos_xy.y };
-    }
-
-    setPositionXY(pos) {
-        this.#pos_xy.x = pos.x;
-        this.#pos_xy.y = pos.y;
-    }
-
-    setZ(z) {
-        this.#z = z;
+    setWorldPosition(world_position) {
+        this.#world_pos.x = world_position.x;
+        this.#world_pos.y = world_position.y;
+        this.#world_pos.z = world_position.z;
     }
     
-    moveX(dx) {
-        this.#pos_xy.x += dx;
-    }
-
-    moveY(dy) {
-        this.#pos_xy.y += dy;
-    }
-
-    moveZ(dz) {
-        this.#z += dz;
-    }
-
-    moveXYZ(dx, dy, dz) {
-        this.#pos_xy.x += dx;
-        this.#pos_xy.y += dy;
-        this.#z += dz;
-    }
-
-    movePosition(delta) {
-        setAdd(this.#pos_xy, delta);
-    }
-
-    compareToOther(other) {
-        return this.compareToSortInfo(other.#pos_xy, other.#z + 0.5);
-    }
-
-    compareToSortInfo(xy_sort, z_sort) {
-        return isoCompare(this.#pos_xy, this.#z + 0.5, xy_sort, z_sort);
-    }
-
     getIsoPosition() {
-        return cartesianToIso(this.#pos_xy.x, this.#pos_xy.y, this.#z);
+        return cartesianToIso(this.#world_pos.x, this.#world_pos.y, this.#world_pos.z);
     }
 
     getShadowIsoPosition() {
-        const zOnGround = Math.floor(this.#z);
-        return cartesianToIso(this.#pos_xy.x, this.#pos_xy.y, zOnGround);
+        const zOnGround = Math.floor(this.#world_pos.z);
+        return cartesianToIso(this.#world_pos.x, this.#world_pos.y, zOnGround);
+    }
+
+    compareToOther(other) {
+        return this.compareToSortInfo({
+            x: other.#world_pos.x,
+            y: other.#world_pos.y,
+            z: other.#world_pos.z + 0.5
+        });
+    }
+
+    compareToSortInfo(world_pos) {
+        const shifted = {
+            x: this.#world_pos.x,
+            y: this.#world_pos.y,
+            z: this.#world_pos.z + 0.5
+        };
+        return isoCompare(shifted, world_pos);
     }
 
     updatePhysics(dt, game_map) {
@@ -163,9 +144,9 @@ export class Character {
         if (this.currentWaypointIndex < this.waypoints.length) {
             const target_xyz = this.waypoints[this.currentWaypointIndex];
             world_move_vec = {
-                x: target_xyz.x - this.#pos_xy.x,
-                y: target_xyz.y - this.#pos_xy.y,
-                z: target_xyz.z - this.#z
+                x: target_xyz.x - this.#world_pos.x,
+                y: target_xyz.y - this.#world_pos.y,
+                z: target_xyz.z - this.#world_pos.z
             };
             world_move_mag = Math.sqrt(
                 world_move_vec.x * world_move_vec.x +
@@ -195,13 +176,9 @@ export class Character {
             if (Math.abs(unit_move_vec.z) > 0.2) speed = this.fall_speed;
 
             const actual_move_mag = Math.min(world_move_mag, speed * dt);
-            const delta_vec = {
-                x: unit_move_vec.x * actual_move_mag,
-                y: unit_move_vec.y * actual_move_mag,
-                z: unit_move_vec.z * actual_move_mag
-            };
-
-            this.moveXYZ(delta_vec.x, delta_vec.y, delta_vec.z);
+            this.#world_pos.x += unit_move_vec.x * actual_move_mag;
+            this.#world_pos.y += unit_move_vec.y * actual_move_mag;
+            this.#world_pos.z += unit_move_vec.z * actual_move_mag;
 
             this.spriteSheet.setAction("Walk");
             this.spriteSheet.setIsIdle(false);
@@ -229,10 +206,10 @@ export class Character {
     }
 
     buildPathToPosition(game_map, goal_pos_xy, goal_z) {
-        const start_pos_xy = this.getPositionXY();
-        const startZ = this.getZ();
-
-        const tilePath = game_map.findPath(start_pos_xy, startZ, goal_pos_xy, goal_z);
+        const start_pos_xy = vec2D(this.#world_pos.x, this.#world_pos.y);
+        const startZ = this.#world_pos.z;
+        const tilePath = game_map.findPath(start_pos_xy, startZ,
+            goal_pos_xy, goal_z);
 
         if (!tilePath.length) {
             this.clearPath();
@@ -335,16 +312,19 @@ export class Character {
     }
 
     _updateFollow(game_map) {
-        const target_xy = this.follow_target.getPositionXY();
-        const target_z = this.follow_target.getZ();
+        const target_xy = vec2D(
+            this.follow_target.#world_pos.x,
+            this.follow_target.#world_pos.y
+        );
+        const target_z = this.follow_target.#world_pos.z;
         const target_is_walking = this.follow_target.isWalking();
         this.follow_success = false;
 
         //If we're close to the target and they're walking,
         //stop moving, face them, and see what happens.
         if (target_is_walking) {
-            if (getMixedDist(this.getPositionXY(), this.getZ(),
-                target_xy, target_z) <= 1.5) {
+            if (getMixedDist(vec2D(this.#world_pos.x, this.#world_pos.y),
+                this.#world_pos.z, target_xy, target_z) <= 1.5) {
                 this.clearPath();
                 this._turnToFollowTarget();
                 return;
@@ -411,16 +391,19 @@ export class Character {
     }
 
     _isCloseEnoughToTarget(target_xy, target_z) {
-        return getMixedDist(this.getPositionXY(), this.getZ(),
-                target_xy, target_z) <= 0.9;
+        return getMixedDist(
+            vec2D(this.#world_pos.x, this.#world_pos.y), this.#world_pos.z,
+            target_xy, target_z
+        ) <= 0.9;
     }
 
     _turnToFollowTarget() {
         if (!this.follow_target) return;
         //Don't ever turn if we are walking.
         if (this.isWalking()) return;
-        const to_target = sub(this.follow_target.getPositionXY(),
-            this.getPositionXY());
+        const to_target = sub(
+            vec2D(this.follow_target.#world_pos.x, this.follow_target.#world_pos.y),
+            vec2D(this.#world_pos.x, this.#world_pos.y));
         this.curFacing = this._getNearestFacing(to_target);
     }
 

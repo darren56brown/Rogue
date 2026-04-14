@@ -143,8 +143,8 @@ export class GameMap {
                 }
             }
             this.drawList.sort((a, b) => isoCompare(
-                vec2D(a.x + 0.5, a.y + 0.5), a.layer.zHeight - 0.5,
-                vec2D(b.x + 0.5, b.y + 0.5), b.layer.zHeight - 0.5
+                {x: a.x + 0.5, y: a.y + 0.5, z: a.layer.zHeight - 0.5},
+                {x: b.x + 0.5, y: b.y + 0.5, z: b.layer.zHeight - 0.5}
             ));
         } catch (err) {
             console.error("Level load failed:", err);
@@ -152,12 +152,12 @@ export class GameMap {
         }
     }
 
-    getPortalAt(xy_pos, z) {
+    getPortalAt(world_position) {
         if (this.portals.length == 0) return null;
 
-        const tileX = Math.floor(xy_pos.x);
-        const tileY = Math.floor(xy_pos.y);
-        const tileZ = Math.floor(z);
+        const tileX = Math.floor(world_position.x);
+        const tileY = Math.floor(world_position.y);
+        const tileZ = Math.floor(world_position.z);
 
         for (const portal of this.portals) {
             if (portal.tileX == tileX &&
@@ -210,10 +210,10 @@ export class GameMap {
         return null;
     }
 
-    getDropDistance(xy_pos, z) {
+    getDropDistance(world_pos) {
         if (!this.isLoaded) return 0;
 
-        const tile_indices = getTileIndicesFromPosition(xy_pos);
+        const tile_indices = getTileIndicesFromPosition(vec2D(world_pos.x, world_pos.y));
         if (tile_indices.x < 0 || tile_indices.x >= this.size.w ||
             tile_indices.y < 0 || tile_indices.y >= this.size.h) {
             return 0;
@@ -221,22 +221,22 @@ export class GameMap {
 
         for (let i = this.layers.length - 1; i >= 0; i--) {
             const layer = this.layers[i];
-            if (layer.zHeight > z) continue;
+            if (layer.zHeight > world_pos.z) continue;
 
             const tileInfo =
                 this.getTileInfoForLayer(tile_indices.x, tile_indices.y, layer);
             if (!tileInfo) continue;
 
-            return z - layer.zHeight;
+            return world_pos.z - layer.zHeight;
         }
 
         return Infinity;
     }
 
-    getHopDistance(xy_pos, z) {
+    getHopDistance(world_pos) {
         if (!this.isLoaded) return 0;
 
-        const tile_indices = getTileIndicesFromPosition(xy_pos);
+        const tile_indices = getTileIndicesFromPosition(vec2D(world_pos.x, world_pos.y));
         if (tile_indices.x < 0 || tile_indices.x >= this.size.w ||
             tile_indices.y < 0 || tile_indices.y >= this.size.h) {
             return 0;
@@ -244,7 +244,7 @@ export class GameMap {
 
         for (let i = 0; i < this.layers.length; i++) {
             const layer = this.layers[i];
-            if (layer.zHeight <= z) continue;
+            if (layer.zHeight <= world_pos.z) continue;
 
             const tileInfo =
                 this.getTileInfoForLayer(tile_indices.x, tile_indices.y, layer);
@@ -265,7 +265,7 @@ export class GameMap {
                 }
             }
 
-            if (!obstructed_above) return layer.zHeight - z;
+            if (!obstructed_above) return layer.zHeight - world_pos.z;
         }
 
         return Infinity;
@@ -416,10 +416,10 @@ export class GameMap {
             const nx = tile_coord.x + dx;
             const ny = tile_coord.y + dy;
             if (nx < 0 || nx >= this.size.w || ny < 0 || ny >= this.size.h) continue;
-            const neighCenter = { x: nx + 0.5, y: ny + 0.5 };
+            const neighCenter = { x: nx + 0.5, y: ny + 0.5, z: tile_coord.z};
 
             if (!this.isTileObstructed(vec2D(nx, ny), tile_coord.z)) {
-                const drop = this.getDropDistance(neighCenter, tile_coord.z);
+                const drop = this.getDropDistance(neighCenter);
                 if (drop < 0.1) openCardinal.add(`${dx},${dy}`);
 
                 if (drop <= MAX_DROP) {
@@ -427,7 +427,7 @@ export class GameMap {
                     neighbors.push({ x: nx, y: ny, z: landingZ });
                 }
             } else {
-                const hop = this.getHopDistance(neighCenter, tile_coord.z);
+                const hop = this.getHopDistance(neighCenter);
                 if (hop <= MAX_HOP) {
                     const landingZ = tile_coord.z + hop;
                     neighbors.push({ x: nx, y: ny, z: landingZ });

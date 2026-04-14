@@ -157,9 +157,9 @@ export class Npc extends Character {
     }
 
     _attemptWander(game_map) {
-        const pos = this.getPositionXY();
-        const currentTileX = Math.floor(pos.x);
-        const currentTileY = Math.floor(pos.y);
+        const world_pos = this.getWorldPosition();
+        const currentTileX = Math.floor(world_pos.x);
+        const currentTileY = Math.floor(world_pos.y);
 
         const SEARCH_RADIUS = 4;
         const MAX_ATTEMPTS = 30;
@@ -171,9 +171,8 @@ export class Npc extends Character {
             if (tx < 0 || tx >= game_map.size.w || ty < 0 || ty >= game_map.size.h) continue;
             if (tx === currentTileX && ty === currentTileY) continue;
 
-            const goalPos = { x: tx + 0.5, y: ty + 0.5 };
-
-            const dropFromSky = game_map.getDropDistance(goalPos, 1000);
+            const goalPos = {x: tx + 0.5, y: ty + 0.5, z: 1000};
+            const dropFromSky = game_map.getDropDistance(goalPos);
             if (dropFromSky === Infinity || dropFromSky < 0) continue;
 
             const goalZ = 1000 - dropFromSky;
