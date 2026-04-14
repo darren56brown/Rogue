@@ -27,9 +27,3 @@ export function isoCompare(world_pos1, world_pos2) {
         return world_pos1.x + world_pos1.y + world_pos1.z - 
             (world_pos2.x + world_pos2.y + world_pos2.z);
 };
-
-export function getMixedDist(xy_1, z_1, xy_2, z_2) {
-    const xy_error = sub(xy_1, xy_2);
-    const z_error = z_1 - z_2;
-    return Math.hypot(xy_error.x, xy_error.y, z_error);
-};

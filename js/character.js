@@ -1,6 +1,6 @@
 import {PLAYER_ANIM_FRAME_SIZE, PLAYER_TILE_ORIGIN, MOVE_TARGET_TOL} from "./constants.js";
 import {vec2D, add, sub, mult, norm, div, intersect, dist, dot} from './vec2D.js';
-import {cartesianToIso, getMixedDist, getTileCoordFromXY, isoCompare} from './util.js';
+import {cartesianToIso, getTileCoordFromXY, isoCompare} from './util.js';
 import {SpriteSheet} from './sprite_sheet.js';
 import {GameItemInst} from "./game_item.js";
 
@@ -205,8 +205,8 @@ export class Character {
         this.currentWaypointIndex = 0;
     }
 
-    buildPathToPosition(game_map, world_pos) {
-        const tilePath = game_map.findPath(this.#world_pos, world_pos);
+    buildPathToPosition(game_map, to_world_pos) {
+        const tilePath = game_map.findPath(this.#world_pos, to_world_pos);
 
         if (!tilePath.length) {
             this.clearPath();
@@ -219,7 +219,7 @@ export class Character {
             const pathPoint = tilePath[i];
             this._pushWaypoint(waypoints, pathPoint.x + 0.5, pathPoint.y + 0.5, pathPoint.z);
         }
-        this._pushWaypoint(waypoints, world_pos.x, world_pos.y, world_pos.z);
+        this._pushWaypoint(waypoints, to_world_pos.x, to_world_pos.y, to_world_pos.z);
         this.setWaypoints(waypoints);
     }
     
@@ -309,69 +309,53 @@ export class Character {
     }
 
     _updateFollow(game_map) {
-        const target_xy = vec2D(
-            this.follow_target.#world_pos.x,
-            this.follow_target.#world_pos.y
-        );
-        const target_z = this.follow_target.#world_pos.z;
         const target_is_walking = this.follow_target.isWalking();
         this.follow_success = false;
 
+        const dist_to_target = Math.hypot(
+            this.#world_pos.x -this.follow_target.#world_pos.x,
+            this.#world_pos.y - this.follow_target.#world_pos.y,
+            this.#world_pos.z - this.follow_target.#world_pos.z
+        );
+        
+        //If we're close enough to the target and they're
+        //not walking, we're done.
+        if (!target_is_walking && dist_to_target <= 0.9) {
+            this.clearPath();
+            this.follow_success = true;
+            this._turnToFollowTarget();
+            return;
+        }
+
         //If we're close to the target and they're walking,
         //stop moving, face them, and see what happens.
-        if (target_is_walking) {
-            if (getMixedDist(vec2D(this.#world_pos.x, this.#world_pos.y),
-                this.#world_pos.z, target_xy, target_z) <= 1.5) {
-                this.clearPath();
-                this._turnToFollowTarget();
-                return;
-            }
-        }
-
-        //Throw away cache if the target has moved or turned.
-        if (this.follow_cache) {
-            if (target_is_walking != this.follow_cache.target_is_walking ||
-                getMixedDist(target_xy, target_z, this.follow_cache.target_xy,
-                this.follow_cache.target_z) > 0.1) {
-                this.follow_cache = null;
-            }
-        }
-
-        //If we still have a cache, test it and see if we are good.
-        if (this.follow_cache) {
-            if (this._isCloseEnoughToTarget(this.follow_cache.target_xy,
-                this.follow_cache.target_z)) {
-                this.clearPath();
-                this.follow_success = !target_is_walking;
-            }
-            this._turnToFollowTarget();
-            return;
-        }
-
-        if (this._isCloseEnoughToTarget(target_xy, target_z)) {
+        if (target_is_walking && dist_to_target <= 1.5)
+        {
             this.clearPath();
-            this.follow_success = !target_is_walking;
             this._turnToFollowTarget();
             return;
         }
+
+        //Throw away cache if the target has moved.
+        if (this.follow_cache) {
+            const target_move_dist = Math.hypot(
+                this.follow_cache.x - this.follow_target.#world_pos.x,
+                this.follow_cache.y - this.follow_target.#world_pos.y,
+                this.follow_cache.z - this.follow_target.#world_pos.z
+            );
+            if (target_move_dist > 0.1) this.follow_cache = null;
+        }
+
+        //Steady as she goes.
+        if (this.follow_cache) return;
 
         this.buildPathToPosition(game_map, this.follow_target.#world_pos);
-        if (this.waypoints.length > 0) {
-            this.follow_cache = {
-                target_xy: target_xy,
-                target_z: target_z,
-                target_is_walking: target_is_walking
-            };
-            this._turnToFollowTarget();
-            return;
-        }
-
+        //Cache for either success or failure
         this.follow_cache = {
-            target_xy: target_xy,
-            target_z: target_z,
-            target_is_walking: target_is_walking,
+            x: this.follow_target.#world_pos.x,
+            y: this.follow_target.#world_pos.y,
+            z: this.follow_target.#world_pos.z
         };
-        this._turnToFollowTarget();
     }
 
     _getNearestFacing(move_vec) {
@@ -385,13 +369,6 @@ export class Character {
             }
         }
         return best_facing;
-    }
-
-    _isCloseEnoughToTarget(target_xy, target_z) {
-        return getMixedDist(
-            vec2D(this.#world_pos.x, this.#world_pos.y), this.#world_pos.z,
-            target_xy, target_z
-        ) <= 0.9;
     }
 
     _turnToFollowTarget() {

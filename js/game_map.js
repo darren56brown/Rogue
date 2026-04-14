@@ -303,9 +303,11 @@ export class GameMap {
     }
 
     findPath(start_world_pos, goal_world_pos) {
-        if (this.isPositionObstructed(start_world_pos) ||
-            this.isPositionObstructed(goal_world_pos)) {
-            return [];
+        if (this.isPositionObstructed(goal_world_pos)) return [];
+    
+        if (this.isPositionObstructed(start_world_pos)) {
+            //console.log("fix this");
+            //return [];
         }
 
         const startTile = {
