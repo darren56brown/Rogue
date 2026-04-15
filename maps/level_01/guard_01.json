@@ -2,6 +2,7 @@
   "varname": "guard_01",
   "displayName": "Angry Guard",
   "spriteImageName": "orc_base",
+  "disposition": "friendly",
   "inventory": [
     { "id": "torch", "count": 2 }
   ]

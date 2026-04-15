@@ -42,9 +42,7 @@ export class ConversationUI {
         }
 
         this.current_npc = npc;
-        const conversation = this.current_npc.conversation;
-
-        conversation.start();
+        this.current_npc.startConversation();
 
         // Portrait setup
         const spriteImg = this.imageLibrary.get(npc.sprite_image_name);
@@ -109,14 +107,18 @@ export class ConversationUI {
     }
 
     endConversation() {
+        if (!this.current_npc) return;
+
         let exit_status = "okay";
         if (this.current_npc.conversation.init_trade) exit_status = "init_trade";
         this.container.classList.remove('is-active');
 
         this.onClose(exit_status, this.current_npc);
 
-        this.current_npc = null;
         this.portraitSpriteSheet = null;
+
+        this.current_npc.endConversation();
+        this.current_npc = null;
     }
 
 }

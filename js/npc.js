@@ -4,7 +4,7 @@ import { Conversation } from "./conversation.js";
 import { GameItemInst } from "./game_item.js";
 
 const NPC_STATES = Object.freeze({
-    ENGAGED:  'engaged',
+    CONVERSATION: 'conversation',
     STANDING: 'standing',
     TURNING:  'turning',
     WALKING:  'walking',
@@ -43,7 +43,8 @@ export class Npc extends Character {
 
             const npcInfo = await response.json();
 
-            if (npcInfo.displayName) this.resetDisplayName(npcInfo.displayName);
+            this.resetDisplayName(npcInfo.displayName);
+            this.disposition = npcInfo.disposition;
 
             const spriteName = npcInfo.spriteImageName;
             if (!spriteName) {
@@ -79,7 +80,13 @@ export class Npc extends Character {
 
     startConversation() {
         if (!this.conversation) return;
-        this.engage();
+        this._transitionTo(NPC_STATES.CONVERSATION);
+        this.conversation.start()
+    }
+
+    endConversation() {
+        if (!this.conversation) return;
+        this._transitionTo(NPC_STATES.READY);
     }
 
     updatePhysics(dt, game_map) {
@@ -91,7 +98,7 @@ export class Npc extends Character {
         this.timeInState += dt;
 
         switch (this.currentState) {
-            case NPC_STATES.ENGAGED:
+            case NPC_STATES.CONVERSATION:
                 return;
 
             case NPC_STATES.STANDING:
@@ -138,7 +145,7 @@ export class Npc extends Character {
             case NPC_STATES.READY:
                 this.targetTimeInState = 0.05;
                 break;
-            case NPC_STATES.ENGAGED:
+            case NPC_STATES.CONVERSATION:
                 this.targetTimeInState = 999;
                 break;
         }
@@ -192,9 +199,5 @@ export class Npc extends Character {
 
     _randomFacing() {
         return Math.floor(Math.random() * 8);
-    }
-
-    engage() {
-        this._transitionTo(NPC_STATES.ENGAGED);
     }
 }

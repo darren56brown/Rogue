@@ -2,6 +2,7 @@
   "varname": "blacksmith_bob",
   "displayName": "Blacksmith Bob",
   "spriteImageName": "orc_base",
+  "disposition": "friendly",
   "inventory": [
     { "id": "favorite_hammer", "count": 1, "durability": 120 },
     { "id": "iron_ingot", "count": 5 }

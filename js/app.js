@@ -69,7 +69,7 @@ export class App {
         // Close open UIs
         this.hideAllPanels();
         if (this.spriteViewer?.isActive) this.spriteViewer.deactivate();
-        if (this.conversationUI) this.conversationUI.closeConversation?.();
+        if (this.conversationUI) this.conversationUI.endConversation();
 
         // Instant black flash
         this.ctx.fillStyle = "#000000";
@@ -301,13 +301,10 @@ export class App {
             char.updatePhysics(dt, this.current_game_map);
         }
 
-        if (false && this.player.follow_success &&
-            this.player.follow_target &&
-            this.player.follow_target.conversation) {
-            const follow_target = this.player.follow_target;
+        if (this.player.follow_success) {
+            this.pending_action = {type: "conversation", partner: this.player.follow_target};
             this.player.stopFollowing();
             this.selected_character = null;
-            this.conversationUI.startConversation(follow_target);
         }
 
         const portal = this.current_game_map.getPortalAt(this.player.getWorldPosition());
@@ -335,7 +332,6 @@ export class App {
         if (this.pending_action.type == "move_to") {
             return !this.player.isHoppingOrDropping();
         }
-
         return true;
     }
 
@@ -360,6 +356,11 @@ export class App {
             
             if (type == "sprite_view") {
                 this.spriteViewer.activate(partner);
+                return;
+            }
+
+            if (type == "conversation") {
+                this.conversationUI.startConversation(partner);
                 return;
             }
 

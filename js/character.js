@@ -289,7 +289,8 @@ export class Character {
     }
 
     startFollowing(target) {
-        if (!target || target == this || target == this.follow_target) return;
+        if (!target || target == this ||
+            target == this.follow_target) return;
         this.clearPath();
         this.follow_target = target;
         this.follow_success = false;
@@ -309,7 +310,7 @@ export class Character {
     }
 
     _updateFollow(game_map) {
-        this.follow_success = false;
+        if (this.follow_success) return;
 
         //If we are in the process of falling or jumping, 
         //we must complete the action before doing anything.
@@ -327,8 +328,9 @@ export class Character {
         //not walking, we're done.
         if (!target_is_walking && dist_to_target <= 0.9) {
             this.clearPath();
-            this.follow_success = true;
             this._turnToFollowTarget();
+            this.follow_success = true;
+            this.follow_cache = null;
             return;
         }
 
@@ -338,6 +340,7 @@ export class Character {
         {
             this.clearPath();
             this._turnToFollowTarget();
+            this.follow_cache = null;
             return;
         }
 
